@@ -17,6 +17,11 @@
   <description>Callisto engine (OSGi aggregation)</description>
   <url>http://io7m.github.io/callisto/</url>
 
+  <properties>
+    <!-- Skip dependency analysis as there's no code to analyze. -->
+    <mdep.analyze.skip>true</mdep.analyze.skip>
+  </properties>
+
   <scm>
     <url>${project.parent.scm.url}</url>
     <connection>${project.parent.scm.connection}</connection>
