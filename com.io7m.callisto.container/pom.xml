@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project
+  xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.io7m.callisto</groupId>
+    <artifactId>com.io7m.callisto</artifactId>
+    <version>0.0.1</version>
+  </parent>
+
+  <artifactId>com.io7m.callisto.container</artifactId>
+  <packaging>bundle</packaging>
+
+  <name>com.io7m.callisto.container</name>
+  <description>Callisto engine (OSGi container)</description>
+  <url>http://io7m.github.io/callisto/</url>
+
+  <scm>
+    <url>${project.parent.scm.url}</url>
+    <connection>${project.parent.scm.connection}</connection>
+    <developerConnection>${project.parent.scm.developerConnection}</developerConnection>
+  </scm>
+
+  <dependencies>
+    <dependency>
+      <groupId>com.io7m.jnull</groupId>
+      <artifactId>com.io7m.jnull.core</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.io7m.junreachable</groupId>
+      <artifactId>com.io7m.junreachable.core</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.io7m.jproperties</groupId>
+      <artifactId>com.io7m.jproperties.core</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.osgi</groupId>
+      <artifactId>org.osgi.core</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.osgi</groupId>
+      <artifactId>org.osgi.service.log</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.felix</groupId>
+      <artifactId>org.apache.felix.framework</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.immutables</groupId>
+      <artifactId>value</artifactId>
+      <scope>provided</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!-- Check style -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+      </plugin>
+
+      <!-- Produce OSGi bundle -->
+      <plugin>
+        <groupId>org.apache.felix</groupId>
+        <artifactId>maven-bundle-plugin</artifactId>
+        <extensions>true</extensions>
+        <configuration>
+          <instructions>
+            <Private-Package>
+              org.apache.felix.resolver;-split-package:=merge-first,
+              org.apache.felix.resolver.*;-split-package:=merge-first,
+              org.apache.felix.framework;-split-package:=merge-first,
+              org.apache.felix.framework.*;-split-package:=merge-first,
+              org.apache.felix.main,
+              com.io7m.callisto.container,
+              com.io7m.jnull,
+              com.io7m.junreachable,
+              com.io7m.jproperties,
+              org.apache.logging.*;-split-package:=merge-first,
+              ch.qos.logback,
+              ch.qos.logback.*,
+              org.slf4j,
+              org.slf4j.*
+            </Private-Package>
+            <Embed-Dependency>
+              *;inline=default.properties
+            </Embed-Dependency>
+            <Import-Package></Import-Package>
+            <Export-Package>
+              org.osgi.dto;-split-package:=merge-first,
+              org.osgi.framework;-split-package:=merge-first,
+              org.osgi.framework.dto;-split-package:=merge-first,
+              org.osgi.framework.hooks.bundle;-split-package:=merge-first,
+              org.osgi.framework.hooks.resolver;-split-package:=merge-first,
+              org.osgi.framework.hooks.service;-split-package:=merge-first,
+              org.osgi.framework.hooks.weaving;-split-package:=merge-first,
+              org.osgi.framework.launch;-split-package:=merge-first,
+              org.osgi.framework.namespace;-split-package:=merge-first,
+              org.osgi.framework.startlevel;-split-package:=merge-first,
+              org.osgi.framework.startlevel.dto;-split-package:=merge-first,
+              org.osgi.framework.wiring;-split-package:=merge-first,
+              org.osgi.framework.wiring.dto;-split-package:=merge-first,
+              org.osgi.resource;-split-package:=merge-first,
+              org.osgi.resource.dto;-split-package:=merge-first,
+              org.osgi.service.log;-split-package:=merge-first,
+              org.osgi.service.packageadmin;-split-package:=merge-first,
+              org.osgi.service.resolver;-split-package:=merge-first,
+              org.osgi.service.startlevel;-split-package:=merge-first,
+              org.osgi.service.url;-split-package:=merge-first,
+              org.osgi.util.tracker;-split-package:=merge-first
+            </Export-Package>
+            <Main-Class>org.apache.felix.main.Main</Main-Class>
+          </instructions>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+</project>
