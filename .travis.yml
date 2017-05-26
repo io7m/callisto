@@ -12,7 +12,7 @@ addons:
       - oracle-java8-installer
 
 script:
-  - mvn clean verify
+  - mvn -Dcheckstyle.skip=true clean verify
 
 notifications:
   irc: "chat.freenode.net#io7m"
