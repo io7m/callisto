@@ -54,7 +54,6 @@ public final class CoResourceResolverTest
   {
     return CoreOptions.options(
       CoreOptions.url("link:classpath:com.io7m.jnull.core.link"),
-      CoreOptions.url("link:classpath:com.io7m.jaffirm.core.link"),
       CoreOptions.url("link:classpath:com.io7m.junreachable.core.link"),
       CoreOptions.url("link:classpath:it.unimi.dsi.fastutil.link"),
       CoreOptions.url("link:classpath:com.io7m.jcip.annotations.link"),
