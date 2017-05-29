@@ -22,15 +22,18 @@ import com.io7m.callisto.resources.api.CoResourceException;
 import com.io7m.callisto.resources.api.CoResourceExceptionBundleDuplicate;
 import com.io7m.callisto.resources.api.CoResourceExceptionBundleMalformed;
 import com.io7m.callisto.resources.api.CoResourceExceptionIO;
+import com.io7m.callisto.resources.api.CoResourceExceptionPackageError;
 import com.io7m.callisto.resources.api.CoResourceID;
 import com.io7m.callisto.resources.api.CoResourceModelType;
 import com.io7m.callisto.resources.api.CoResourcePackageNamespace;
 import com.io7m.callisto.resources.api.CoResourcePackageParserContinue;
+import com.io7m.callisto.resources.api.CoResourcePackageParserError;
 import com.io7m.callisto.resources.api.CoResourcePackageParserProviderType;
 import com.io7m.callisto.resources.api.CoResourcePackageParserReceiverType;
 import com.io7m.callisto.resources.api.CoResourcePackageParserType;
 import com.io7m.jnull.NullCheck;
 import it.unimi.dsi.fastutil.objects.Object2ReferenceOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.Version;
 import org.osgi.framework.wiring.BundleCapability;
@@ -136,12 +139,14 @@ public final class CoResourceModel implements CoResourceModelType
   {
     private final Bundle bundle;
     private final Object2ReferenceOpenHashMap<CoResourceID, CoResource> resources;
+    private final ObjectArrayList<CoResourcePackageParserError> errors;
 
     ParserReceiver(
       final Bundle in_bundle)
     {
       this.bundle = NullCheck.notNull(in_bundle, "Bundle");
       this.resources = new Object2ReferenceOpenHashMap<>();
+      this.errors = new ObjectArrayList<>();
     }
 
     @Override
@@ -167,6 +172,9 @@ public final class CoResourceModel implements CoResourceModelType
       } else {
         LOG.error("{}:{}: {}", uri, Integer.valueOf(line), message);
       }
+
+      this.errors.add(CoResourcePackageParserError.of(
+        uri, line, message, exception_opt));
       return CONTINUE;
     }
 
@@ -280,8 +288,8 @@ public final class CoResourceModel implements CoResourceModelType
     }
 
     for (int index = 0; index < exports.size(); ++index) {
-      final CPackage c_package =
-        this.processPackage(exporter, exports.get(index));
+      final BundleCapability export = exports.get(index);
+      final CPackage c_package = this.processPackage(exporter, export);
       packages.put(c_package.name, c_package);
     }
 
@@ -346,6 +354,20 @@ public final class CoResourceModel implements CoResourceModelType
     }
 
     throw resourcePackageDoesNotExist(requester, resource_id);
+  }
+
+  @Override
+  public boolean bundleIsRegistered(
+    final Bundle bundle)
+  {
+    NullCheck.notNull(bundle, "Bundle");
+
+    synchronized (this.bundles) {
+      return this.bundles.containsKey(
+        CoResourceBundleIdentifier.of(
+          bundle.getSymbolicName(),
+          bundle.getVersion()));
+    }
   }
 
   private CoResource lookupResourceInBundle(
@@ -435,13 +457,15 @@ public final class CoResourceModel implements CoResourceModelType
 
     try (final InputStream stream = declaration_url.openStream()) {
       final ParserReceiver receiver = new ParserReceiver(bundle);
-      final URI declaration_uri = declaration_url.toURI();
+      final URI uri = declaration_url.toURI();
       try (final CoResourcePackageParserType parser =
-             this.parsers.createFromInputStream(
-               stream,
-               declaration_uri,
-               receiver)) {
+             this.parsers.createFromInputStream(stream, uri, receiver)) {
         parser.run();
+        if (!receiver.errors.isEmpty()) {
+          throw new CoResourceExceptionPackageError(
+            receiver.errors,
+            "Errors were encountered during parsing.");
+        }
       }
 
       return new CPackage(package_name, receiver.resources);

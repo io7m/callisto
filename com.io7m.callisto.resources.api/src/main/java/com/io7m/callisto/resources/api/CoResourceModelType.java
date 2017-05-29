@@ -124,4 +124,13 @@ public interface CoResourceModelType
     Bundle requester,
     CoResourceID resource_id)
     throws CoResourceException;
+
+  /**
+   * @param bundle The bundle
+   *
+   * @return {@code true} if the given bundle is registered
+   */
+
+  boolean bundleIsRegistered(
+    Bundle bundle);
 }
