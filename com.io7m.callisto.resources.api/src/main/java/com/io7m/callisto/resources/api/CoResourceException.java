@@ -16,13 +16,49 @@
 
 package com.io7m.callisto.resources.api;
 
-public interface CoResourcePublicationType
+import com.io7m.callisto.core.CoException;
+
+/**
+ * The type of exceptions related to resources.
+ */
+
+public abstract class CoResourceException extends CoException
 {
-  String TOPIC_BASE = "com/io7m/callisto/resources";
+  /**
+   * Construct an exception.
+   *
+   * @param message The message
+   */
 
-  String TOPIC_ERRORS = TOPIC_BASE + "/errors";
+  public CoResourceException(
+    final String message)
+  {
+    super(message);
+  }
 
-  String TOPIC_WARNINGS = TOPIC_BASE + "/warnings";
+  /**
+   * Construct an exception.
+   *
+   * @param message The message
+   * @param cause   The cause
+   */
 
-  String TOPIC_ALL = TOPIC_BASE + "/*";
+  public CoResourceException(
+    final String message,
+    final Throwable cause)
+  {
+    super(message, cause);
+  }
+
+  /**
+   * Construct an exception.
+   *
+   * @param cause The cause
+   */
+
+  public CoResourceException(
+    final Throwable cause)
+  {
+    super(cause);
+  }
 }

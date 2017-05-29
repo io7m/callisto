@@ -16,37 +16,21 @@
 
 package com.io7m.callisto.resources.api;
 
-import com.io7m.callisto.core.CoImmutableStyleType;
-import org.immutables.value.Value;
-
-import java.net.URI;
-
 /**
- * The type of resources.
+ * A value that indicates whether or not parsing should continue.
  */
 
-@CoImmutableStyleType
-@Value.Immutable
-public interface CoResourceType
+public enum CoResourcePackageParserContinue
 {
   /**
-   * @return The resource ID
+   * Parsing should continue.
    */
 
-  @Value.Parameter
-  CoResourceID id();
+  CONTINUE,
 
   /**
-   * @return The resource type
+   * Parsing should finish.
    */
 
-  @Value.Parameter
-  String type();
-
-  /**
-   * @return The resource URI
-   */
-
-  @Value.Parameter
-  URI uri();
+  FINISH
 }

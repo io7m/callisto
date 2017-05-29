@@ -48,7 +48,9 @@
     <module name="AvoidNestedBlocks"/>
     -->
     <module name="AvoidStarImport"/>
+    <!--
     <module name="AvoidStaticImport"/>
+    -->
     <module name="BooleanExpressionComplexity"/>
     <module name="ClassDataAbstractionCoupling">
       <property name="max" value="35"/>
@@ -111,6 +113,7 @@
     </module>
     <module name="JavadocMethod">
       <property name="scope" value="public"/>
+      <property name="suppressLoadErrors" value="true"/>
     </module>
     <module name="JavadocType">
       <property name="scope" value="public"/>

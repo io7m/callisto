@@ -16,37 +16,22 @@
 
 package com.io7m.callisto.resources.api;
 
-import com.io7m.callisto.core.CoImmutableStyleType;
-import org.immutables.value.Value;
-
-import java.net.URI;
-
 /**
- * The type of resources.
+ * An exception raised by an attempt to register a bundle twice.
  */
 
-@CoImmutableStyleType
-@Value.Immutable
-public interface CoResourceType
+public final class CoResourceExceptionBundleDuplicate
+  extends CoResourceException
 {
   /**
-   * @return The resource ID
+   * Construct an exception.
+   *
+   * @param message The message
    */
 
-  @Value.Parameter
-  CoResourceID id();
-
-  /**
-   * @return The resource type
-   */
-
-  @Value.Parameter
-  String type();
-
-  /**
-   * @return The resource URI
-   */
-
-  @Value.Parameter
-  URI uri();
+  public CoResourceExceptionBundleDuplicate(
+    final String message)
+  {
+    super(message);
+  }
 }

@@ -16,37 +16,21 @@
 
 package com.io7m.callisto.resources.api;
 
-import com.io7m.callisto.core.CoImmutableStyleType;
-import org.immutables.value.Value;
-
-import java.net.URI;
-
 /**
- * The type of resources.
+ * An exception caused by an attempt to resolve a resource that does not exist.
  */
 
-@CoImmutableStyleType
-@Value.Immutable
-public interface CoResourceType
+public final class CoResourceExceptionNonexistent extends CoResourceException
 {
   /**
-   * @return The resource ID
+   * Construct an exception.
+   *
+   * @param message The exception message
    */
 
-  @Value.Parameter
-  CoResourceID id();
-
-  /**
-   * @return The resource type
-   */
-
-  @Value.Parameter
-  String type();
-
-  /**
-   * @return The resource URI
-   */
-
-  @Value.Parameter
-  URI uri();
+  public CoResourceExceptionNonexistent(
+    final String message)
+  {
+    super(message);
+  }
 }

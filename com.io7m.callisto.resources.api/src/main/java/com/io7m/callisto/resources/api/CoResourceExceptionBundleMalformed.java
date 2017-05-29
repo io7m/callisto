@@ -16,9 +16,34 @@
 
 package com.io7m.callisto.resources.api;
 
-import java.io.Closeable;
+/**
+ * An exception raised by an attempt to register a broken bundle.
+ */
 
-public interface CoResourceCatalogParserType extends Runnable, Closeable
+public final class CoResourceExceptionBundleMalformed
+  extends CoResourceException
 {
+  /**
+   * Construct an exception.
+   *
+   * @param message The exception message
+   */
 
+  public CoResourceExceptionBundleMalformed(
+    final String message)
+  {
+    super(message);
+  }
+
+  /**
+   * Construct an exception.
+   *
+   * @param cause The exception cause
+   */
+
+  public CoResourceExceptionBundleMalformed(
+    final Throwable cause)
+  {
+    super(cause);
+  }
 }

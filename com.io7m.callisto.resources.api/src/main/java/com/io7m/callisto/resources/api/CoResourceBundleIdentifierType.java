@@ -18,35 +18,27 @@ package com.io7m.callisto.resources.api;
 
 import com.io7m.callisto.core.CoImmutableStyleType;
 import org.immutables.value.Value;
-
-import java.net.URI;
+import org.osgi.framework.Version;
 
 /**
- * The type of resources.
+ * The type of resource bundle identifiers.
  */
 
 @CoImmutableStyleType
 @Value.Immutable
-public interface CoResourceType
+public interface CoResourceBundleIdentifierType
 {
   /**
-   * @return The resource ID
+   * @return The bundle name
    */
 
   @Value.Parameter
-  CoResourceID id();
+  String name();
 
   /**
-   * @return The resource type
+   * @return The bundle version
    */
 
   @Value.Parameter
-  String type();
-
-  /**
-   * @return The resource URI
-   */
-
-  @Value.Parameter
-  URI uri();
+  Version version();
 }

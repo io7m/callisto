@@ -16,31 +16,32 @@
 
 package com.io7m.callisto.resources.api;
 
-import java.io.FileNotFoundException;
-import java.net.URI;
-import java.util.Optional;
+import org.osgi.framework.Bundle;
 
-public interface CoResourceCatalogParserReceiverType
+/**
+ * The type of resource resolvers.
+ */
+
+public interface CoResourceResolverType
 {
-  URI
-  onResourceResolve(
-    String file)
-    throws FileNotFoundException;
+  /**
+   * Resolve the given resource.
+   *
+   * @param caller The requesting bundle
+   * @param id     The resource ID
+   *
+   * @return The resolved resource
+   *
+   * @throws CoResourceExceptionNonexistent If the resource does not exist, or
+   *                                        if no bundle exports the package
+   *                                        containing the resource to the
+   *                                        requesting bundle
+   * @throws CoResourceException            On errors
+   */
 
-  CoResourceParserContinue
-  onResource(
-    CoResource resource);
-
-  CoResourceParserContinue
-  onWarning(
-    URI url,
-    int line,
-    String message);
-
-  CoResourceParserContinue
-  onError(
-    URI url,
-    int line,
-    String message,
-    Optional<Exception> exception);
+  CoResource resolve(
+    Bundle caller,
+    CoResourceID id)
+    throws CoResourceException;
+  // No extra methods
 }

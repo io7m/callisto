@@ -16,32 +16,31 @@
 
 package com.io7m.callisto.tests.resources.main;
 
-import com.io7m.callisto.resources.api.CoResourceCatalogParserReceiverType;
-import com.io7m.callisto.resources.api.CoResourceCatalogParserType;
-import com.io7m.callisto.resources.main.CoResourceCatalogParsers;
-import com.io7m.callisto.tests.resources.api.CoResourceCatalogParserContract;
+import com.io7m.callisto.resources.api.CoResourcePackageParserReceiverType;
+import com.io7m.callisto.resources.api.CoResourcePackageParserType;
+import com.io7m.callisto.resources.main.CoResourcePackageParserProvider;
+import com.io7m.callisto.tests.resources.api.CoResourcePackageParserProviderContract;
 
-import java.io.BufferedReader;
 import java.io.StringReader;
 import java.net.URI;
 
-public final class CoResourceCatalogParserTest
-  extends CoResourceCatalogParserContract
+public final class CoResourcePackageParserProviderTest
+  extends CoResourcePackageParserProviderContract
 {
   @Override
-  protected CoResourceCatalogParserType createParser(
+  protected CoResourcePackageParserType createParser(
     final String text,
-    final CoResourceCatalogParserReceiverType receiver)
+    final CoResourcePackageParserReceiverType receiver)
   {
-    return new CoResourceCatalogParsers().createFromBufferedReader(
+    return new CoResourcePackageParserProvider().createFromReader(
+      new StringReader(text),
       this.uri(),
-      new BufferedReader(new StringReader(text)),
       receiver);
   }
 
   @Override
   protected URI uri()
   {
-    return URI.create("uurn:0");
+    return URI.create("urn:test");
   }
 }

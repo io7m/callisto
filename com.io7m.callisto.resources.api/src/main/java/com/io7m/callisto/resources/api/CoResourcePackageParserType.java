@@ -16,37 +16,13 @@
 
 package com.io7m.callisto.resources.api;
 
-import com.io7m.callisto.core.CoImmutableStyleType;
-import org.immutables.value.Value;
-
-import java.net.URI;
+import java.io.Closeable;
 
 /**
- * The type of resources.
+ * The type of package declaration parsers.
  */
 
-@CoImmutableStyleType
-@Value.Immutable
-public interface CoResourceType
+public interface CoResourcePackageParserType extends Runnable, Closeable
 {
-  /**
-   * @return The resource ID
-   */
-
-  @Value.Parameter
-  CoResourceID id();
-
-  /**
-   * @return The resource type
-   */
-
-  @Value.Parameter
-  String type();
-
-  /**
-   * @return The resource URI
-   */
-
-  @Value.Parameter
-  URI uri();
+  // No extra methods
 }

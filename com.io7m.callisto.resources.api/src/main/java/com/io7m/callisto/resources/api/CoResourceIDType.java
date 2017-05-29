@@ -17,36 +17,51 @@
 package com.io7m.callisto.resources.api;
 
 import com.io7m.callisto.core.CoImmutableStyleType;
+import com.io7m.jnull.NullCheck;
 import org.immutables.value.Value;
 
-import java.net.URI;
-
 /**
- * The type of resources.
+ * The type of resource identifiers.
  */
 
 @CoImmutableStyleType
 @Value.Immutable
-public interface CoResourceType
+public interface CoResourceIDType extends Comparable<CoResourceIDType>
 {
   /**
-   * @return The resource ID
+   * @return The package that exports the resource
    */
 
   @Value.Parameter
-  CoResourceID id();
+  String packageName();
 
   /**
-   * @return The resource type
+   * @return The name of the exported resource
    */
 
   @Value.Parameter
-  String type();
+  String name();
+
+  @Override
+  default int compareTo(
+    final CoResourceIDType other)
+  {
+    NullCheck.notNull(other, "Other");
+    final int cmp_r = this.packageName().compareTo(other.packageName());
+    if (cmp_r != 0) {
+      return cmp_r;
+    }
+    return this.name().compareTo(other.name());
+  }
 
   /**
-   * @return The resource URI
+   * @return The fully qualified name of the resource
    */
 
-  @Value.Parameter
-  URI uri();
+  @Value.Auxiliary
+  @Value.Derived
+  default String qualifiedName()
+  {
+    return this.packageName() + "." + this.name();
+  }
 }

@@ -112,6 +112,16 @@
         <artifactId>com.io7m.jproperties.core</artifactId>
         <version>[1.0.0, 2.0.0)</version>
       </dependency>
+      <dependency>
+        <groupId>com.io7m.jaffirm</groupId>
+        <artifactId>com.io7m.jaffirm.core</artifactId>
+        <version>[1.0.0, 2.0.0)</version>
+      </dependency>
+      <dependency>
+        <groupId>com.io7m.jcip</groupId>
+        <artifactId>jcip-annotations</artifactId>
+        <version>1.0.2</version>
+      </dependency>
 
       <dependency>
         <groupId>org.immutables</groupId>
@@ -137,6 +147,11 @@
         <groupId>ch.qos.logback</groupId>
         <artifactId>logback-classic</artifactId>
         <version>1.2.3</version>
+      </dependency>
+      <dependency>
+        <groupId>it.unimi.dsi</groupId>
+        <artifactId>fastutil</artifactId>
+        <version>7.2.0</version>
       </dependency>
 
       <!-- OSGi -->

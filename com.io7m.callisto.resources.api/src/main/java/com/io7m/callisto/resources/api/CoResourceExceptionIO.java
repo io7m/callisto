@@ -16,37 +16,23 @@
 
 package com.io7m.callisto.resources.api;
 
-import com.io7m.callisto.core.CoImmutableStyleType;
-import org.immutables.value.Value;
-
-import java.net.URI;
+import java.io.IOException;
 
 /**
- * The type of resources.
+ * An exception triggered by an I/O error.
  */
 
-@CoImmutableStyleType
-@Value.Immutable
-public interface CoResourceType
+public final class CoResourceExceptionIO extends CoResourceException
 {
   /**
-   * @return The resource ID
+   * Construct an exception.
+   *
+   * @param cause The cause
    */
 
-  @Value.Parameter
-  CoResourceID id();
-
-  /**
-   * @return The resource type
-   */
-
-  @Value.Parameter
-  String type();
-
-  /**
-   * @return The resource URI
-   */
-
-  @Value.Parameter
-  URI uri();
+  public CoResourceExceptionIO(
+    final IOException cause)
+  {
+    super(cause);
+  }
 }
