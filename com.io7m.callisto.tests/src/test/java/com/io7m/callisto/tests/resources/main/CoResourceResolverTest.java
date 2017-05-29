@@ -36,10 +36,14 @@ import org.ops4j.pax.tinybundles.core.TinyBundle;
 import org.ops4j.pax.tinybundles.core.TinyBundles;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.BundleException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 
 import static com.io7m.callisto.resources.api.CoResourcePackageNamespace.NAMESPACE;
@@ -49,6 +53,12 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 @ExamReactorStrategy(PerMethod.class)
 public final class CoResourceResolverTest
 {
+  private static final Logger LOG;
+
+  static {
+    LOG = LoggerFactory.getLogger(CoResourceResolverTest.class);
+  }
+
   @Configuration
   public Option[] config()
   {
@@ -123,11 +133,8 @@ public final class CoResourceResolverTest
       bdef0.add("a/b/c/file" + index + ".txt", pdata);
     }
 
-    final File b0_file = new File(this.folder.getRoot(), "b0.jar");
-    Files.copy(bdef0.build(), b0_file.toPath());
-
     final Bundle b0 =
-      this.context.installBundle(b0_file.toURI().toString());
+      this.installBundle(bdef0, "b0.jar");
 
     b0.start();
 
@@ -143,11 +150,8 @@ public final class CoResourceResolverTest
         .set("Bundle-Version", "1.0.0")
         .set("Require-Capability", reqs.toString());
 
-    final File b1_file = new File(this.folder.getRoot(), "b1.jar");
-    Files.copy(bdef1.build(), b1_file.toPath());
-
     final Bundle b1 =
-      this.context.installBundle(b1_file.toURI().toString());
+      this.installBundle(bdef1, "b1.jar");
 
     b1.start();
 
@@ -160,10 +164,29 @@ public final class CoResourceResolverTest
       Assert.assertEquals("a.b.c.hello" + index, r.id().qualifiedName());
     }
 
-    b0.stop();
+    b0.uninstall();
 
     this.expected.expect(CoResourceExceptionNonexistent.class);
     this.resolver.resolve(b1, CoResourceID.of("a.b.c", "hello0"));
+  }
+
+  private Bundle installBundle(
+    final TinyBundle b,
+    final String name)
+    throws IOException, BundleException
+  {
+    final File file = this.saveBundle(b, name);
+    return this.context.installBundle(file.toURI().toString());
+  }
+
+  private File saveBundle(
+    final TinyBundle b,
+    final String name)
+    throws IOException
+  {
+    final File file = new File(this.folder.getRoot(), name);
+    Files.copy(b.build(), file.toPath());
+    return file;
   }
 
   @Test
@@ -176,11 +199,8 @@ public final class CoResourceResolverTest
         .set("Bundle-SymbolicName", "b0")
         .set("Bundle-Version", "1.0.0");
 
-    final File b0_file = new File(this.folder.getRoot(), "b0.jar");
-    Files.copy(bdef0.build(), b0_file.toPath());
-
     final Bundle b0 =
-      this.context.installBundle(b0_file.toURI().toString());
+      this.installBundle(bdef0, "b0.jar");
 
     b0.start();
 

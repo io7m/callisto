@@ -37,6 +37,8 @@ import org.osgi.util.tracker.BundleTrackerCustomizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Optional;
+
 /**
  * The default implementation of the {@link CoResourceResolverType} interface.
  */
@@ -104,8 +106,18 @@ public final class CoResourceResolver implements CoResourceResolverType
           event);
       }
 
-      return this.model.bundleRegister(bundle)
-        .map(TrackedBundle::new).orElse(null);
+      final Optional<CoResourceModelType.BundleRegisteredType> r_opt =
+        this.model.bundleRegister(bundle);
+
+      if (r_opt.isPresent()) {
+        return new TrackedBundle(r_opt.get());
+      }
+
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("addingBundle: ignored {}", bundle);
+      }
+
+      return null;
     }
 
     @Override
@@ -114,7 +126,14 @@ public final class CoResourceResolver implements CoResourceResolverType
       final BundleEvent event,
       final TrackedBundle tracked_bundle)
     {
-
+      if (LOG.isDebugEnabled()) {
+        LOG.debug(
+          "modifiedBundle: {} ({}) {} ({})",
+          bundle,
+          CoBundleStateStrings.stateName(bundle.getState()),
+          event,
+          tracked_bundle);
+      }
     }
 
     @Override
@@ -150,7 +169,7 @@ public final class CoResourceResolver implements CoResourceResolverType
 
     this.model = new CoResourceModel(this.parsers);
     this.tracker = new BundleTracker<>(
-      context, Bundle.ACTIVE, new Tracker(this.model));
+      context, ~Bundle.UNINSTALLED, new Tracker(this.model));
     this.tracker.open();
   }
 
