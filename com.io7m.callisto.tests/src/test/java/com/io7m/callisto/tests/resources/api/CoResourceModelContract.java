@@ -16,10 +16,14 @@
 
 package com.io7m.callisto.tests.resources.api;
 
+import com.io7m.callisto.resources.api.CoResource;
 import com.io7m.callisto.resources.api.CoResourceExceptionBundleDuplicate;
 import com.io7m.callisto.resources.api.CoResourceExceptionBundleMalformed;
+import com.io7m.callisto.resources.api.CoResourceExceptionNonexistent;
 import com.io7m.callisto.resources.api.CoResourceExceptionPackageError;
+import com.io7m.callisto.resources.api.CoResourceID;
 import com.io7m.callisto.resources.api.CoResourceModelType;
+import com.io7m.callisto.resources.api.CoResourcePackageParserProviderType;
 import mockit.Expectations;
 import mockit.Mocked;
 import org.hamcrest.core.StringContains;
@@ -368,6 +372,9 @@ public abstract class CoResourceModelContract
 
     final CoResourceModelType.BundleRegisteredType rr = r.get();
     Assert.assertTrue(rr.exportedPackages().containsKey("a.b.c"));
+
+    e.bundleUnregister(rr);
+    Assert.assertFalse(e.bundleIsRegistered(bundle));
   }
 
   @Test
@@ -419,5 +426,163 @@ public abstract class CoResourceModelContract
     this.expected.expectMessage(StringContains.containsString(
       "The given bundle has already been registered"));
     e.bundleRegister(bundle);
+  }
+
+  @Test
+  public final void testBundleResourceLookupSelfOK(
+    final @Mocked BundleCapability capability,
+    final @Mocked BundleWiring wiring,
+    final @Mocked Bundle bundle)
+    throws Exception
+  {
+    new Expectations()
+    {{
+      bundle.getResource("/a/b/c/package-info.cpd");
+      this.result = CoResourceModelContract.class.getResource("good0.cpd");
+
+      bundle.getResource("/a/b/c/z.txt");
+      this.result = CoResourceModelContract.class.getResource("z.txt");
+
+      final Map<String, Object> cap_attributes = new HashMap<>();
+      cap_attributes.put(NAME_ATTRIBUTE_NAME, "a.b.c");
+      cap_attributes.put(VERSION_ATTRIBUTE_NAME, new Version(1, 0, 0));
+
+      capability.getAttributes();
+      this.result = cap_attributes;
+
+      final ArrayList<BundleCapability> capabilities = new ArrayList<>();
+      capabilities.add(capability);
+
+      wiring.getCapabilities(NAMESPACE);
+      this.result = capabilities;
+
+      bundle.getSymbolicName();
+      this.result = "a.b.c";
+      bundle.getVersion();
+      this.result = new Version(1, 0, 0);
+      bundle.adapt(BundleWiring.class);
+      this.result = wiring;
+    }};
+
+    final CoResourceModelType e = this.createEmptyModel();
+    final Optional<CoResourceModelType.BundleRegisteredType> r =
+      e.bundleRegister(bundle);
+    Assert.assertTrue(r.isPresent());
+    Assert.assertTrue(e.bundleIsRegistered(bundle));
+
+    final CoResourceModelType.BundleRegisteredType rr = r.get();
+    Assert.assertTrue(rr.exportedPackages().containsKey("a.b.c"));
+
+    final CoResourceID res_id =
+      CoResourceID.of("a.b.c", "z");
+    final CoResource res =
+      e.bundleResourceLookup(bundle, res_id);
+
+    Assert.assertEquals(res_id, res.id());
+    Assert.assertEquals("com.io7m.callisto.text", res.type());
+  }
+
+  @Test
+  public final void testBundleResourceLookupSelfNoPackage(
+    final @Mocked BundleCapability capability,
+    final @Mocked BundleWiring wiring,
+    final @Mocked Bundle bundle)
+    throws Exception
+  {
+    new Expectations()
+    {{
+      bundle.getResource("/a/b/c/package-info.cpd");
+      this.result = CoResourceModelContract.class.getResource("good0.cpd");
+
+      bundle.getResource("/a/b/c/z.txt");
+      this.result = CoResourceModelContract.class.getResource("z.txt");
+
+      final Map<String, Object> cap_attributes = new HashMap<>();
+      cap_attributes.put(NAME_ATTRIBUTE_NAME, "a.b.c");
+      cap_attributes.put(VERSION_ATTRIBUTE_NAME, new Version(1, 0, 0));
+
+      capability.getAttributes();
+      this.result = cap_attributes;
+
+      final ArrayList<BundleCapability> capabilities = new ArrayList<>();
+      capabilities.add(capability);
+
+      wiring.getCapabilities(NAMESPACE);
+      this.result = capabilities;
+
+      bundle.getSymbolicName();
+      this.result = "a.b.c";
+      bundle.getVersion();
+      this.result = new Version(1, 0, 0);
+      bundle.adapt(BundleWiring.class);
+      this.result = wiring;
+    }};
+
+    final CoResourceModelType e = this.createEmptyModel();
+    final Optional<CoResourceModelType.BundleRegisteredType> r =
+      e.bundleRegister(bundle);
+    Assert.assertTrue(r.isPresent());
+    Assert.assertTrue(e.bundleIsRegistered(bundle));
+
+    final CoResourceModelType.BundleRegisteredType rr = r.get();
+    Assert.assertTrue(rr.exportedPackages().containsKey("a.b.c"));
+
+    final CoResourceID res_id =
+      CoResourceID.of("a.b.c", "q");
+
+    this.expected.expect(CoResourceExceptionNonexistent.class);
+    e.bundleResourceLookup(bundle, res_id);
+  }
+
+  @Test
+  public final void testBundleResourceLookupSelfNoFile(
+    final @Mocked BundleCapability capability,
+    final @Mocked BundleWiring wiring,
+    final @Mocked Bundle bundle)
+    throws Exception
+  {
+    new Expectations()
+    {{
+      bundle.getResource("/a/b/c/package-info.cpd");
+      this.result = CoResourceModelContract.class.getResource("good0.cpd");
+
+      bundle.getResource("/a/b/c/z.txt");
+      this.result = CoResourceModelContract.class.getResource("z.txt");
+
+      final Map<String, Object> cap_attributes = new HashMap<>();
+      cap_attributes.put(NAME_ATTRIBUTE_NAME, "a.b.c");
+      cap_attributes.put(VERSION_ATTRIBUTE_NAME, new Version(1, 0, 0));
+
+      capability.getAttributes();
+      this.result = cap_attributes;
+
+      final ArrayList<BundleCapability> capabilities = new ArrayList<>();
+      capabilities.add(capability);
+
+      wiring.getCapabilities(NAMESPACE);
+      this.result = capabilities;
+
+      bundle.getSymbolicName();
+      this.result = "a.b.c";
+      bundle.getVersion();
+      this.result = new Version(1, 0, 0);
+      bundle.adapt(BundleWiring.class);
+      this.result = wiring;
+    }};
+
+    final CoResourceModelType e = this.createEmptyModel();
+    final Optional<CoResourceModelType.BundleRegisteredType> r =
+      e.bundleRegister(bundle);
+    Assert.assertTrue(r.isPresent());
+    Assert.assertTrue(e.bundleIsRegistered(bundle));
+
+    final CoResourceModelType.BundleRegisteredType rr = r.get();
+    Assert.assertTrue(rr.exportedPackages().containsKey("a.b.c"));
+
+    final CoResourceID res_id =
+      CoResourceID.of("a.b.d", "z");
+
+    this.expected.expect(CoResourceExceptionNonexistent.class);
+    e.bundleResourceLookup(bundle, res_id);
   }
 }

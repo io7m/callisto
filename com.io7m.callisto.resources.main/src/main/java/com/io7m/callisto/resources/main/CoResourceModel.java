@@ -346,14 +346,17 @@ public final class CoResourceModel implements CoResourceModelType
             target_bundle.getVersion());
 
         return this.lookupResourceInBundle(
-          requester,
-          resource_id,
-          target_package,
-          target_bundle_id);
+          requester, resource_id, target_package, target_bundle_id);
       }
     }
 
-    throw resourcePackageDoesNotExist(requester, resource_id);
+    return this.lookupResourceInBundle(
+      requester,
+      resource_id,
+      resource_id.packageName(),
+      CoResourceBundleIdentifier.of(
+        requester.getSymbolicName(),
+        requester.getVersion()));
   }
 
   @Override
