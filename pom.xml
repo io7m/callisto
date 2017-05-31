@@ -39,6 +39,8 @@
     <io7m.api.previousVersion>0.0.1</io7m.api.previousVersion>
 
     <com.io7m.callisto.pax.exam.version>4.11.0</com.io7m.callisto.pax.exam.version>
+    <com.io7m.callisto.slf4j.version>1.7.22</com.io7m.callisto.slf4j.version>
+    <com.io7m.callisto.osgi.log.version>1.3.0</com.io7m.callisto.osgi.log.version>
   </properties>
 
   <inceptionYear>2017</inceptionYear>
@@ -136,7 +138,7 @@
       <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-api</artifactId>
-        <version>1.7.22</version>
+        <version>${com.io7m.callisto.slf4j.version}</version>
       </dependency>
       <dependency>
         <groupId>commons-io</groupId>
