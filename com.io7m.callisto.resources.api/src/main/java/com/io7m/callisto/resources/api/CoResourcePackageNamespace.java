@@ -29,7 +29,7 @@ public final class CoResourcePackageNamespace
    * The Callisto resource package namespace.
    */
 
-  public static final String NAMESPACE = "com.io7m.callisto.package";
+  public static final String NAMESPACE = "com.io7m.callisto.resources.package";
 
   /**
    * The name of the attribute that contains a package name.
