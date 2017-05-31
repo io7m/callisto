@@ -25,6 +25,23 @@ import java.util.Optional;
 /**
  * <p>The set of available resource packages.</p>
  *
+ * <p>A bundle may participate in resource handling if one or more of the
+ * following conditions hold:</p>
+ *
+ * <ul>
+ *
+ * <li>The bundle declares some resources via the Callisto-Resource-Bundle
+ * manifest header.</li>
+ *
+ * <li>The bundle exports some packages via the Provide-Capability manifest
+ * header using the Callisto resource package {@link CoResourcePackageNamespace#NAMESPACE}.
+ * This implies that the bundle has a Callisto-Resource-Bundle header.</li>
+ *
+ * <li>The bundle imports some packages via the Require-Capability manifest
+ * header using the Callisto resource package {@link CoResourcePackageNamespace#NAMESPACE}.</li>
+ *
+ * </ul>
+ *
  * <p>Implementations are required to be safe for access from multiple
  * threads.</p>
  */
@@ -116,8 +133,8 @@ public interface CoResourceModelType
    *
    * @param exporter The exporting bundle
    *
-   * @return A registered bundle, or nothing if the bundle does not export any
-   * resource packages
+   * @return A registered bundle, or nothing if the bundle cannot participate in
+   * resource resolution.
    *
    * @throws CoResourceExceptionBundleDuplicate If the bundle has already been
    *                                            registered with this model
