@@ -16,11 +16,11 @@
 
 package com.io7m.callisto.resources.main;
 
-import com.io7m.callisto.resources.api.CoResource;
+import com.io7m.callisto.resources.api.CoResourceBundleParserProviderType;
 import com.io7m.callisto.resources.api.CoResourceException;
 import com.io7m.callisto.resources.api.CoResourceID;
+import com.io7m.callisto.resources.api.CoResourceLookupResult;
 import com.io7m.callisto.resources.api.CoResourceModelType;
-import com.io7m.callisto.resources.api.CoResourcePackageParserProviderType;
 import com.io7m.callisto.resources.api.CoResourceResolverType;
 import com.io7m.jnull.NullCheck;
 import org.osgi.framework.Bundle;
@@ -53,7 +53,7 @@ public final class CoResourceResolver implements CoResourceResolverType
   }
 
   private BundleTracker<TrackedBundle> tracker;
-  private CoResourcePackageParserProviderType parsers;
+  private CoResourceBundleParserProviderType parsers;
   private CoResourceModel model;
 
   /**
@@ -63,6 +63,60 @@ public final class CoResourceResolver implements CoResourceResolverType
   public CoResourceResolver()
   {
 
+  }
+
+  /**
+   * Activate the component.
+   *
+   * @param context The bundle context
+   */
+
+  @Activate
+  public void onActivate(
+    final BundleContext context)
+  {
+    NullCheck.notNull(context, "Context");
+
+    this.model = new CoResourceModel(this.parsers);
+    this.tracker = new BundleTracker<>(
+      context, ~Bundle.UNINSTALLED, new Tracker(this.model));
+    this.tracker.open();
+  }
+
+  /**
+   * Deactivate the component.
+   */
+
+  @Deactivate
+  public void onDeactivate()
+  {
+    this.tracker.close();
+  }
+
+  /**
+   * Introduce a resource package parser provider.
+   *
+   * @param in_parsers The parser provider
+   */
+
+  @Reference(
+    policy = ReferencePolicy.STATIC,
+    cardinality = ReferenceCardinality.MANDATORY)
+  public void onResourcePackageParserProviderSet(
+    final CoResourceBundleParserProviderType in_parsers)
+  {
+    this.parsers = NullCheck.notNull(in_parsers, "Parsers");
+  }
+
+  @Override
+  public CoResourceLookupResult resolve(
+    final Bundle requester,
+    final CoResourceID resource_id)
+    throws CoResourceException
+  {
+    NullCheck.notNull(requester, "Requester");
+    NullCheck.notNull(resource_id, "ID");
+    return this.model.bundleResourceLookup(requester, resource_id);
   }
 
   private static final class TrackedBundle
@@ -153,59 +207,5 @@ public final class CoResourceResolver implements CoResourceResolverType
 
       this.model.bundleUnregister(tracked_bundle.registered);
     }
-  }
-
-  /**
-   * Activate the component.
-   *
-   * @param context The bundle context
-   */
-
-  @Activate
-  public void onActivate(
-    final BundleContext context)
-  {
-    NullCheck.notNull(context, "Context");
-
-    this.model = new CoResourceModel(this.parsers);
-    this.tracker = new BundleTracker<>(
-      context, ~Bundle.UNINSTALLED, new Tracker(this.model));
-    this.tracker.open();
-  }
-
-  /**
-   * Deactivate the component.
-   */
-
-  @Deactivate
-  public void onDeactivate()
-  {
-    this.tracker.close();
-  }
-
-  /**
-   * Introduce a resource package parser provider.
-   *
-   * @param in_parsers The parser provider
-   */
-
-  @Reference(
-    policy = ReferencePolicy.STATIC,
-    cardinality = ReferenceCardinality.MANDATORY)
-  public void onResourcePackageParserProviderSet(
-    final CoResourcePackageParserProviderType in_parsers)
-  {
-    this.parsers = NullCheck.notNull(in_parsers, "Parsers");
-  }
-
-  @Override
-  public CoResource resolve(
-    final Bundle requester,
-    final CoResourceID resource_id)
-    throws CoResourceException
-  {
-    NullCheck.notNull(requester, "Requester");
-    NullCheck.notNull(resource_id, "ID");
-    return this.model.bundleResourceLookup(requester, resource_id);
   }
 }

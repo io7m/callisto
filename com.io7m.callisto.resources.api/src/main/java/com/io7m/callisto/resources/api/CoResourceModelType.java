@@ -49,7 +49,13 @@ public interface CoResourceModelType
      * @return A read-only view of the exported packages
      */
 
-    Map<String, ExportedPackageType> exportedPackages();
+    Map<String, PackageExportedType> packagesExported();
+
+    /**
+     * @return A read-only view of the private packages
+     */
+
+    Map<String, PackagePrivateType> packagesPrivate();
   }
 
   /**
@@ -57,7 +63,7 @@ public interface CoResourceModelType
    */
 
   @ThreadSafe
-  interface ExportedPackageType
+  interface PackageExportedType
   {
     /**
      * @return The name of the package
@@ -70,6 +76,26 @@ public interface CoResourceModelType
      */
 
     Map<CoResourceID, CoResource> exportedResources();
+  }
+
+  /**
+   * The type of private packages inside bundles.
+   */
+
+  @ThreadSafe
+  interface PackagePrivateType
+  {
+    /**
+     * @return The name of the package
+     */
+
+    String name();
+
+    /**
+     * @return A read-only view of the exported resources
+     */
+
+    Map<CoResourceID, CoResource> privateResources();
   }
 
   /**
@@ -112,7 +138,7 @@ public interface CoResourceModelType
    * @param requester   The requesting bundle
    * @param resource_id The ID of the resource
    *
-   * @return The resource
+   * @return The resource lookup result
    *
    * @throws CoResourceExceptionNonexistent If the resource does not exist, or
    *                                        is not exported to the requesting
@@ -120,7 +146,7 @@ public interface CoResourceModelType
    * @throws CoResourceException            On errors
    */
 
-  CoResource bundleResourceLookup(
+  CoResourceLookupResult bundleResourceLookup(
     Bundle requester,
     CoResourceID resource_id)
     throws CoResourceException;
@@ -132,5 +158,14 @@ public interface CoResourceModelType
    */
 
   boolean bundleIsRegistered(
+    Bundle bundle);
+
+  /**
+   * @param bundle The bundle
+   *
+   * @return {@code true} if the given bundle is registerable
+   */
+
+  boolean bundleIsRegisterable(
     Bundle bundle);
 }

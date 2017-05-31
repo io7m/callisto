@@ -18,5 +18,6 @@
  * Resources implementation.
  */
 
-@com.io7m.jnull.NonNullByDefault package com.io7m.callisto.resources.main;
+@com.io7m.jnull.NonNullByDefault
+package com.io7m.callisto.resources.main;
 

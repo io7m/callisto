@@ -16,13 +16,38 @@
 
 package com.io7m.callisto.resources.api;
 
-import java.io.Closeable;
+import com.io7m.callisto.core.CoImmutableStyleType;
+import org.immutables.value.Value;
+
+import java.util.List;
+import java.util.Map;
 
 /**
- * The type of package declaration parsers.
+ * The type of parser results.
  */
 
-public interface CoResourcePackageParserType extends Runnable, Closeable
+@CoImmutableStyleType
+@Value.Immutable
+public interface CoResourceBundleParserResultType
 {
-  // No extra methods
+  /**
+   * @return The packages declared by the bundle
+   */
+
+  @Value.Parameter
+  Map<String, CoResourcePackageDeclaration> packages();
+
+  /**
+   * @return The errors encountered during parsing
+   */
+
+  @Value.Parameter
+  List<CoResourceBundleParserError> errors();
+
+  /**
+   * @return The warnings encountered during parsing
+   */
+
+  @Value.Parameter
+  List<CoResourceBundleParserWarning> warnings();
 }

@@ -39,9 +39,8 @@ public interface CoResourceResolverType
    * @throws CoResourceException            On errors
    */
 
-  CoResource resolve(
+  CoResourceLookupResult resolve(
     Bundle caller,
     CoResourceID id)
     throws CoResourceException;
-  // No extra methods
 }

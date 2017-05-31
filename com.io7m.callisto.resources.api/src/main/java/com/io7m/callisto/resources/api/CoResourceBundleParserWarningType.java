@@ -14,18 +14,39 @@
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-package com.io7m.callisto.tests.resources.main;
+package com.io7m.callisto.resources.api;
 
-import com.io7m.callisto.resources.api.CoResourceModelType;
-import com.io7m.callisto.resources.main.CoResourceModel;
-import com.io7m.callisto.resources.main.CoResourceBundleParserProvider;
-import com.io7m.callisto.tests.resources.api.CoResourceModelContract;
+import com.io7m.callisto.core.CoImmutableStyleType;
+import org.immutables.value.Value;
 
-public final class CoResourceModelTest extends CoResourceModelContract
+import java.net.URI;
+
+/**
+ * A warning encountered during package parsing.
+ */
+
+@CoImmutableStyleType
+@Value.Immutable
+public interface CoResourceBundleParserWarningType
 {
-  @Override
-  protected CoResourceModelType createEmptyModel()
-  {
-    return new CoResourceModel(new CoResourceBundleParserProvider());
-  }
+  /**
+   * @return The URI of the parsed file
+   */
+
+  @Value.Parameter
+  URI uri();
+
+  /**
+   * @return The line number
+   */
+
+  @Value.Parameter
+  int line();
+
+  /**
+   * @return The warning message
+   */
+
+  @Value.Parameter
+  String message();
 }

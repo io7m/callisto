@@ -16,37 +16,27 @@
 
 package com.io7m.callisto.resources.api;
 
-import com.io7m.callisto.core.CoImmutableStyleType;
-import org.immutables.value.Value;
-
+import java.io.InputStream;
 import java.net.URI;
 
 /**
- * A warning encountered during package parsing.
+ * The type of parser providers.
  */
 
-@CoImmutableStyleType
-@Value.Immutable
-public interface CoResourcePackageParserWarningType
+public interface CoResourceBundleParserProviderType
 {
   /**
-   * @return The URI of the parsed file
+   * Create a new parser from the given input stream.
+   *
+   * @param stream   The input stream
+   * @param uri      The URI of the stream source, for diagnostic messages
+   * @param resolver The file resolver
+   *
+   * @return A new parser
    */
 
-  @Value.Parameter
-  URI uri();
-
-  /**
-   * @return The line number
-   */
-
-  @Value.Parameter
-  int line();
-
-  /**
-   * @return The warning message
-   */
-
-  @Value.Parameter
-  String message();
+  CoResourceBundleParserType createFromInputStream(
+    InputStream stream,
+    URI uri,
+    CoResourceBundleParserFileResolverType resolver);
 }

@@ -1,0 +1,4 @@
+cbd 1 0
+
+package a.b.c
+resource x text /a/b/c/d.txt

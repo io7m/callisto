@@ -16,21 +16,26 @@
 
 package com.io7m.callisto.resources.api;
 
+import java.io.FileNotFoundException;
+import java.net.URI;
+
 /**
- * A value that indicates whether or not parsing should continue.
+ * The type of file resolvers.
  */
 
-public enum CoResourcePackageParserContinue
+public interface CoResourceBundleParserFileResolverType
 {
   /**
-   * Parsing should continue.
+   * Determine the URI of the path specified by {@code path}.
+   *
+   * @param path The path
+   *
+   * @return The URI for the path
+   *
+   * @throws FileNotFoundException If the path could not be resolved
    */
 
-  CONTINUE,
-
-  /**
-   * Parsing should finish.
-   */
-
-  FINISH
+  URI resolve(
+    String path)
+    throws FileNotFoundException;
 }

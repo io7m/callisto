@@ -14,18 +14,31 @@
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-package com.io7m.callisto.tests.resources.main;
+package com.io7m.callisto.resources.api;
 
-import com.io7m.callisto.resources.api.CoResourceModelType;
-import com.io7m.callisto.resources.main.CoResourceModel;
-import com.io7m.callisto.resources.main.CoResourceBundleParserProvider;
-import com.io7m.callisto.tests.resources.api.CoResourceModelContract;
+import com.io7m.callisto.core.CoImmutableStyleType;
+import org.immutables.value.Value;
+import org.osgi.framework.Bundle;
 
-public final class CoResourceModelTest extends CoResourceModelContract
+/**
+ * The result of a resource lookup.
+ */
+
+@CoImmutableStyleType
+@Value.Immutable
+public interface CoResourceLookupResultType
 {
-  @Override
-  protected CoResourceModelType createEmptyModel()
-  {
-    return new CoResourceModel(new CoResourceBundleParserProvider());
-  }
+  /**
+   * @return The bundle that owns the resource
+   */
+
+  @Value.Parameter
+  Bundle owner();
+
+  /**
+   * @return The resource
+   */
+
+  @Value.Parameter
+  CoResource resource();
 }

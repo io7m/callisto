@@ -14,18 +14,19 @@
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-package com.io7m.callisto.tests.resources.main;
+package com.io7m.callisto.resources.api;
 
-import com.io7m.callisto.resources.api.CoResourceModelType;
-import com.io7m.callisto.resources.main.CoResourceModel;
-import com.io7m.callisto.resources.main.CoResourceBundleParserProvider;
-import com.io7m.callisto.tests.resources.api.CoResourceModelContract;
+import java.io.Closeable;
 
-public final class CoResourceModelTest extends CoResourceModelContract
+/**
+ * The type of package declaration parsers.
+ */
+
+public interface CoResourceBundleParserType extends Closeable
 {
-  @Override
-  protected CoResourceModelType createEmptyModel()
-  {
-    return new CoResourceModel(new CoResourceBundleParserProvider());
-  }
+  /**
+   * @return Execute the parser
+   */
+
+  CoResourceBundleParserResult parse();
 }

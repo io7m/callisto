@@ -19,42 +19,27 @@ package com.io7m.callisto.resources.api;
 import com.io7m.callisto.core.CoImmutableStyleType;
 import org.immutables.value.Value;
 
-import java.net.URI;
-import java.util.Optional;
+import java.util.Map;
 
 /**
- * An error encountered during package parsing.
+ * The type of package declarations.
  */
 
 @CoImmutableStyleType
 @Value.Immutable
-public interface CoResourcePackageParserErrorType
+public interface CoResourcePackageDeclarationType
 {
   /**
-   * @return The URI of the parsed file
+   * @return The name of the package
    */
 
   @Value.Parameter
-  URI uri();
+  String name();
 
   /**
-   * @return The line number
+   * @return The public resources
    */
 
   @Value.Parameter
-  int line();
-
-  /**
-   * @return The warning message
-   */
-
-  @Value.Parameter
-  String message();
-
-  /**
-   * @return The exception encountered, if any
-   */
-
-  @Value.Parameter
-  Optional<Exception> exception();
+  Map<CoResourceID, CoResource> resources();
 }

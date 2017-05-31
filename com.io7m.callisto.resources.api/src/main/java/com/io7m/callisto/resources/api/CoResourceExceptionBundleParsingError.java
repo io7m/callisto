@@ -23,13 +23,13 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * An exception raised by a failure to parse a package file.
+ * An exception raised by a failure to parse a bundle file.
  */
 
-public final class CoResourceExceptionPackageError
+public final class CoResourceExceptionBundleParsingError
   extends CoResourceException
 {
-  private final List<CoResourcePackageParserError> errors;
+  private final List<CoResourceBundleParserError> errors;
 
   /**
    * Construct an exception.
@@ -38,8 +38,8 @@ public final class CoResourceExceptionPackageError
    * @param message   The message
    */
 
-  public CoResourceExceptionPackageError(
-    final List<CoResourcePackageParserError> in_errors,
+  public CoResourceExceptionBundleParsingError(
+    final List<CoResourceBundleParserError> in_errors,
     final String message)
   {
     super(makeMessage(in_errors, message));
@@ -48,13 +48,13 @@ public final class CoResourceExceptionPackageError
   }
 
   private static String makeMessage(
-    final List<CoResourcePackageParserError> in_errors,
+    final List<CoResourceBundleParserError> in_errors,
     final String message)
   {
     final StringBuilder sb = new StringBuilder(128);
     sb.append(message);
     sb.append(System.lineSeparator());
-    for (final CoResourcePackageParserError e : in_errors) {
+    for (final CoResourceBundleParserError e : in_errors) {
       sb.append(e.uri());
       sb.append(":");
       sb.append(e.line());
@@ -76,7 +76,7 @@ public final class CoResourceExceptionPackageError
    * @return A read-only view of the list of errors
    */
 
-  public List<CoResourcePackageParserError> errors()
+  public List<CoResourceBundleParserError> errors()
   {
     return this.errors;
   }

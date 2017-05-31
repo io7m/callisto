@@ -16,31 +16,52 @@
 
 package com.io7m.callisto.tests.resources.main;
 
-import com.io7m.callisto.resources.api.CoResourcePackageParserReceiverType;
-import com.io7m.callisto.resources.api.CoResourcePackageParserType;
-import com.io7m.callisto.resources.main.CoResourcePackageParserProvider;
-import com.io7m.callisto.tests.resources.api.CoResourcePackageParserProviderContract;
+import com.io7m.callisto.resources.api.CoResourceBundleParserFileResolverType;
+import com.io7m.callisto.resources.api.CoResourceBundleParserType;
+import com.io7m.callisto.resources.main.CoResourceBundleParserProvider;
+import com.io7m.callisto.tests.resources.api.CoResourceBundleParserProviderContract;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.io.StringReader;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 
 public final class CoResourcePackageParserProviderTest
-  extends CoResourcePackageParserProviderContract
+  extends CoResourceBundleParserProviderContract
 {
   @Override
-  protected CoResourcePackageParserType createParser(
+  protected CoResourceBundleParserType createParser(
     final String text,
-    final CoResourcePackageParserReceiverType receiver)
+    final CoResourceBundleParserFileResolverType receiver)
   {
-    return new CoResourcePackageParserProvider().createFromReader(
-      new StringReader(text),
+    return new CoResourceBundleParserProvider().createFromInputStream(
+      new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8)),
       this.uri(),
       receiver);
+  }
+
+  @Override
+  protected CoResourceBundleParserType createParserStream(
+    final InputStream stream,
+    final CoResourceBundleParserFileResolverType resolver)
+  {
+    return new CoResourceBundleParserProvider().createFromInputStream(
+      stream,
+      this.uri(),
+      resolver);
   }
 
   @Override
   protected URI uri()
   {
     return URI.create("urn:test");
+  }
+
+  @Override
+  protected Logger log()
+  {
+    return LoggerFactory.getLogger(CoResourcePackageParserProviderTest.class);
   }
 }
