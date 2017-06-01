@@ -34,7 +34,6 @@ import org.junit.rules.ExpectedException;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.Version;
 import org.osgi.framework.wiring.BundleCapability;
-import org.osgi.framework.wiring.BundleRequirement;
 import org.osgi.framework.wiring.BundleRevision;
 import org.osgi.framework.wiring.BundleWire;
 import org.osgi.framework.wiring.BundleWiring;
@@ -409,12 +408,16 @@ public abstract class CoResourceModelContract
       e.bundleRegister(bundle);
     Assert.assertTrue(r.isPresent());
     Assert.assertTrue(e.bundleIsRegistered(bundle));
+    Assert.assertEquals(1L, (long) e.bundlesRegistered().size());
+    Assert.assertTrue(e.bundlesRegistered().containsKey(
+      CoResourceBundleIdentifier.of("a.b.c", new Version(1, 0, 0))));
 
     final CoResourceModelType.BundleRegisteredType rr = r.get();
     Assert.assertTrue(rr.packagesExported().containsKey("a.b.c"));
 
     e.bundleUnregister(rr);
     Assert.assertFalse(e.bundleIsRegistered(bundle));
+    Assert.assertEquals(0L, (long) e.bundlesRegistered().size());
   }
 
   @Test

@@ -21,6 +21,7 @@ import org.osgi.framework.Bundle;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.SortedMap;
 
 /**
  * <p>The set of available resource packages.</p>
@@ -185,4 +186,10 @@ public interface CoResourceModelType
 
   boolean bundleIsRegisterable(
     Bundle bundle);
+
+  /**
+   * @return A read-only snapshot of the registered bundles
+   */
+
+  SortedMap<CoResourceBundleIdentifier, BundleRegisteredType> bundlesRegistered();
 }

@@ -17,6 +17,7 @@
 package com.io7m.callisto.resources.api;
 
 import com.io7m.callisto.core.CoImmutableStyleType;
+import com.io7m.jnull.NullCheck;
 import org.immutables.value.Value;
 import org.osgi.framework.Version;
 
@@ -27,6 +28,7 @@ import org.osgi.framework.Version;
 @CoImmutableStyleType
 @Value.Immutable
 public interface CoResourceBundleIdentifierType
+  extends Comparable<CoResourceBundleIdentifierType>
 {
   /**
    * @return The bundle name
@@ -41,4 +43,17 @@ public interface CoResourceBundleIdentifierType
 
   @Value.Parameter
   Version version();
+
+  @Override
+  default int compareTo(
+    final CoResourceBundleIdentifierType other)
+  {
+    NullCheck.notNull(other, "Other");
+
+    final int cmp_r = this.name().compareTo(other.name());
+    if (cmp_r == 0) {
+      return this.version().compareTo(other.version());
+    }
+    return cmp_r;
+  }
 }

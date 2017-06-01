@@ -16,6 +16,7 @@
 
 package com.io7m.callisto.resources.main;
 
+import com.io7m.callisto.resources.api.CoResourceBundleIdentifier;
 import com.io7m.callisto.resources.api.CoResourceBundleParserProviderType;
 import com.io7m.callisto.resources.api.CoResourceException;
 import com.io7m.callisto.resources.api.CoResourceID;
@@ -39,6 +40,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
+import java.util.SortedMap;
 
 /**
  * The default implementation of the {@link CoResourceResolverType} interface.
@@ -118,6 +120,12 @@ public final class CoResourceResolver implements CoResourceResolverType
     NullCheck.notNull(requester, "Requester");
     NullCheck.notNull(resource_id, "ID");
     return this.model.bundleResourceLookup(requester, resource_id);
+  }
+
+  @Override
+  public SortedMap<CoResourceBundleIdentifier, CoResourceModelType.BundleRegisteredType> bundlesRegistered()
+  {
+    return this.model.bundlesRegistered();
   }
 
   private static final class TrackedBundle

@@ -37,6 +37,7 @@ import com.io7m.jnull.NullCheck;
 import com.io7m.jnull.Nullable;
 import com.io7m.junreachable.UnreachableCodeException;
 import it.unimi.dsi.fastutil.objects.Object2ReferenceOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2ReferenceRBTreeMap;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.Version;
 import org.osgi.framework.wiring.BundleCapability;
@@ -56,6 +57,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.SortedMap;
 
 /**
  * The default implementation of the {@link CoResourceModelType} interface.
@@ -460,6 +462,19 @@ public final class CoResourceModel implements CoResourceModelType
   {
     NullCheck.notNull(b, "Bundle");
     return hasHeader(b) || hasRequirements(b) || hasCapabilities(b);
+  }
+
+  @Override
+  public SortedMap<CoResourceBundleIdentifier, BundleRegisteredType> bundlesRegistered()
+  {
+    synchronized (this.bundles) {
+      final Object2ReferenceRBTreeMap<CoResourceBundleIdentifier, BundleRegisteredType> results =
+        new Object2ReferenceRBTreeMap<>();
+      for (final CoResourceBundleIdentifier id : this.bundles.keySet()) {
+        results.put(id, this.bundles.get(id));
+      }
+      return results;
+    }
   }
 
   private LookupResult lookupResource(

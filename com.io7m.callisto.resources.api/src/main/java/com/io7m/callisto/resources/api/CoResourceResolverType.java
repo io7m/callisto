@@ -18,6 +18,8 @@ package com.io7m.callisto.resources.api;
 
 import org.osgi.framework.Bundle;
 
+import java.util.SortedMap;
+
 /**
  * The type of resource resolvers.
  */
@@ -43,4 +45,10 @@ public interface CoResourceResolverType
     Bundle caller,
     CoResourceID id)
     throws CoResourceException;
+
+  /**
+   * @return A read-only snapshot of the registered bundles
+   */
+
+  SortedMap<CoResourceBundleIdentifier, CoResourceModelType.BundleRegisteredType> bundlesRegistered();
 }
