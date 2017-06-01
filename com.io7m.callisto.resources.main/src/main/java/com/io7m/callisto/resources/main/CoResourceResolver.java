@@ -23,6 +23,7 @@ import com.io7m.callisto.resources.api.CoResourceLookupResult;
 import com.io7m.callisto.resources.api.CoResourceModelType;
 import com.io7m.callisto.resources.api.CoResourceResolverType;
 import com.io7m.jnull.NullCheck;
+import com.io7m.jnull.Nullable;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleEvent;
@@ -121,18 +122,22 @@ public final class CoResourceResolver implements CoResourceResolverType
 
   private static final class TrackedBundle
   {
-    private CoResourceModelType.BundleRegisteredType registered;
+    private @Nullable CoResourceModelType.BundleRegisteredType registered;
 
     TrackedBundle(
       final CoResourceModelType.BundleRegisteredType in_registered)
     {
-      this.registered = NullCheck.notNull(in_registered, "Registered");
+      this.registered = in_registered;
     }
 
     @Override
     public String toString()
     {
-      return this.registered.id().name() + " " + this.registered.id().version();
+      final CoResourceModelType.BundleRegisteredType r = this.registered;
+      if (r != null) {
+        return r.id().name() + " " + r.id().version();
+      }
+      return "not registered";
     }
   }
 
@@ -160,18 +165,25 @@ public final class CoResourceResolver implements CoResourceResolverType
           event);
       }
 
-      final Optional<CoResourceModelType.BundleRegisteredType> r_opt =
-        this.model.bundleRegister(bundle);
+      TrackedBundle result;
+      try {
+        final Optional<CoResourceModelType.BundleRegisteredType> r_opt =
+          this.model.bundleRegister(bundle);
 
-      if (r_opt.isPresent()) {
-        return new TrackedBundle(r_opt.get());
+        if (r_opt.isPresent()) {
+          result = new TrackedBundle(r_opt.get());
+        } else {
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("addingBundle: ignored {}", bundle);
+          }
+          result = new TrackedBundle(null);
+        }
+      } catch (final CoResourceException e) {
+        LOG.error("addingBundle: error adding bundle: ", e);
+        result = new TrackedBundle(null);
       }
 
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("addingBundle: ignored {}", bundle);
-      }
-
-      return null;
+      return result;
     }
 
     @Override
@@ -205,7 +217,11 @@ public final class CoResourceResolver implements CoResourceResolverType
           tracked_bundle);
       }
 
-      this.model.bundleUnregister(tracked_bundle.registered);
+      final CoResourceModelType.BundleRegisteredType r =
+        tracked_bundle.registered;
+      if (r != null) {
+        this.model.bundleUnregister(r);
+      }
     }
   }
 }
