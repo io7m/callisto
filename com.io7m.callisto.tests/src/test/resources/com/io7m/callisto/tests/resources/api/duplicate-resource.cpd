@@ -1,4 +1,0 @@
-cbd 1 0
-package a.b.c
-resource x com.io7m.callisto.text /a/b/c.txt
-resource x com.io7m.callisto.text /a/b/c.txt

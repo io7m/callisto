@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<c:bundle xmlns:c="urn:com.io7m.callisto.resources:1.0">
+  <c:package name="a.b.c">
+    <c:resource name="x" type="text" file="/a/b/c/file0.txt"/>
+    <c:resource name="y" type="text" file="/a/b/c/file1.txt"/>
+    <c:resource name="z" type="text" file="/a/b/c/file2.txt"/>
+  </c:package>
+</c:bundle>

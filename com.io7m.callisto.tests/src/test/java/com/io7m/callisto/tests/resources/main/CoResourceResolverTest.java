@@ -20,6 +20,7 @@ import com.io7m.callisto.resources.api.CoResourceExceptionNonexistent;
 import com.io7m.callisto.resources.api.CoResourceID;
 import com.io7m.callisto.resources.api.CoResourceLookupResult;
 import com.io7m.callisto.resources.api.CoResourceResolverType;
+import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -68,6 +69,7 @@ public final class CoResourceResolverTest
       CoreOptions.url("link:classpath:it.unimi.dsi.fastutil.link"),
       CoreOptions.url("link:classpath:com.io7m.jcip.annotations.link"),
       CoreOptions.url("link:classpath:com.io7m.callisto.core.link"),
+      CoreOptions.url("link:classpath:com.io7m.callisto.resources.schemas.link"),
       CoreOptions.url("link:classpath:com.io7m.callisto.resources.api.link"),
       CoreOptions.url("link:classpath:com.io7m.callisto.resources.main.link"),
       CoreOptions.url("link:classpath:biz.aQute.bndlib.link"),
@@ -100,19 +102,27 @@ public final class CoResourceResolverTest
     caps.append("version:Version=1");
 
     final StringBuilder info = new StringBuilder(256);
-    info.append("cbd 1 0");
+    info.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
     info.append(System.lineSeparator());
-    info.append("package a.b.c");
+    info.append("<c:bundle xmlns:c=\"urn:com.io7m.callisto.resources:1.0\">");
+    info.append(System.lineSeparator());
+    info.append("  <c:package name=\"a.b.c\">");
     info.append(System.lineSeparator());
 
     for (int index = 0; index < 32; ++index) {
-      info.append("resource hello");
-      info.append(index);
-      info.append(" com.io7m.callisto.text /a/b/c/file");
-      info.append(index);
-      info.append(".txt");
+      info.append(String.format(
+        "    <c:resource name=\"hello%d\" type=\"text\" file=\"/a/b/c/file%d.txt\"/>",
+        Integer.valueOf(index),
+        Integer.valueOf(index)));
       info.append(System.lineSeparator());
     }
+
+    info.append("    ");
+    info.append(System.lineSeparator());
+    info.append("  </c:package>");
+    info.append(System.lineSeparator());
+    info.append("</c:bundle>");
+    info.append(System.lineSeparator());
 
     final ByteArrayInputStream pinfo =
       new ByteArrayInputStream(info.toString().getBytes(UTF_8));
@@ -127,8 +137,8 @@ public final class CoResourceResolverTest
         .set("Bundle-SymbolicName", "b0")
         .set("Provide-Capability", caps.toString())
         .set("Bundle-Version", "1.0.0")
-        .set("Callisto-Resource-Bundle", "/a/b/c/bundle.cpd")
-        .add("a/b/c/bundle.cpd", pinfo);
+        .set("Callisto-Resource-Bundle", "/a/b/c/bundle.crbx")
+        .add("a/b/c/bundle.crbx", pinfo);
 
     for (int index = 0; index < 32; ++index) {
       final ByteArrayInputStream pdata =
@@ -163,9 +173,12 @@ public final class CoResourceResolverTest
         this.resolver.resolve(
           b1, CoResourceID.of("a.b.c", "hello" + index));
 
-      //Assert.assertEquals("a.b.c", r.id().packageName());
-      //Assert.assertEquals("hello" + index, r.id().name());
-      //Assert.assertEquals("a.b.c.hello" + index, r.id().qualifiedName());
+      Assert.assertEquals(
+        "a.b.c", r.resource().id().packageName());
+      Assert.assertEquals(
+        "hello" + index, r.resource().id().name());
+      Assert.assertEquals(
+        "a.b.c.hello" + index, r.resource().id().qualifiedName());
     }
 
     b0.uninstall();

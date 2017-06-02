@@ -14,23 +14,10 @@
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-package com.io7m.callisto.tests.resources.main;
+/**
+ * Resources schemas.
+ */
 
-import com.io7m.callisto.resources.api.CoResourceModelType;
-import com.io7m.callisto.resources.main.CoResourceModel;
-import com.io7m.callisto.resources.main.CoResourceBundleParserProvider;
-import com.io7m.callisto.tests.resources.api.CoResourceModelContract;
+@com.io7m.jnull.NonNullByDefault
+package com.io7m.callisto.resources.schemas;
 
-public final class CoResourceModelTest extends CoResourceModelContract
-{
-  @Override
-  protected CoResourceModelType createEmptyModel()
-    throws Exception
-  {
-    final CoResourceBundleParserProvider parsers =
-      new CoResourceBundleParserProvider();
-
-    parsers.onActivate();
-    return new CoResourceModel(parsers);
-  }
-}

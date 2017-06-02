@@ -50,7 +50,8 @@ import static com.io7m.callisto.resources.api.CoResourcePackageNamespace.VERSION
 
 public abstract class CoResourceModelContract
 {
-  protected abstract CoResourceModelType createEmptyModel();
+  protected abstract CoResourceModelType createEmptyModel()
+    throws Exception;
 
   @Rule
   public ExpectedException expected = ExpectedException.none();
@@ -60,14 +61,15 @@ public abstract class CoResourceModelContract
     final @Mocked BundleCapability capability,
     final @Mocked BundleWiring wiring,
     final @Mocked Bundle bundle)
+    throws Exception
   {
     new Expectations()
     {{
-      bundle.getResource("/a/b/c/bundle.cpd");
-      this.result = CoResourceModelContract.class.getResource("simple.cpd");
+      bundle.getResource("/a/b/c/bundle.crbx");
+      this.result = CoResourceModelContract.class.getResource("simple.crbx");
 
       final Map<String, Object> cap_attributes = new HashMap<>();
-      cap_attributes.put(NAME_ATTRIBUTE_NAME, "a.b.d");
+      cap_attributes.put(NAME_ATTRIBUTE_NAME, "a.b.e");
       cap_attributes.put(VERSION_ATTRIBUTE_NAME, new Version(1, 0, 0));
 
       capability.getAttributes();
@@ -81,7 +83,7 @@ public abstract class CoResourceModelContract
 
       bundle.getHeaders();
       final Hashtable<String, String> headers = new Hashtable<>();
-      headers.put("Callisto-Resource-Bundle", "/a/b/c/bundle.cpd");
+      headers.put("Callisto-Resource-Bundle", "/a/b/c/bundle.crbx");
       this.result = headers;
 
       bundle.getSymbolicName();
@@ -104,11 +106,12 @@ public abstract class CoResourceModelContract
     final @Mocked BundleCapability capability,
     final @Mocked BundleWiring wiring,
     final @Mocked Bundle bundle)
+    throws Exception
   {
     new Expectations()
     {{
-      bundle.getResource("/a/b/c/bundle.cpd");
-      this.result = CoResourceModelContract.class.getResource("simple.cpd");
+      bundle.getResource("/a/b/c/bundle.crbx");
+      this.result = CoResourceModelContract.class.getResource("simple.crbx");
 
       final Map<String, Object> cap_attributes = new HashMap<>();
       cap_attributes.put(VERSION_ATTRIBUTE_NAME, new Version(1, 0, 0));
@@ -124,7 +127,7 @@ public abstract class CoResourceModelContract
 
       bundle.getHeaders();
       final Hashtable<String, String> headers = new Hashtable<>();
-      headers.put("Callisto-Resource-Bundle", "/a/b/c/bundle.cpd");
+      headers.put("Callisto-Resource-Bundle", "/a/b/c/bundle.crbx");
       this.result = headers;
 
       bundle.getSymbolicName();
@@ -147,11 +150,12 @@ public abstract class CoResourceModelContract
     final @Mocked BundleCapability capability,
     final @Mocked BundleWiring wiring,
     final @Mocked Bundle bundle)
+    throws Exception
   {
     new Expectations()
     {{
-      bundle.getResource("/a/b/c/bundle.cpd");
-      this.result = CoResourceModelContract.class.getResource("empty.cpd");
+      bundle.getResource("/a/b/c/bundle.crbx");
+      this.result = CoResourceModelContract.class.getResource("simple.crbx");
 
       final Map<String, Object> cap_attributes = new HashMap<>();
       cap_attributes.put(NAME_ATTRIBUTE_NAME, "a.b.c");
@@ -167,7 +171,7 @@ public abstract class CoResourceModelContract
 
       bundle.getHeaders();
       final Hashtable<String, String> headers = new Hashtable<>();
-      headers.put("Callisto-Resource-Bundle", "/a/b/c/bundle.cpd");
+      headers.put("Callisto-Resource-Bundle", "/a/b/c/bundle.crbx");
       this.result = headers;
 
       bundle.getSymbolicName();
@@ -190,11 +194,12 @@ public abstract class CoResourceModelContract
     final @Mocked BundleCapability capability,
     final @Mocked BundleWiring wiring,
     final @Mocked Bundle bundle)
+    throws Exception
   {
     new Expectations()
     {{
-      bundle.getResource("/a/b/c/bundle.cpd");
-      this.result = CoResourceModelContract.class.getResource("simple.cpd");
+      bundle.getResource("/a/b/c/bundle.crbx");
+      this.result = CoResourceModelContract.class.getResource("simple.crbx");
 
       final Map<String, Object> cap_attributes = new HashMap<>();
       cap_attributes.put(NAME_ATTRIBUTE_NAME, "a.b.c");
@@ -211,7 +216,7 @@ public abstract class CoResourceModelContract
 
       bundle.getHeaders();
       final Hashtable<String, String> headers = new Hashtable<>();
-      headers.put("Callisto-Resource-Bundle", "/a/b/c/bundle.cpd");
+      headers.put("Callisto-Resource-Bundle", "/a/b/c/bundle.crbx");
       this.result = headers;
 
       bundle.getSymbolicName();
@@ -232,15 +237,16 @@ public abstract class CoResourceModelContract
   @Test
   public final void testBundleRegisterDeclarationFileEmpty(
     final @Mocked Bundle bundle)
+    throws Exception
   {
     new Expectations()
     {{
-      bundle.getResource("/a/b/c/bundle.cpd");
-      this.result = CoResourceModelContract.class.getResource("empty.cpd");
+      bundle.getResource("/a/b/c/bundle.crbx");
+      this.result = CoResourceModelContract.class.getResource("empty.crbx");
 
       bundle.getHeaders();
       final Hashtable<String, String> headers = new Hashtable<>();
-      headers.put("Callisto-Resource-Bundle", "/a/b/c/bundle.cpd");
+      headers.put("Callisto-Resource-Bundle", "/a/b/c/bundle.crbx");
       this.result = headers;
 
       bundle.getSymbolicName();
@@ -274,12 +280,12 @@ public abstract class CoResourceModelContract
   {
     new Expectations()
     {{
-      bundle.getResource("/a/b/c/bundle.cpd");
+      bundle.getResource("/a/b/c/bundle.crbx");
       this.result = null;
 
       bundle.getHeaders();
       final Hashtable<String, String> headers = new Hashtable<>();
-      headers.put("Callisto-Resource-Bundle", "/a/b/c/bundle.cpd");
+      headers.put("Callisto-Resource-Bundle", "/a/b/c/bundle.crbx");
       this.result = headers;
 
       bundle.getSymbolicName();
@@ -304,16 +310,16 @@ public abstract class CoResourceModelContract
   {
     new Expectations()
     {{
-      bundle.getResource("/a/b/c.txt");
+      bundle.getResource("/a/b/c/file.txt");
       this.result = null;
 
-      bundle.getResource("/a/b/c/bundle.cpd");
-      this.result = CoResourceModelContract.class.getResource(
-        "missing-resource.cpd");
+      bundle.getResource("/a/b/c/bundle.crbx");
+      this.result =
+        CoResourceModelContract.class.getResource("file-missing.crbx");
 
       bundle.getHeaders();
       final Hashtable<String, String> headers = new Hashtable<>();
-      headers.put("Callisto-Resource-Bundle", "/a/b/c/bundle.cpd");
+      headers.put("Callisto-Resource-Bundle", "/a/b/c/bundle.crbx");
       this.result = headers;
 
       bundle.getSymbolicName();
@@ -341,13 +347,13 @@ public abstract class CoResourceModelContract
       bundle.getResource("/a/b/c.txt");
       this.result = CoResourceModelContract.class.getResource("z.txt");
 
-      bundle.getResource("/a/b/c/bundle.cpd");
+      bundle.getResource("/a/b/c/bundle.crbx");
       this.result = CoResourceModelContract.class.getResource(
-        "duplicate-resource.cpd");
+        "duplicate-resource.crbx");
 
       bundle.getHeaders();
       final Hashtable<String, String> headers = new Hashtable<>();
-      headers.put("Callisto-Resource-Bundle", "/a/b/c/bundle.cpd");
+      headers.put("Callisto-Resource-Bundle", "/a/b/c/bundle.crbx");
       this.result = headers;
 
       bundle.getSymbolicName();
@@ -374,8 +380,8 @@ public abstract class CoResourceModelContract
   {
     new Expectations()
     {{
-      bundle.getResource("/a/b/c/bundle.cpd");
-      this.result = CoResourceModelContract.class.getResource("simple.cpd");
+      bundle.getResource("/a/b/c/bundle.crbx");
+      this.result = CoResourceModelContract.class.getResource("single.crbx");
 
       final Map<String, Object> cap_attributes = new HashMap<>();
       cap_attributes.put(NAME_ATTRIBUTE_NAME, "a.b.c");
@@ -392,7 +398,7 @@ public abstract class CoResourceModelContract
 
       bundle.getHeaders();
       final Hashtable<String, String> headers = new Hashtable<>();
-      headers.put("Callisto-Resource-Bundle", "/a/b/c/bundle.cpd");
+      headers.put("Callisto-Resource-Bundle", "/a/b/c/bundle.crbx");
       this.result = headers;
 
       bundle.getSymbolicName();
@@ -457,8 +463,8 @@ public abstract class CoResourceModelContract
   {
     new Expectations()
     {{
-      bundle.getResource("/a/b/c/bundle.cpd");
-      this.result = CoResourceModelContract.class.getResource("simple.cpd");
+      bundle.getResource("/a/b/c/bundle.crbx");
+      this.result = CoResourceModelContract.class.getResource("single.crbx");
 
       final Map<String, Object> cap_attributes = new HashMap<>();
       cap_attributes.put(NAME_ATTRIBUTE_NAME, "a.b.c");
@@ -475,7 +481,7 @@ public abstract class CoResourceModelContract
 
       bundle.getHeaders();
       final Hashtable<String, String> headers = new Hashtable<>();
-      headers.put("Callisto-Resource-Bundle", "/a/b/c/bundle.cpd");
+      headers.put("Callisto-Resource-Bundle", "/a/b/c/bundle.crbx");
       this.result = headers;
 
       bundle.getSymbolicName();
@@ -508,16 +514,15 @@ public abstract class CoResourceModelContract
   {
     new Expectations()
     {{
-      bundle.getResource("/a/b/c/bundle.cpd");
-      this.result = CoResourceModelContract.class.getResource(
-        "simple-with-resources.cpd");
+      bundle.getResource("/a/b/c/bundle.crbx");
+      this.result = CoResourceModelContract.class.getResource("single.crbx");
 
-      bundle.getResource("/a/b/c/d.txt");
+      bundle.getResource("/a/b/c/file0.txt");
       this.result = CoResourceModelContract.class.getResource("z.txt");
 
       bundle.getHeaders();
       final Hashtable<String, String> headers = new Hashtable<>();
-      headers.put("Callisto-Resource-Bundle", "/a/b/c/bundle.cpd");
+      headers.put("Callisto-Resource-Bundle", "/a/b/c/bundle.crbx");
       this.result = headers;
 
       bundle.getSymbolicName();
@@ -558,13 +563,12 @@ public abstract class CoResourceModelContract
   {
     new Expectations()
     {{
-      bundle.getResource("/a/b/c/bundle.cpd");
-      this.result = CoResourceModelContract.class.getResource(
-        "simple.cpd");
+      bundle.getResource("/a/b/c/bundle.crbx");
+      this.result = CoResourceModelContract.class.getResource("single.crbx");
 
       bundle.getHeaders();
       final Hashtable<String, String> headers = new Hashtable<>();
-      headers.put("Callisto-Resource-Bundle", "/a/b/c/bundle.cpd");
+      headers.put("Callisto-Resource-Bundle", "/a/b/c/bundle.crbx");
       this.result = headers;
 
       final Map<String, Object> cap_attributes = new HashMap<>();
@@ -614,13 +618,12 @@ public abstract class CoResourceModelContract
   {
     new Expectations()
     {{
-      bundle.getResource("/a/b/c/bundle.cpd");
-      this.result = CoResourceModelContract.class.getResource(
-        "simple.cpd");
+      bundle.getResource("/a/b/c/bundle.crbx");
+      this.result = CoResourceModelContract.class.getResource("single.crbx");
 
       bundle.getHeaders();
       final Hashtable<String, String> headers = new Hashtable<>();
-      headers.put("Callisto-Resource-Bundle", "/a/b/c/bundle.cpd");
+      headers.put("Callisto-Resource-Bundle", "/a/b/c/bundle.crbx");
       this.result = headers;
 
       final Map<String, Object> cap_attributes = new HashMap<>();
@@ -655,7 +658,7 @@ public abstract class CoResourceModelContract
     Assert.assertTrue(rr.packagesPrivate().isEmpty());
 
     final CoResourceID res_id =
-      CoResourceID.of("a.b.c", "x");
+      CoResourceID.of("a.b.c", "w");
 
     this.expected.expect(CoResourceExceptionNonexistent.class);
     e.bundleResourceLookup(bundle, res_id);
@@ -689,16 +692,15 @@ public abstract class CoResourceModelContract
         wiring_0.getCapabilities(NAMESPACE);
         this.result = capabilities;
 
-        bundle_0.getResource("/a/b/c/bundle.cpd");
-        this.result = CoResourceModelContract.class.getResource(
-          "simple-with-resources.cpd");
+        bundle_0.getResource("/a/b/c/bundle.crbx");
+        this.result = CoResourceModelContract.class.getResource("single.crbx");
 
-        bundle_0.getResource("/a/b/c/d.txt");
+        bundle_0.getResource("/a/b/c/file0.txt");
         this.result = CoResourceModelContract.class.getResource("z.txt");
 
         bundle_0.getHeaders();
         final Hashtable<String, String> headers = new Hashtable<>();
-        headers.put("Callisto-Resource-Bundle", "/a/b/c/bundle.cpd");
+        headers.put("Callisto-Resource-Bundle", "/a/b/c/bundle.crbx");
         this.result = headers;
 
         bundle_0.getSymbolicName();
@@ -802,16 +804,15 @@ public abstract class CoResourceModelContract
         wiring_0.getCapabilities(NAMESPACE);
         this.result = capabilities;
 
-        bundle_0.getResource("/a/b/c/bundle.cpd");
-        this.result = CoResourceModelContract.class.getResource(
-          "simple-with-resources.cpd");
+        bundle_0.getResource("/a/b/c/bundle.crbx");
+        this.result = CoResourceModelContract.class.getResource("single.crbx");
 
         bundle_0.getResource("/a/b/c/d.txt");
         this.result = CoResourceModelContract.class.getResource("z.txt");
 
         bundle_0.getHeaders();
         final Hashtable<String, String> headers = new Hashtable<>();
-        headers.put("Callisto-Resource-Bundle", "/a/b/c/bundle.cpd");
+        headers.put("Callisto-Resource-Bundle", "/a/b/c/bundle.crbx");
         this.result = headers;
 
         bundle_0.getSymbolicName();

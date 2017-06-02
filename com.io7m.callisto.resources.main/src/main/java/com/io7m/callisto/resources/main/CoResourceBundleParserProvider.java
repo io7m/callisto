@@ -25,24 +25,39 @@ import com.io7m.callisto.resources.api.CoResourceBundleParserType;
 import com.io7m.callisto.resources.api.CoResourceBundleParserWarning;
 import com.io7m.callisto.resources.api.CoResourceID;
 import com.io7m.callisto.resources.api.CoResourcePackageDeclaration;
+import com.io7m.callisto.resources.schemas.CoResourcesSchema;
+import com.io7m.callisto.resources.schemas.CoResourcesSchemas;
 import com.io7m.jnull.NullCheck;
-import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import com.io7m.junreachable.UnreachableCodeException;
 import it.unimi.dsi.fastutil.objects.Object2ReferenceOpenHashMap;
+import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.xml.sax.Attributes;
+import org.xml.sax.ContentHandler;
+import org.xml.sax.ErrorHandler;
+import org.xml.sax.InputSource;
+import org.xml.sax.Locator;
+import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
+import org.xml.sax.XMLReader;
 
-import java.io.BufferedReader;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
+import javax.xml.transform.Source;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.URI;
+import java.net.URL;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.regex.Pattern;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
+import java.util.concurrent.Callable;
 
 /**
  * The default implementation of the {@link CoResourceBundleParserProviderType}
@@ -61,6 +76,10 @@ public final class CoResourceBundleParserProvider
     LOG = LoggerFactory.getLogger(CoResourceBundleParserProvider.class);
   }
 
+  private volatile SAXParserFactory factory;
+  private volatile SchemaFactory schema_factory;
+  private volatile Schema schema;
+
   /**
    * Construct a parser provider.
    */
@@ -68,6 +87,37 @@ public final class CoResourceBundleParserProvider
   public CoResourceBundleParserProvider()
   {
 
+  }
+
+  /**
+   * Activate the parser provider.
+   *
+   * @throws IOException  On I/O errors
+   * @throws SAXException On XML parser configuration errors
+   */
+
+  @Activate
+  public void onActivate()
+    throws IOException, SAXException
+  {
+    this.schema_factory =
+      SchemaFactory.newInstance("http://www.w3.org/2001/XMLSchema");
+
+    final List<CoResourcesSchema> schemas =
+      CoResourcesSchemas.bundleSchemas();
+
+    final Source[] sources = new Source[schemas.size()];
+    for (int index = 0; index < schemas.size(); ++index) {
+      final CoResourcesSchema bundle_schema = schemas.get(index);
+      final URL url = bundle_schema.fileURL();
+      sources[index] = new StreamSource(url.toString());
+    }
+
+    this.schema = this.schema_factory.newSchema(sources);
+    this.factory = SAXParserFactory.newInstance();
+    this.factory.setValidating(false);
+    this.factory.setNamespaceAware(true);
+    this.factory.setSchema(this.schema);
   }
 
   @Override
@@ -79,289 +129,67 @@ public final class CoResourceBundleParserProvider
     NullCheck.notNull(stream, "Stream");
     NullCheck.notNull(uri, "URI");
     NullCheck.notNull(resolver, "Resolver");
-    return new Parser(stream, uri, resolver);
+
+    final Callable<SAXParser> supplier = () -> {
+      synchronized (this.factory) {
+        return this.factory.newSAXParser();
+      }
+    };
+
+    return new Parser(supplier, stream, uri, resolver);
   }
 
-  private static final class Parser implements CoResourceBundleParserType
+  private static final class Parser implements CoResourceBundleParserType,
+    ContentHandler, ErrorHandler
   {
-    private static final Pattern SPACE = Pattern.compile("\\s+");
-
     private final InputStream stream;
     private final URI uri;
-    private final CoResourceBundleParserFileResolverType resolver;
     private final CoResourceBundleParserResult.Builder result;
-    private boolean done;
-    private int line;
-    private Object2ReferenceOpenHashMap<CoResourceID, CoResource> resources;
+    private final CoResourceBundleParserFileResolverType resolver;
     private boolean closed;
-    private CoResourcePackageDeclaration.Builder package_builder;
-    private String package_name;
-    private Object2IntOpenHashMap<String> packages;
+    private final Callable<SAXParser> parser_supplier;
+    private ContentHandler format_handler;
+    private Locator locator;
 
     Parser(
+      final Callable<SAXParser> in_parser_supplier,
       final InputStream in_stream,
       final URI in_uri,
       final CoResourceBundleParserFileResolverType in_resolver)
     {
-      this.stream = NullCheck.notNull(in_stream, "Stream");
-      this.uri = NullCheck.notNull(in_uri, "URI");
-      this.resolver = NullCheck.notNull(in_resolver, "Resolver");
-      this.resources = new Object2ReferenceOpenHashMap<>();
-      this.packages = new Object2IntOpenHashMap<>();
+      this.parser_supplier =
+        NullCheck.notNull(in_parser_supplier, "Parser supplier");
+      this.stream =
+        NullCheck.notNull(in_stream, "Stream");
+      this.uri =
+        NullCheck.notNull(in_uri, "URI");
+      this.resolver =
+        NullCheck.notNull(in_resolver, "Resolver");
+
       this.result = CoResourceBundleParserResult.builder();
-      this.line = 1;
-      this.done = false;
     }
 
     @Override
     public CoResourceBundleParserResult parse()
     {
-      try (final BufferedReader reader =
-             new BufferedReader(new InputStreamReader(this.stream, UTF_8))) {
+      try {
+        final SAXParser parser = this.parser_supplier.call();
+        final XMLReader reader = parser.getXMLReader();
+        reader.setContentHandler(this);
+        reader.setErrorHandler(this);
 
-        while (!this.done) {
-          try {
-            final String line_raw = reader.readLine();
-            if (line_raw == null) {
-              break;
-            }
-
-            final String line_trimmed = line_raw.trim();
-            final String[] line_parts = SPACE.split(line_trimmed);
-            if (this.line == 1) {
-              this.parseCommandCBD(line_trimmed, line_parts);
-              continue;
-            }
-
-            if (line_trimmed.isEmpty() || line_trimmed.startsWith("#")) {
-              continue;
-            }
-
-            this.parseCommand(line_trimmed, line_parts);
-          } finally {
-            this.line = Math.addExact(this.line, 1);
-          }
-        }
-
-        this.finishCurrentPackage();
-      } catch (final IOException e) {
-        this.result.addErrors(CoResourceBundleParserError.of(
-          this.uri, this.line, e.getMessage(), Optional.of(e)));
-      }
-
-      return this.result.build();
-    }
-
-    private void parseCommand(
-      final String text,
-      final String[] parts)
-    {
-      switch (parts[0]) {
-        case "package": {
-          this.parseCommandPackage(text, parts);
-          return;
-        }
-        case "resource": {
-          this.parseCommandResource(text, parts);
-          return;
-        }
-        default: {
-          this.parseCommandUnknown(text, parts);
-        }
-      }
-    }
-
-    private void parseCommandCBD(
-      final String text,
-      final String[] parts)
-    {
-      if (parts.length == 3) {
-        if (Objects.equals(parts[0], "cbd")) {
-          try {
-            final int major = Integer.parseUnsignedInt(parts[1]);
-            final int minor = Integer.parseUnsignedInt(parts[2]);
-            if (LOG.isDebugEnabled()) {
-              LOG.debug(
-                "cbd {} {}",
-                Integer.valueOf(major),
-                Integer.valueOf(minor));
-            }
-
-            if (major != 1) {
-              final StringBuilder sb = new StringBuilder(128);
-              sb.append("Format version not supported.");
-              sb.append(System.lineSeparator());
-              sb.append("  Expected: cbd 1 *");
-              sb.append(System.lineSeparator());
-              sb.append("  Received: ");
-              sb.append(text);
-              sb.append(System.lineSeparator());
-              this.result.addErrors(CoResourceBundleParserError.of(
-                this.uri, this.line, sb.toString(), Optional.empty()));
-              this.done = true;
-            }
-
-            return;
-          } catch (final NumberFormatException e) {
-            final StringBuilder sb = new StringBuilder(128);
-            sb.append("Error parsing cbd version.");
-            sb.append(System.lineSeparator());
-            sb.append("  Expected: cbd <integer> <integer>");
-            sb.append(System.lineSeparator());
-            sb.append("  Received: ");
-            sb.append(text);
-            sb.append(System.lineSeparator());
-            this.result.addErrors(CoResourceBundleParserError.of(
-              this.uri, this.line, sb.toString(), Optional.of(e)));
-            this.done = true;
-            return;
-          }
-        }
-      }
-
-      final StringBuilder sb = new StringBuilder(128);
-      sb.append("The first command of the file must be the cbd command.");
-      sb.append(System.lineSeparator());
-      sb.append("  Expected: cbd <integer> <integer>");
-      sb.append(System.lineSeparator());
-      sb.append("  Received: ");
-      sb.append(text);
-      sb.append(System.lineSeparator());
-      this.result.addErrors(CoResourceBundleParserError.of(
-        this.uri, this.line, sb.toString(), Optional.empty()));
-      this.done = true;
-    }
-
-    private void parseCommandUnknown(
-      final String text,
-      final String[] parts)
-    {
-      final StringBuilder sb = new StringBuilder(128);
-      sb.append("Received an unrecognized command.");
-      sb.append(System.lineSeparator());
-      sb.append("  Received: ");
-      sb.append(text);
-      sb.append(System.lineSeparator());
-      this.result.addWarnings(CoResourceBundleParserWarning.of(
-        this.uri, this.line, sb.toString()));
-    }
-
-    private void parseCommandResource(
-      final String text,
-      final String[] parts)
-    {
-      if (this.package_builder == null) {
+        final InputSource source = new InputSource(this.stream);
+        source.setPublicId(this.uri.toString());
+        reader.parse(source);
+        return this.result.build();
+      } catch (final Exception e) {
         this.result.addErrors(CoResourceBundleParserError.of(
           this.uri,
-          this.line,
-          "No package name has been specified.",
-          Optional.empty()));
-        return;
-      }
-
-      if (parts.length != 4) {
-        final StringBuilder sb = new StringBuilder(128);
-        sb.append("Could not parse command.");
-        sb.append(System.lineSeparator());
-        sb.append("  Expected: resource <name> <type> <file>");
-        sb.append(System.lineSeparator());
-        sb.append("  Received: ");
-        sb.append(text);
-        sb.append(System.lineSeparator());
-        this.result.addErrors(CoResourceBundleParserError.of(
-          this.uri, this.line, sb.toString(), Optional.empty()));
-        return;
-      }
-
-      final String name = parts[1];
-      final String type = parts[2];
-      final String file = parts[3];
-
-      final URI file_uri;
-      try {
-        file_uri = this.resolver.resolve(file);
-      } catch (final FileNotFoundException e) {
-        final StringBuilder sb = new StringBuilder(128);
-        sb.append("An exported file is missing.");
-        sb.append(System.lineSeparator());
-        sb.append("  File: ");
-        sb.append(file);
-        sb.append(System.lineSeparator());
-        this.result.addErrors(CoResourceBundleParserError.of(
-          this.uri, this.line, sb.toString(), Optional.of(e)));
-        return;
-      }
-
-      final CoResourceID resource_id =
-        CoResourceID.of(this.package_name, name);
-      final CoResource resource =
-        CoResource.of(resource_id, type, file_uri);
-
-      if (this.resources.containsKey(resource_id)) {
-        final StringBuilder sb = new StringBuilder(128);
-        sb.append("A resource is already exported.");
-        sb.append(System.lineSeparator());
-        sb.append("  Resource: ");
-        sb.append(resource_id.qualifiedName());
-        sb.append(System.lineSeparator());
-        this.result.addErrors(CoResourceBundleParserError.of(
-          this.uri, this.line, sb.toString(), Optional.empty()));
-        return;
-      }
-
-      this.resources.put(resource_id, resource);
-    }
-
-    private void parseCommandPackage(
-      final String text,
-      final String[] parts)
-    {
-      if (parts.length == 2) {
-        this.finishCurrentPackage();
-        this.package_builder = CoResourcePackageDeclaration.builder();
-        this.package_name = parts[1];
-        this.package_builder.setName(this.package_name);
-        if (this.packages.containsKey(this.package_name)) {
-          final StringBuilder sb = new StringBuilder(256);
-          sb.append("Duplicate package declaration.");
-          sb.append(System.lineSeparator());
-          sb.append("  Received: ");
-          sb.append(this.package_name);
-          sb.append(System.lineSeparator());
-          sb.append("  Original declaration: ");
-          sb.append(this.package_name);
-          sb.append(" at line ");
-          sb.append(this.packages.getInt(this.package_name));
-          sb.append(System.lineSeparator());
-          this.result.addErrors(CoResourceBundleParserError.of(
-            this.uri, this.line, sb.toString(), Optional.empty()));
-        }
-        this.packages.put(this.package_name, this.line);
-        return;
-      }
-
-      final StringBuilder sb = new StringBuilder(256);
-      sb.append("Could not parse command.");
-      sb.append(System.lineSeparator());
-      sb.append("  Expected: package <qualified-name>");
-      sb.append(System.lineSeparator());
-      sb.append("  Received: ");
-      sb.append(text);
-      sb.append(System.lineSeparator());
-      this.result.addErrors(CoResourceBundleParserError.of(
-        this.uri, this.line, sb.toString(), Optional.empty()));
-    }
-
-    private void finishCurrentPackage()
-    {
-      if (this.package_builder != null) {
-        this.package_builder.putAllResources(this.resources);
-        this.result.putPackages(
-          this.package_name,
-          this.package_builder.build());
-        this.resources = new Object2ReferenceOpenHashMap<>();
-        this.package_builder = null;
-        this.package_name = null;
+          0,
+          e.getMessage(),
+          Optional.of(e)
+        ));
+        return this.result.build();
       }
     }
 
@@ -376,6 +204,384 @@ public final class CoResourceBundleParserProvider
       } finally {
         this.closed = true;
       }
+    }
+
+    @Override
+    public void setDocumentLocator(
+      final Locator in_locator)
+    {
+      this.locator = NullCheck.notNull(in_locator, "Locator");
+    }
+
+    @Override
+    public void startDocument()
+      throws SAXException
+    {
+
+    }
+
+    @Override
+    public void endDocument()
+      throws SAXException
+    {
+
+    }
+
+    @Override
+    public void startPrefixMapping(
+      final String prefix,
+      final String in_uri)
+      throws SAXException
+    {
+      final List<CoResourcesSchema> schemas = CoResourcesSchemas.bundleSchemas();
+      for (int index = 0; index < schemas.size(); ++index) {
+        final CoResourcesSchema sch = schemas.get(index);
+        if (Objects.equals(sch.namespaceURI().toString(), in_uri)) {
+          LOG.debug(
+            "instantiating format {}.{} parser",
+            Integer.valueOf(sch.major()),
+            Integer.valueOf(sch.minor()));
+          switch (sch.major()) {
+            case 1: {
+              this.format_handler =
+                new V1Handler(
+                  this.uri,
+                  this.locator,
+                  this.resolver,
+                  this.result);
+              return;
+            }
+            default: {
+              throw new UnreachableCodeException();
+            }
+          }
+        }
+      }
+
+      throw new SAXException("Unsupported format: " + in_uri);
+    }
+
+    @Override
+    public void endPrefixMapping(
+      final String prefix)
+      throws SAXException
+    {
+
+    }
+
+    @Override
+    public void startElement(
+      final String element_uri,
+      final String local_name,
+      final String qualified_name,
+      final Attributes atts)
+      throws SAXException
+    {
+      this.format_handler.startElement(
+        element_uri,
+        local_name,
+        qualified_name,
+        atts);
+    }
+
+    @Override
+    public void endElement(
+      final String element_uri,
+      final String local_name,
+      final String qualified_name)
+      throws SAXException
+    {
+      this.format_handler.endElement(element_uri, local_name, qualified_name);
+    }
+
+    @Override
+    public void characters(
+      final char[] ch,
+      final int start,
+      final int length)
+      throws SAXException
+    {
+      this.format_handler.characters(ch, start, length);
+    }
+
+    @Override
+    public void ignorableWhitespace(
+      final char[] ch,
+      final int start,
+      final int length)
+      throws SAXException
+    {
+      this.format_handler.ignorableWhitespace(ch, start, length);
+    }
+
+    @Override
+    public void processingInstruction(
+      final String target,
+      final String data)
+      throws SAXException
+    {
+      this.format_handler.processingInstruction(target, data);
+    }
+
+    @Override
+    public void skippedEntity(
+      final String name)
+      throws SAXException
+    {
+      this.format_handler.skippedEntity(name);
+    }
+
+    @Override
+    public void warning(
+      final SAXParseException exception)
+      throws SAXException
+    {
+      this.result.addWarnings(CoResourceBundleParserWarning.of(
+        this.uri,
+        exception.getLineNumber(),
+        exception.getMessage()));
+    }
+
+    @Override
+    public void error(
+      final SAXParseException exception)
+      throws SAXException
+    {
+      this.result.addErrors(CoResourceBundleParserError.of(
+        this.uri,
+        exception.getLineNumber(),
+        exception.getMessage(),
+        Optional.of(exception)));
+    }
+
+    @Override
+    public void fatalError(
+      final SAXParseException exception)
+      throws SAXException
+    {
+      this.result.addErrors(CoResourceBundleParserError.of(
+        this.uri,
+        exception.getLineNumber(),
+        exception.getMessage(),
+        Optional.of(exception)));
+    }
+  }
+
+  private static final class V1Handler implements ContentHandler
+  {
+    private final CoResourceBundleParserFileResolverType resolver;
+    private final CoResourceBundleParserResult.Builder result;
+    private final URI uri;
+    private Object2ReferenceOpenHashMap<CoResourceID, CoResource> resources;
+    private CoResourcePackageDeclaration.Builder package_builder;
+    private String package_name;
+    private Locator locator;
+
+    V1Handler(
+      final URI in_uri,
+      final Locator in_locator,
+      final CoResourceBundleParserFileResolverType in_resolver,
+      final CoResourceBundleParserResult.Builder in_result)
+    {
+      this.uri =
+        NullCheck.notNull(in_uri, "URI");
+      this.locator =
+        NullCheck.notNull(in_locator, "Locator");
+      this.resolver =
+        NullCheck.notNull(in_resolver, "Resolver");
+      this.result =
+        NullCheck.notNull(in_result, "Result");
+
+      this.resources = new Object2ReferenceOpenHashMap<>();
+    }
+
+    @Override
+    public void setDocumentLocator(
+      final Locator in_locator)
+    {
+      throw new UnreachableCodeException();
+    }
+
+    @Override
+    public void startDocument()
+      throws SAXException
+    {
+      throw new UnreachableCodeException();
+    }
+
+    @Override
+    public void endDocument()
+      throws SAXException
+    {
+      throw new UnreachableCodeException();
+    }
+
+    @Override
+    public void startPrefixMapping(
+      final String prefix,
+      final String in_uri)
+      throws SAXException
+    {
+      throw new UnreachableCodeException();
+    }
+
+    @Override
+    public void endPrefixMapping(
+      final String prefix)
+      throws SAXException
+    {
+      throw new UnreachableCodeException();
+    }
+
+    @Override
+    public void startElement(
+      final String element_uri,
+      final String local_name,
+      final String qualified_name,
+      final Attributes atts)
+      throws SAXException
+    {
+      switch (local_name) {
+        case "bundle": {
+          break;
+        }
+
+        case "package": {
+          this.finishPackage();
+          this.package_builder = CoResourcePackageDeclaration.builder();
+          this.package_name = atts.getValue("name");
+          this.package_builder.setName(this.package_name);
+          break;
+        }
+
+        case "resource": {
+          final String file = atts.getValue("file");
+          final String name = atts.getValue("name");
+          final String type = atts.getValue("type");
+
+          final URI file_uri;
+          try {
+            file_uri = this.resolver.resolve(file);
+          } catch (final FileNotFoundException e) {
+            final StringBuilder sb = new StringBuilder(128);
+            sb.append("An exported file is missing.");
+            sb.append(System.lineSeparator());
+            sb.append("  File: ");
+            sb.append(file);
+            sb.append(System.lineSeparator());
+            this.result.addErrors(CoResourceBundleParserError.of(
+              this.uri,
+              this.locator.getLineNumber(),
+              sb.toString(),
+              Optional.of(e)));
+            return;
+          }
+
+          final CoResourceID resource_id =
+            CoResourceID.of(this.package_name, name);
+          final CoResource resource =
+            CoResource.of(resource_id, type, file_uri);
+
+          if (this.resources.containsKey(resource_id)) {
+            final StringBuilder sb = new StringBuilder(128);
+            sb.append("A resource is already exported.");
+            sb.append(System.lineSeparator());
+            sb.append("  Resource: ");
+            sb.append(resource_id.qualifiedName());
+            sb.append(System.lineSeparator());
+            this.result.addErrors(CoResourceBundleParserError.of(
+              this.uri,
+              this.locator.getLineNumber(),
+              sb.toString(),
+              Optional.empty()));
+            return;
+          }
+
+          this.resources.put(resource_id, resource);
+          break;
+        }
+
+        default: {
+          this.result.addWarnings(CoResourceBundleParserWarning.of(
+            this.uri,
+            this.locator.getLineNumber(),
+            "Unrecognized element: " + local_name
+          ));
+        }
+      }
+    }
+
+    private void finishPackage()
+    {
+      if (this.package_builder != null) {
+        this.package_builder.putAllResources(this.resources);
+        this.result.putPackages(
+          this.package_name,
+          this.package_builder.build());
+        this.resources = new Object2ReferenceOpenHashMap<>();
+        this.package_builder = null;
+        this.package_name = null;
+      }
+    }
+
+    @Override
+    public void endElement(
+      final String element_uri,
+      final String local_name,
+      final String qualified_name)
+      throws SAXException
+    {
+      switch (local_name) {
+        case "bundle": {
+          this.finishPackage();
+          break;
+        }
+
+        default: {
+          this.result.addWarnings(CoResourceBundleParserWarning.of(
+            this.uri,
+            this.locator.getLineNumber(),
+            "Unrecognized element: " + local_name
+          ));
+        }
+      }
+    }
+
+    @Override
+    public void characters(
+      final char[] ch,
+      final int start,
+      final int length)
+      throws SAXException
+    {
+
+    }
+
+    @Override
+    public void ignorableWhitespace(
+      final char[] ch,
+      final int start,
+      final int length)
+      throws SAXException
+    {
+
+    }
+
+    @Override
+    public void processingInstruction(
+      final String target,
+      final String data)
+      throws SAXException
+    {
+
+    }
+
+    @Override
+    public void skippedEntity(
+      final String name)
+      throws SAXException
+    {
+
     }
   }
 }

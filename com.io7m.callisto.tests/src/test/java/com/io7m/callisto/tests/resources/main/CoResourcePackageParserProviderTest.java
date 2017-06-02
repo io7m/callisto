@@ -22,35 +22,30 @@ import com.io7m.callisto.resources.main.CoResourceBundleParserProvider;
 import com.io7m.callisto.tests.resources.api.CoResourceBundleParserProviderContract;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.xml.sax.SAXException;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+
+import static java.nio.charset.StandardCharsets.*;
 
 public final class CoResourcePackageParserProviderTest
   extends CoResourceBundleParserProviderContract
 {
   @Override
-  protected CoResourceBundleParserType createParser(
-    final String text,
-    final CoResourceBundleParserFileResolverType receiver)
-  {
-    return new CoResourceBundleParserProvider().createFromInputStream(
-      new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8)),
-      this.uri(),
-      receiver);
-  }
-
-  @Override
   protected CoResourceBundleParserType createParserStream(
     final InputStream stream,
     final CoResourceBundleParserFileResolverType resolver)
+    throws Exception
   {
-    return new CoResourceBundleParserProvider().createFromInputStream(
-      stream,
-      this.uri(),
-      resolver);
+    final CoResourceBundleParserProvider provider =
+      new CoResourceBundleParserProvider();
+
+    provider.onActivate();
+    return provider.createFromInputStream(stream, this.uri(), resolver);
   }
 
   @Override

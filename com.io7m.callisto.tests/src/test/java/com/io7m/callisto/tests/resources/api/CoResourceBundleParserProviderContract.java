@@ -16,9 +16,12 @@
 
 package com.io7m.callisto.tests.resources.api;
 
+import com.io7m.callisto.resources.api.CoResource;
 import com.io7m.callisto.resources.api.CoResourceBundleParserFileResolverType;
 import com.io7m.callisto.resources.api.CoResourceBundleParserResult;
 import com.io7m.callisto.resources.api.CoResourceBundleParserType;
+import com.io7m.callisto.resources.api.CoResourceID;
+import com.io7m.callisto.resources.api.CoResourcePackageDeclaration;
 import mockit.Expectations;
 import mockit.Mocked;
 import org.hamcrest.core.StringContains;
@@ -30,352 +33,233 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public abstract class CoResourceBundleParserProviderContract
 {
-  protected abstract CoResourceBundleParserType createParser(
-    String text,
-    CoResourceBundleParserFileResolverType resolver);
-
   protected abstract CoResourceBundleParserType createParserStream(
     InputStream stream,
-    CoResourceBundleParserFileResolverType resolver);
+    CoResourceBundleParserFileResolverType resolver)
+    throws Exception;
 
   protected abstract URI uri();
 
   protected abstract Logger log();
 
   @Test
-  public void testCBDNotFirst(
+  public final void testCBDNotSupported(
     final @Mocked CoResourceBundleParserFileResolverType resolver)
     throws Exception
   {
-    final StringBuilder sb = new StringBuilder(256);
-    sb.append(System.lineSeparator());
-
     try (final CoResourceBundleParserType p =
-           this.createParser(sb.toString(), resolver)) {
+           this.createParserStream(stream("version-unsupported.crbx"), resolver)) {
       final CoResourceBundleParserResult result = p.parse();
 
       this.dumpErrors(result);
-      Assert.assertEquals(1L, (long) result.errors().size());
-      Assert.assertThat(
-        result.errors().get(0).message(),
-        StringContains.containsString(
-          "The first command of the file must be the cbd command"));
+      Assert.assertFalse(result.errors().isEmpty());
+      Assert.assertFalse(
+        result.errors()
+          .stream()
+          .filter(e -> e.message().contains("Unsupported format"))
+          .collect(Collectors.toList())
+          .isEmpty());
+    }
+  }
+
+  private static InputStream stream(
+    final String file)
+  {
+    return CoResourceBundleParserProviderContract.class.getResourceAsStream(file);
+  }
+
+  @Test
+  public final void testPackageDuplicate(
+    final @Mocked CoResourceBundleParserFileResolverType resolver)
+    throws Exception
+  {
+    try (final CoResourceBundleParserType p =
+           this.createParserStream(stream("package-duplicate.crbx"), resolver)) {
+      final CoResourceBundleParserResult result = p.parse();
+
+      this.dumpErrors(result);
+
+      Assert.assertFalse(result.errors().isEmpty());
+      Assert.assertFalse(
+        result.errors()
+          .stream()
+          .filter(e -> e.message().contains("There are multiple occurrences of ID value 'a.b.c'"))
+          .collect(Collectors.toList())
+          .isEmpty());
     }
   }
 
   @Test
-  public void testCBDNotSupported(
+  public final void testUnparseable0(
     final @Mocked CoResourceBundleParserFileResolverType resolver)
     throws Exception
   {
-    final StringBuilder sb = new StringBuilder(256);
-    sb.append("cbd 9999 9999");
-    sb.append(System.lineSeparator());
-
     try (final CoResourceBundleParserType p =
-           this.createParser(sb.toString(), resolver)) {
+           this.createParserStream(stream("ill-formed-0.crbx"), resolver)) {
       final CoResourceBundleParserResult result = p.parse();
 
       this.dumpErrors(result);
-      Assert.assertEquals(1L, (long) result.errors().size());
-      Assert.assertThat(
-        result.errors().get(0).message(),
-        StringContains.containsString(
-          "Format version not supported"));
+
+      Assert.assertFalse(result.errors().isEmpty());
+      Assert.assertFalse(
+        result.errors()
+          .stream()
+          .filter(e -> e.message().contains("terminated by the matching end-tag"))
+          .collect(Collectors.toList())
+          .isEmpty());
     }
   }
 
   @Test
-  public void testCBDNotInteger(
+  public final void testInvalid0(
     final @Mocked CoResourceBundleParserFileResolverType resolver)
     throws Exception
   {
-    final StringBuilder sb = new StringBuilder(256);
-    sb.append("cbd x y");
-    sb.append(System.lineSeparator());
-
     try (final CoResourceBundleParserType p =
-           this.createParser(sb.toString(), resolver)) {
+           this.createParserStream(stream("invalid-0.crbx"), resolver)) {
       final CoResourceBundleParserResult result = p.parse();
 
       this.dumpErrors(result);
-      Assert.assertEquals(1L, (long) result.errors().size());
-      Assert.assertThat(
-        result.errors().get(0).message(),
-        StringContains.containsString(
-          "Error parsing cbd version"));
+
+      Assert.assertFalse(result.errors().isEmpty());
+      Assert.assertFalse(
+        result.errors()
+          .stream()
+          .filter(e -> e.message().contains("Invalid content was found starting with element"))
+          .collect(Collectors.toList())
+          .isEmpty());
     }
   }
 
   @Test
-  public void testPackageDuplicate(
-    final @Mocked CoResourceBundleParserFileResolverType resolver)
-    throws Exception
-  {
-    final StringBuilder sb = new StringBuilder(256);
-    sb.append("cbd 1 0");
-    sb.append(System.lineSeparator());
-    sb.append("package a.b.c");
-    sb.append(System.lineSeparator());
-    sb.append("package a.b.c");
-    sb.append(System.lineSeparator());
-
-    try (final CoResourceBundleParserType p =
-           this.createParser(sb.toString(), resolver)) {
-      final CoResourceBundleParserResult result = p.parse();
-
-      this.dumpErrors(result);
-      Assert.assertEquals(1L, (long) result.errors().size());
-      Assert.assertThat(
-        result.errors().get(0).message(),
-        StringContains.containsString(
-          "Duplicate package declaration"));
-    }
-  }
-
-  @Test
-  public void testPackageBad(
-    final @Mocked CoResourceBundleParserFileResolverType resolver)
-    throws Exception
-  {
-    final StringBuilder sb = new StringBuilder(256);
-    sb.append("cbd 1 0");
-    sb.append(System.lineSeparator());
-    sb.append("package");
-    sb.append(System.lineSeparator());
-
-    try (final CoResourceBundleParserType p =
-           this.createParser(sb.toString(), resolver)) {
-      final CoResourceBundleParserResult result = p.parse();
-
-      this.dumpErrors(result);
-      Assert.assertEquals(1L, (long) result.errors().size());
-      Assert.assertThat(
-        result.errors().get(0).message(),
-        StringContains.containsString(
-          "Could not parse command"));
-    }
-  }
-
-  @Test
-  public void testResourceWithoutPackage(
-    final @Mocked CoResourceBundleParserFileResolverType resolver)
-    throws Exception
-  {
-    final StringBuilder sb = new StringBuilder(256);
-    sb.append("cbd 1 0");
-    sb.append(System.lineSeparator());
-    sb.append("resource x com.io7m.callisto.text /a/b/c.txt");
-    sb.append(System.lineSeparator());
-
-    try (final CoResourceBundleParserType p =
-           this.createParser(sb.toString(), resolver)) {
-      final CoResourceBundleParserResult result = p.parse();
-
-      this.dumpErrors(result);
-      Assert.assertEquals(1L, (long) result.errors().size());
-      Assert.assertThat(
-        result.errors().get(0).message(),
-        StringContains.containsString(
-          "No package name has been specified"));
-    }
-  }
-
-  @Test
-  public void testResourceFileMissing(
+  public final void testResourceFileMissing(
     final @Mocked CoResourceBundleParserFileResolverType resolver)
     throws Exception
   {
     new Expectations() {{
-      resolver.resolve("/a/b/c.txt");
-      this.result = new FileNotFoundException("/a/b/c.txt");
+      resolver.resolve("/a/b/c/file.txt");
+      this.result = new FileNotFoundException("/a/b/c/file.txt");
     }};
 
-    final StringBuilder sb = new StringBuilder(256);
-    sb.append("cbd 1 0");
-    sb.append(System.lineSeparator());
-    sb.append("package a.b.c");
-    sb.append(System.lineSeparator());
-    sb.append("resource x com.io7m.callisto.text /a/b/c.txt");
-    sb.append(System.lineSeparator());
-
     try (final CoResourceBundleParserType p =
-           this.createParser(sb.toString(), resolver)) {
+           this.createParserStream(stream("file-missing.crbx"), resolver)) {
       final CoResourceBundleParserResult result = p.parse();
 
       this.dumpErrors(result);
-      Assert.assertEquals(1L, (long) result.errors().size());
-      Assert.assertThat(
-        result.errors().get(0).message(),
-        StringContains.containsString(
-          "An exported file is missing"));
+
+      Assert.assertFalse(result.errors().isEmpty());
+      Assert.assertFalse(
+        result.errors()
+          .stream()
+          .filter(e -> e.message().contains("An exported file is missing"))
+          .collect(Collectors.toList())
+          .isEmpty());
     }
   }
 
   @Test
-  public void testResourceUnparseable0(
+  public final void testResourceDuplicate(
     final @Mocked CoResourceBundleParserFileResolverType resolver)
     throws Exception
   {
     new Expectations() {{
-
-    }};
-
-    final StringBuilder sb = new StringBuilder(256);
-    sb.append("cbd 1 0");
-    sb.append(System.lineSeparator());
-    sb.append("package a.b.c");
-    sb.append(System.lineSeparator());
-    sb.append("resource x");
-    sb.append(System.lineSeparator());
-
-    try (final CoResourceBundleParserType p =
-           this.createParser(sb.toString(), resolver)) {
-      final CoResourceBundleParserResult result = p.parse();
-
-      this.dumpErrors(result);
-      Assert.assertEquals(1L, (long) result.errors().size());
-      Assert.assertThat(
-        result.errors().get(0).message(),
-        StringContains.containsString(
-          "Could not parse command"));
-    }
-  }
-
-  @Test
-  public void testResourceUnparseable1(
-    final @Mocked CoResourceBundleParserFileResolverType resolver)
-    throws Exception
-  {
-    new Expectations() {{
-
-    }};
-
-    final StringBuilder sb = new StringBuilder(256);
-    sb.append("cbd 1 0");
-    sb.append(System.lineSeparator());
-    sb.append("package a.b.c");
-    sb.append(System.lineSeparator());
-    sb.append("resource x y");
-    sb.append(System.lineSeparator());
-
-    try (final CoResourceBundleParserType p =
-           this.createParser(sb.toString(), resolver)) {
-      final CoResourceBundleParserResult result = p.parse();
-
-      this.dumpErrors(result);
-      Assert.assertEquals(1L, (long) result.errors().size());
-      Assert.assertThat(
-        result.errors().get(0).message(),
-        StringContains.containsString(
-          "Could not parse command"));
-    }
-  }
-
-  @Test
-  public void testResourceUnparseable2(
-    final @Mocked CoResourceBundleParserFileResolverType resolver)
-    throws Exception
-  {
-    new Expectations() {{
-
-    }};
-
-    final StringBuilder sb = new StringBuilder(256);
-    sb.append("cbd 1 0");
-    sb.append(System.lineSeparator());
-    sb.append("package a.b.c");
-    sb.append(System.lineSeparator());
-    sb.append("resource x y z w");
-    sb.append(System.lineSeparator());
-
-    try (final CoResourceBundleParserType p =
-           this.createParser(sb.toString(), resolver)) {
-      final CoResourceBundleParserResult result = p.parse();
-
-      this.dumpErrors(result);
-      Assert.assertEquals(1L, (long) result.errors().size());
-      Assert.assertThat(
-        result.errors().get(0).message(),
-        StringContains.containsString(
-          "Could not parse command"));
-    }
-  }
-
-  @Test
-  public void testResourceDuplicate(
-    final @Mocked CoResourceBundleParserFileResolverType resolver)
-    throws Exception
-  {
-    new Expectations() {{
-      resolver.resolve("/a/b/c.txt");
+      resolver.resolve("/a/b/c/file.txt");
       this.result = URI.create("urn:c.txt");
     }};
 
-    final StringBuilder sb = new StringBuilder(256);
-    sb.append("cbd 1 0");
-    sb.append(System.lineSeparator());
-    sb.append("package a.b.c");
-    sb.append(System.lineSeparator());
-    sb.append("resource x com.io7m.callisto.text /a/b/c.txt");
-    sb.append(System.lineSeparator());
-    sb.append("resource x com.io7m.callisto.text /a/b/c.txt");
-    sb.append(System.lineSeparator());
-
     try (final CoResourceBundleParserType p =
-           this.createParser(sb.toString(), resolver)) {
+           this.createParserStream(stream("duplicate-resource.crbx"), resolver)) {
       final CoResourceBundleParserResult result = p.parse();
 
       this.dumpErrors(result);
-      Assert.assertEquals(1L, (long) result.errors().size());
-      Assert.assertThat(
-        result.errors().get(0).message(),
-        StringContains.containsString(
-          "A resource is already exported"));
+
+      Assert.assertFalse(result.errors().isEmpty());
+      Assert.assertFalse(
+        result.errors()
+          .stream()
+          .filter(e -> e.message().contains("A resource is already exported"))
+          .collect(Collectors.toList())
+          .isEmpty());
     }
   }
 
   @Test
-  public void testUnrecognizedCommand(
+  public final void testSimple(
     final @Mocked CoResourceBundleParserFileResolverType resolver)
     throws Exception
   {
     new Expectations() {{
-
+      resolver.resolve("/a/b/c/file0.txt");
+      this.result = URI.create("urn:file0.txt");
+      resolver.resolve("/a/b/c/file1.txt");
+      this.result = URI.create("urn:file1.txt");
+      resolver.resolve("/a/b/c/file2.txt");
+      this.result = URI.create("urn:file2.txt");
     }};
 
-    final StringBuilder sb = new StringBuilder(256);
-    sb.append("cbd 1 0");
-    sb.append(System.lineSeparator());
-    sb.append("unknown");
-    sb.append(System.lineSeparator());
-
     try (final CoResourceBundleParserType p =
-           this.createParser(sb.toString(), resolver)) {
+           this.createParserStream(stream("simple.crbx"), resolver)) {
       final CoResourceBundleParserResult result = p.parse();
 
       this.dumpErrors(result);
-      Assert.assertEquals(0L, (long) result.errors().size());
-      Assert.assertEquals(1L, (long) result.warnings().size());
-      Assert.assertThat(
-        result.warnings().get(0).message(),
-        StringContains.containsString(
-          "Received an unrecognized command"));
+
+      Assert.assertTrue(result.errors().isEmpty());
+
+      final Map<String, CoResourcePackageDeclaration> packs = result.packages();
+      Assert.assertEquals(2L, (long) packs.size());
+      Assert.assertTrue(packs.containsKey("a.b.c"));
+      Assert.assertTrue(packs.containsKey("a.b.d"));
+
+      {
+        final CoResourcePackageDeclaration pack = packs.get("a.b.c");
+        final Map<CoResourceID, CoResource> resources = pack.resources();
+        Assert.assertEquals(3L, (long) resources.size());
+        final CoResource r0 =
+          resources.get(CoResourceID.of("a.b.c", "x"));
+        final CoResource r1 =
+          resources.get(CoResourceID.of("a.b.c", "y"));
+        final CoResource r2 =
+          resources.get(CoResourceID.of("a.b.c", "z"));
+
+        Assert.assertEquals("a.b.c.x", r0.id().qualifiedName());
+        Assert.assertEquals("text", r0.type());
+        Assert.assertEquals("a.b.c.y", r1.id().qualifiedName());
+        Assert.assertEquals("text", r1.type());
+        Assert.assertEquals("a.b.c.z", r2.id().qualifiedName());
+        Assert.assertEquals("text", r2.type());
+      }
+
+      {
+        final CoResourcePackageDeclaration pack = packs.get("a.b.d");
+        final Map<CoResourceID, CoResource> resources = pack.resources();
+        Assert.assertEquals(3L, (long) resources.size());
+        final CoResource r0 =
+          resources.get(CoResourceID.of("a.b.d", "x"));
+        final CoResource r1 =
+          resources.get(CoResourceID.of("a.b.d", "y"));
+        final CoResource r2 =
+          resources.get(CoResourceID.of("a.b.d", "z"));
+
+        Assert.assertEquals("a.b.d.x", r0.id().qualifiedName());
+        Assert.assertEquals("text", r0.type());
+        Assert.assertEquals("a.b.d.y", r1.id().qualifiedName());
+        Assert.assertEquals("text", r1.type());
+        Assert.assertEquals("a.b.d.z", r2.id().qualifiedName());
+        Assert.assertEquals("text", r2.type());
+      }
     }
   }
 
   @Test
-  public void testIOException(
+  public final void testIOException(
     final @Mocked CoResourceBundleParserFileResolverType resolver)
     throws Exception
   {
-    final StringBuilder sb = new StringBuilder(256);
-    sb.append("cbd 1 0");
-    sb.append(System.lineSeparator());
-
     final InputStream stream = new InputStream()
     {
       @Override
