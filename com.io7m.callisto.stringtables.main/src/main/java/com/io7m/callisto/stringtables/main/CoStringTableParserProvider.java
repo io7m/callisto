@@ -268,10 +268,14 @@ public final class CoStringTableParserProvider
       for (int index = 0; index < schemas.size(); ++index) {
         final CoSchema sch = schemas.get(index);
         if (Objects.equals(sch.namespaceURI().toString(), in_uri)) {
-          LOG.debug(
-            "instantiating format {}.{} parser",
-            Integer.valueOf(sch.major()),
-            Integer.valueOf(sch.minor()));
+          if (LOG.isDebugEnabled()) {
+            LOG.debug(
+              "instantiating format {}.{} parser for {}",
+              Integer.valueOf(sch.major()),
+              Integer.valueOf(sch.minor()),
+              this.uri);
+          }
+
           switch (sch.major()) {
             case 1: {
               this.format_handler =
@@ -550,6 +554,13 @@ public final class CoStringTableParserProvider
       switch (local_name) {
 
         case "string-table": {
+          if (LOG.isDebugEnabled()) {
+            LOG.debug(
+              "loaded {} strings ({} octets)",
+              Integer.valueOf(this.strings.size()),
+              Long.valueOf(this.octets));
+          }
+
           this.result.setTable(new StringTable(this.strings, this.octets));
           return;
         }
@@ -601,11 +612,6 @@ public final class CoStringTableParserProvider
       throws SAXException
     {
       if (this.content_reading) {
-        LOG.trace(
-          "text: {} at {}",
-          Integer.valueOf(length),
-          Integer.valueOf(start));
-
         // This isn't strictly the number of octets, but a precise size isn't necessary.
         this.octets = Math.addExact(this.octets, (long) length);
         this.strings.put(this.string_name, new String(ch, start, length));

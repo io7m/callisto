@@ -237,10 +237,14 @@ public final class CoResourceBundleParserProvider
       for (int index = 0; index < schemas.size(); ++index) {
         final CoSchema sch = schemas.get(index);
         if (Objects.equals(sch.namespaceURI().toString(), in_uri)) {
-          LOG.debug(
-            "instantiating format {}.{} parser",
-            Integer.valueOf(sch.major()),
-            Integer.valueOf(sch.minor()));
+          if (LOG.isDebugEnabled()) {
+            LOG.debug(
+              "instantiating format {}.{} parser for {}",
+              Integer.valueOf(sch.major()),
+              Integer.valueOf(sch.minor()),
+              this.uri);
+          }
+
           switch (sch.major()) {
             case 1: {
               this.format_handler =
