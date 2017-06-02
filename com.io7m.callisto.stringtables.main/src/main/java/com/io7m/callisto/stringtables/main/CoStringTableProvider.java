@@ -45,6 +45,7 @@ import org.osgi.service.component.annotations.ReferencePolicy;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -71,6 +72,7 @@ public final class CoStringTableProvider implements CoStringTableProviderType
   private volatile CoResourceResolverType resources;
   private volatile CoStringTableParserProviderType parsers;
   private volatile LoadingCache<CoStringTableRequest, CoStringTableType> cache;
+  private long size_max;
 
   /**
    * Construct a provider.
@@ -139,6 +141,7 @@ public final class CoStringTableProvider implements CoStringTableProviderType
       c.cleanUp();
     }
 
+    this.size_max = size;
     return Caffeine.newBuilder()
       .maximumWeight(size)
       .weigher(CoStringTableProvider::weigh)
@@ -256,5 +259,22 @@ public final class CoStringTableProvider implements CoStringTableProviderType
 
     return this.cache.get(
       CoStringTableRequest.of(requester, resource_id, language));
+  }
+
+  @Override
+  public long sizeUsed()
+  {
+    long size = 0L;
+    final Collection<CoStringTableType> values = this.cache.asMap().values();
+    for (final CoStringTableType table : values) {
+      size = Math.addExact(size, table.size());
+    }
+    return size;
+  }
+
+  @Override
+  public long sizeMaximum()
+  {
+    return this.size_max;
   }
 }

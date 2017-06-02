@@ -43,4 +43,16 @@ public interface CoStringTableProviderType
     CoResourceID resource,
     String language)
     throws CoResourceException;
+
+  /**
+   * @return The current size of the cache in octets
+   */
+
+  long sizeUsed();
+
+  /**
+   * @return The current maximum size of the cache in octets
+   */
+
+  long sizeMaximum();
 }
