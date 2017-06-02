@@ -14,35 +14,25 @@
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-package com.io7m.callisto.stringtables.api;
+package com.io7m.callisto.resources.api;
 
 /**
- * The type of string tables.
+ * An exception caused by an attempt treat a resource as if it were a value of
+ * an incompatible type.
  */
 
-public interface CoStringTableType
+public final class CoResourceExceptionTypeIncompatible extends
+  CoResourceException
 {
   /**
-   * The type of resources that can be loaded as string tables.
-   */
-
-  String RESOURCE_TYPE = "com.io7m.callisto.stringtable";
-
-  /**
-   * @param name The string name
+   * Construct an exception.
    *
-   * @return The localized string value for the given constant
-   *
-   * @throws CoStringTableExceptionNonexistent Iff the given constant does not
-   *                                           appear in the string table
+   * @param message The exception message
    */
 
-  String get(String name)
-    throws CoStringTableExceptionNonexistent;
-
-  /**
-   * @return The size in octets of the contents of the string table
-   */
-
-  long size();
+  public CoResourceExceptionTypeIncompatible(
+    final String message)
+  {
+    super(message);
+  }
 }

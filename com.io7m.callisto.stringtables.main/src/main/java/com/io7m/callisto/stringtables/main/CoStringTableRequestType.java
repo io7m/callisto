@@ -14,35 +14,39 @@
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-package com.io7m.callisto.stringtables.api;
+package com.io7m.callisto.stringtables.main;
+
+import com.io7m.callisto.core.CoImmutableStyleType;
+import com.io7m.callisto.resources.api.CoResourceID;
+import org.immutables.value.Value;
+import org.osgi.framework.Bundle;
 
 /**
- * The type of string tables.
+ * A string table request.
  */
 
-public interface CoStringTableType
+@CoImmutableStyleType
+@Value.Immutable
+public interface CoStringTableRequestType
 {
   /**
-   * The type of resources that can be loaded as string tables.
+   * @return The requesting bundle
    */
 
-  String RESOURCE_TYPE = "com.io7m.callisto.stringtable";
+  @Value.Parameter
+  Bundle requester();
 
   /**
-   * @param name The string name
-   *
-   * @return The localized string value for the given constant
-   *
-   * @throws CoStringTableExceptionNonexistent Iff the given constant does not
-   *                                           appear in the string table
+   * @return The resource ID
    */
 
-  String get(String name)
-    throws CoStringTableExceptionNonexistent;
+  @Value.Parameter
+  CoResourceID resourceID();
 
   /**
-   * @return The size in octets of the contents of the string table
+   * @return The current language
    */
 
-  long size();
+  @Value.Parameter
+  String language();
 }

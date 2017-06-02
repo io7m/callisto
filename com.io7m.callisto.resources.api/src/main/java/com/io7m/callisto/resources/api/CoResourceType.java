@@ -19,6 +19,8 @@ package com.io7m.callisto.resources.api;
 import com.io7m.callisto.core.CoImmutableStyleType;
 import org.immutables.value.Value;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 
 /**
@@ -49,4 +51,19 @@ public interface CoResourceType
 
   @Value.Parameter
   URI uri();
+
+  /**
+   * Open the resource. The caller is responsible for closing the returned
+   * stream.
+   *
+   * @return A stream pointing to the resource
+   *
+   * @throws IOException On I/O errors
+   */
+
+  default InputStream open()
+    throws IOException
+  {
+    return this.uri().toURL().openStream();
+  }
 }

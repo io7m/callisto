@@ -18,6 +18,7 @@ package com.io7m.callisto.stringtables.main;
 
 import com.io7m.callisto.schemas.CoSchema;
 import com.io7m.callisto.schemas.CoSchemas;
+import com.io7m.callisto.stringtables.api.CoStringTableExceptionNonexistent;
 import com.io7m.callisto.stringtables.api.CoStringTableParserError;
 import com.io7m.callisto.stringtables.api.CoStringTableParserProviderType;
 import com.io7m.callisto.stringtables.api.CoStringTableParserResult;
@@ -51,7 +52,6 @@ import java.io.InputStream;
 import java.net.URI;
 import java.net.URL;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -137,11 +137,14 @@ public final class CoStringTableParserProvider
   private static final class StringTable implements CoStringTableType
   {
     private final Object2ReferenceOpenHashMap<String, String> strings;
+    private final long octets;
 
     StringTable(
-      final Object2ReferenceOpenHashMap<String, String> in_strings)
+      final Object2ReferenceOpenHashMap<String, String> in_strings,
+      final long in_octets)
     {
       this.strings = NullCheck.notNull(in_strings, "Strings");
+      this.octets = in_octets;
     }
 
     @Override
@@ -152,9 +155,15 @@ public final class CoStringTableParserProvider
 
       final String result = this.strings.get(name);
       if (result == null) {
-        throw new NoSuchElementException("No such string: " + name);
+        throw new CoStringTableExceptionNonexistent("No such string: " + name);
       }
       return result;
+    }
+
+    @Override
+    public long size()
+    {
+      return this.octets;
     }
   }
 
@@ -210,7 +219,7 @@ public final class CoStringTableParserProvider
           Optional.of(e)
         ));
         this.result.setTable(
-          new StringTable(new Object2ReferenceOpenHashMap<>()));
+          new StringTable(new Object2ReferenceOpenHashMap<>(), 0L));
         return this.result.build();
       }
     }
@@ -393,6 +402,7 @@ public final class CoStringTableParserProvider
     private final CoStringTableParserResult.Builder result;
     private final String language;
     private final Object2ReferenceOpenHashMap<String, String> strings;
+    private long octets;
     private boolean string_table;
     private String string_name;
     private boolean content_found;
@@ -417,6 +427,7 @@ public final class CoStringTableParserProvider
         new Object2ReferenceOpenHashMap<>();
 
       this.string_table = false;
+      this.octets = 0L;
     }
 
     @Override
@@ -474,9 +485,10 @@ public final class CoStringTableParserProvider
 
         case "string": {
           if (!this.string_table) {
-            final StringBuilder sb = new StringBuilder(128);
-            sb.append("String declared outside of string table.");
-            sb.append(System.lineSeparator());
+            final StringBuilder sb =
+              new StringBuilder(128)
+                .append("String declared outside of string table.")
+                .append(System.lineSeparator());
             throw new SAXParseException(sb.toString(), this.locator);
           }
 
@@ -484,15 +496,16 @@ public final class CoStringTableParserProvider
           LOG.trace("string: {}", this.string_name);
 
           if (this.strings.containsKey(this.string_name)) {
-            final StringBuilder sb = new StringBuilder(128);
-            sb.append("Duplicate string.");
-            sb.append(System.lineSeparator());
-            sb.append("  String:   ");
-            sb.append(this.string_name);
-            sb.append(System.lineSeparator());
-            sb.append("  Language: ");
-            sb.append(this.language);
-            sb.append(System.lineSeparator());
+            final StringBuilder sb =
+              new StringBuilder(128)
+                .append("Duplicate string.")
+                .append(System.lineSeparator())
+                .append("  String:   ")
+                .append(this.string_name)
+                .append(System.lineSeparator())
+                .append("  Language: ")
+                .append(this.language)
+                .append(System.lineSeparator());
             throw new SAXParseException(sb.toString(), this.locator);
           }
 
@@ -537,22 +550,23 @@ public final class CoStringTableParserProvider
       switch (local_name) {
 
         case "string-table": {
-          this.result.setTable(new StringTable(this.strings));
+          this.result.setTable(new StringTable(this.strings, this.octets));
           return;
         }
 
         case "string": {
           try {
             if (!this.content_found) {
-              final StringBuilder sb = new StringBuilder(128);
-              sb.append("Missing language for string.");
-              sb.append(System.lineSeparator());
-              sb.append("  String:   ");
-              sb.append(this.string_name);
-              sb.append(System.lineSeparator());
-              sb.append("  Language: ");
-              sb.append(this.language);
-              sb.append(System.lineSeparator());
+              final StringBuilder sb =
+                new StringBuilder(128)
+                  .append("Missing language for string.")
+                  .append(System.lineSeparator())
+                  .append("  String:   ")
+                  .append(this.string_name)
+                  .append(System.lineSeparator())
+                  .append("  Language: ")
+                  .append(this.language)
+                  .append(System.lineSeparator());
               throw new SAXParseException(sb.toString(), this.locator);
             }
 
@@ -592,6 +606,8 @@ public final class CoStringTableParserProvider
           Integer.valueOf(length),
           Integer.valueOf(start));
 
+        // This isn't strictly the number of octets, but a precise size isn't necessary.
+        this.octets = Math.addExact(this.octets, (long) length);
         this.strings.put(this.string_name, new String(ch, start, length));
       }
     }

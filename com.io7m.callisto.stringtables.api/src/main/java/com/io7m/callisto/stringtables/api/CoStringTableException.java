@@ -16,33 +16,49 @@
 
 package com.io7m.callisto.stringtables.api;
 
+import com.io7m.callisto.core.CoException;
+
 /**
- * The type of string tables.
+ * The type of exceptions related to string tables.
  */
 
-public interface CoStringTableType
+public abstract class CoStringTableException extends CoException
 {
   /**
-   * The type of resources that can be loaded as string tables.
+   * Construct an exception.
+   *
+   * @param message The message
    */
 
-  String RESOURCE_TYPE = "com.io7m.callisto.stringtable";
+  public CoStringTableException(
+    final String message)
+  {
+    super(message);
+  }
 
   /**
-   * @param name The string name
+   * Construct an exception.
    *
-   * @return The localized string value for the given constant
-   *
-   * @throws CoStringTableExceptionNonexistent Iff the given constant does not
-   *                                           appear in the string table
+   * @param message The message
+   * @param cause   The cause
    */
 
-  String get(String name)
-    throws CoStringTableExceptionNonexistent;
+  public CoStringTableException(
+    final String message,
+    final Throwable cause)
+  {
+    super(message, cause);
+  }
 
   /**
-   * @return The size in octets of the contents of the string table
+   * Construct an exception.
+   *
+   * @param cause The cause
    */
 
-  long size();
+  public CoStringTableException(
+    final Throwable cause)
+  {
+    super(cause);
+  }
 }

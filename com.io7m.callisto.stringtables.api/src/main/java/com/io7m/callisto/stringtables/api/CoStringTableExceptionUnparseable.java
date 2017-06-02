@@ -17,32 +17,21 @@
 package com.io7m.callisto.stringtables.api;
 
 /**
- * The type of string tables.
+ * An exception raised when failing to parse a string table.
  */
 
-public interface CoStringTableType
+public final class CoStringTableExceptionUnparseable
+  extends CoStringTableException
 {
   /**
-   * The type of resources that can be loaded as string tables.
-   */
-
-  String RESOURCE_TYPE = "com.io7m.callisto.stringtable";
-
-  /**
-   * @param name The string name
+   * Construct an exception.
    *
-   * @return The localized string value for the given constant
-   *
-   * @throws CoStringTableExceptionNonexistent Iff the given constant does not
-   *                                           appear in the string table
+   * @param message The message
    */
 
-  String get(String name)
-    throws CoStringTableExceptionNonexistent;
-
-  /**
-   * @return The size in octets of the contents of the string table
-   */
-
-  long size();
+  public CoStringTableExceptionUnparseable(
+    final String message)
+  {
+    super(message);
+  }
 }

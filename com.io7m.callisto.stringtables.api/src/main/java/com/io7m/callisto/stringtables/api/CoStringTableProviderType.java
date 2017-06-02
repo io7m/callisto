@@ -16,33 +16,31 @@
 
 package com.io7m.callisto.stringtables.api;
 
+import com.io7m.callisto.resources.api.CoResourceException;
+import com.io7m.callisto.resources.api.CoResourceID;
+import org.osgi.framework.Bundle;
+
 /**
- * The type of string tables.
+ * The type of string table providers.
  */
 
-public interface CoStringTableType
+public interface CoStringTableProviderType
 {
   /**
-   * The type of resources that can be loaded as string tables.
-   */
-
-  String RESOURCE_TYPE = "com.io7m.callisto.stringtable";
-
-  /**
-   * @param name The string name
+   * Retrieve a string table.
    *
-   * @return The localized string value for the given constant
+   * @param requester The requesting bundle
+   * @param resource  The resource that identifies the string table
+   * @param language  The language
    *
-   * @throws CoStringTableExceptionNonexistent Iff the given constant does not
-   *                                           appear in the string table
+   * @return A string table
+   *
+   * @throws CoResourceException On failures loading the table
    */
 
-  String get(String name)
-    throws CoStringTableExceptionNonexistent;
-
-  /**
-   * @return The size in octets of the contents of the string table
-   */
-
-  long size();
+  CoStringTableType get(
+    Bundle requester,
+    CoResourceID resource,
+    String language)
+    throws CoResourceException;
 }

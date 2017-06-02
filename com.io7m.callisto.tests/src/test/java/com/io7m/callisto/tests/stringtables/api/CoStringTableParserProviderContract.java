@@ -16,8 +16,10 @@
 
 package com.io7m.callisto.tests.stringtables.api;
 
+import com.io7m.callisto.stringtables.api.CoStringTableExceptionNonexistent;
 import com.io7m.callisto.stringtables.api.CoStringTableParserResult;
 import com.io7m.callisto.stringtables.api.CoStringTableParserType;
+import org.hamcrest.core.StringContains;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -27,7 +29,6 @@ import org.slf4j.Logger;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.Locale;
-import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 public abstract class CoStringTableParserProviderContract
@@ -67,7 +68,9 @@ public abstract class CoStringTableParserProviderContract
       this.dumpErrors(result);
       Assert.assertTrue(result.errors().isEmpty());
 
-      this.expected.expect(NoSuchElementException.class);
+      this.expected.expect(CoStringTableExceptionNonexistent.class);
+      this.expected.expectMessage(
+        StringContains.containsString("nonexistent"));
       result.table().get("nonexistent");
     }
   }
@@ -106,7 +109,8 @@ public abstract class CoStringTableParserProviderContract
       Assert.assertFalse(
         result.errors()
           .stream()
-          .filter(e -> e.message().contains("must be terminated by the matching end-tag"))
+          .filter(e -> e.message().contains(
+            "must be terminated by the matching end-tag"))
           .collect(Collectors.toList())
           .isEmpty());
     }
@@ -126,7 +130,8 @@ public abstract class CoStringTableParserProviderContract
       Assert.assertFalse(
         result.errors()
           .stream()
-          .filter(e -> e.message().contains("String declared outside of string table"))
+          .filter(e -> e.message().contains(
+            "String declared outside of string table"))
           .collect(Collectors.toList())
           .isEmpty());
     }
@@ -146,7 +151,8 @@ public abstract class CoStringTableParserProviderContract
       Assert.assertFalse(
         result.errors()
           .stream()
-          .filter(e -> e.message().contains("Content specified outside of string declaration"))
+          .filter(e -> e.message().contains(
+            "Content specified outside of string declaration"))
           .collect(Collectors.toList())
           .isEmpty());
     }
