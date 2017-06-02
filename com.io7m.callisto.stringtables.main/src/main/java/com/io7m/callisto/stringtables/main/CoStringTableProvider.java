@@ -88,6 +88,12 @@ public final class CoStringTableProvider implements CoStringTableProviderType
     return Math.toIntExact(table.size());
   }
 
+  /**
+   * Introduce a resource resolver.
+   *
+   * @param in_resources The resolver
+   */
+
   @Reference(
     policy = ReferencePolicy.STATIC,
     cardinality = ReferenceCardinality.MANDATORY)
@@ -96,6 +102,12 @@ public final class CoStringTableProvider implements CoStringTableProviderType
   {
     this.resources = NullCheck.notNull(in_resources, "Resources");
   }
+
+  /**
+   * Introduce a parser provider.
+   *
+   * @param in_parsers The parser provider
+   */
 
   @Reference(
     policy = ReferencePolicy.STATIC,
