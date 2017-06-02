@@ -68,16 +68,8 @@ public final class CoStringTableProvider implements CoStringTableProviderType
 
   private static final long DEFAULT_CACHE_SIZE = 8L * 1_000_000L;
 
-  @Reference(
-    policy = ReferencePolicy.STATIC,
-    cardinality = ReferenceCardinality.MANDATORY)
   private volatile CoResourceResolverType resources;
-
-  @Reference(
-    policy = ReferencePolicy.STATIC,
-    cardinality = ReferenceCardinality.MANDATORY)
   private volatile CoStringTableParserProviderType parsers;
-
   private volatile LoadingCache<CoStringTableRequest, CoStringTableType> cache;
 
   /**
@@ -94,6 +86,24 @@ public final class CoStringTableProvider implements CoStringTableProviderType
     final CoStringTableType table)
   {
     return Math.toIntExact(table.size());
+  }
+
+  @Reference(
+    policy = ReferencePolicy.STATIC,
+    cardinality = ReferenceCardinality.MANDATORY)
+  public void onResourceResolverSet(
+    final CoResourceResolverType in_resources)
+  {
+    this.resources = NullCheck.notNull(in_resources, "Resources");
+  }
+
+  @Reference(
+    policy = ReferencePolicy.STATIC,
+    cardinality = ReferenceCardinality.MANDATORY)
+  public void onStringTableParserProviderSet(
+    final CoStringTableParserProviderType in_parsers)
+  {
+    this.parsers = NullCheck.notNull(in_parsers, "Parsers");
   }
 
   /**
