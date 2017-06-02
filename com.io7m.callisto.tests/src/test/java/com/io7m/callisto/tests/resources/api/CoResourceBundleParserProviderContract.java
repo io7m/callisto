@@ -137,6 +137,27 @@ public abstract class CoResourceBundleParserProviderContract
   }
 
   @Test
+  public final void testInvalid1(
+    final @Mocked CoResourceBundleParserFileResolverType resolver)
+    throws Exception
+  {
+    try (final CoResourceBundleParserType p =
+           this.createParserStream(stream("invalid-1.crbx"), resolver)) {
+      final CoResourceBundleParserResult result = p.parse();
+
+      this.dumpErrors(result);
+
+      Assert.assertFalse(result.errors().isEmpty());
+      Assert.assertFalse(
+        result.errors()
+          .stream()
+          .filter(e -> e.message().contains("No package has been defined"))
+          .collect(Collectors.toList())
+          .isEmpty());
+    }
+  }
+
+  @Test
   public final void testResourceFileMissing(
     final @Mocked CoResourceBundleParserFileResolverType resolver)
     throws Exception

@@ -24,9 +24,11 @@
     <module>com.io7m.callisto.core</module>
     <module>com.io7m.callisto.distribution</module>
     <module>com.io7m.callisto.documentation</module>
-    <module>com.io7m.callisto.resources.schemas</module>
     <module>com.io7m.callisto.resources.api</module>
     <module>com.io7m.callisto.resources.main</module>
+    <module>com.io7m.callisto.schemas</module>
+    <module>com.io7m.callisto.stringtables.api</module>
+    <module>com.io7m.callisto.stringtables.main</module>
     <module>com.io7m.callisto.tests</module>
   </modules>
 

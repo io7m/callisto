@@ -14,19 +14,16 @@
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-package com.io7m.callisto.resources.main;
+package com.io7m.callisto.stringtables.main;
 
-import com.io7m.callisto.resources.api.CoResource;
-import com.io7m.callisto.resources.api.CoResourceBundleParserError;
-import com.io7m.callisto.resources.api.CoResourceBundleParserFileResolverType;
-import com.io7m.callisto.resources.api.CoResourceBundleParserProviderType;
-import com.io7m.callisto.resources.api.CoResourceBundleParserResult;
-import com.io7m.callisto.resources.api.CoResourceBundleParserType;
-import com.io7m.callisto.resources.api.CoResourceBundleParserWarning;
-import com.io7m.callisto.resources.api.CoResourceID;
-import com.io7m.callisto.resources.api.CoResourcePackageDeclaration;
 import com.io7m.callisto.schemas.CoSchema;
 import com.io7m.callisto.schemas.CoSchemas;
+import com.io7m.callisto.stringtables.api.CoStringTableParserError;
+import com.io7m.callisto.stringtables.api.CoStringTableParserProviderType;
+import com.io7m.callisto.stringtables.api.CoStringTableParserResult;
+import com.io7m.callisto.stringtables.api.CoStringTableParserType;
+import com.io7m.callisto.stringtables.api.CoStringTableParserWarning;
+import com.io7m.callisto.stringtables.api.CoStringTableType;
 import com.io7m.jnull.NullCheck;
 import com.io7m.junreachable.UnreachableCodeException;
 import it.unimi.dsi.fastutil.objects.Object2ReferenceOpenHashMap;
@@ -49,31 +46,29 @@ import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URL;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 
 /**
- * The default implementation of the {@link CoResourceBundleParserProviderType}
+ * The default implementation of the {@link CoStringTableParserProviderType}
  * interface.
  */
 
-@Component(
-  immediate = true,
-  service = CoResourceBundleParserProviderType.class)
-public final class CoResourceBundleParserProvider
-  implements CoResourceBundleParserProviderType
+@Component
+public final class CoStringTableParserProvider
+  implements CoStringTableParserProviderType
 {
   private static final Logger LOG;
 
   static {
-    LOG = LoggerFactory.getLogger(CoResourceBundleParserProvider.class);
+    LOG = LoggerFactory.getLogger(CoStringTableParserProvider.class);
   }
 
   private volatile SAXParserFactory factory;
@@ -81,10 +76,10 @@ public final class CoResourceBundleParserProvider
   private volatile Schema schema;
 
   /**
-   * Construct a parser provider.
+   * Construct a string table parser provider.
    */
 
-  public CoResourceBundleParserProvider()
+  public CoStringTableParserProvider()
   {
 
   }
@@ -104,7 +99,7 @@ public final class CoResourceBundleParserProvider
       SchemaFactory.newInstance("http://www.w3.org/2001/XMLSchema");
 
     final List<CoSchema> schemas =
-      CoSchemas.bundleSchemas();
+      CoSchemas.stringTableSchemas();
 
     final Source[] sources = new Source[schemas.size()];
     for (int index = 0; index < schemas.size(); ++index) {
@@ -121,14 +116,14 @@ public final class CoResourceBundleParserProvider
   }
 
   @Override
-  public CoResourceBundleParserType createFromInputStream(
+  public CoStringTableParserType createParserFromStream(
     final InputStream stream,
     final URI uri,
-    final CoResourceBundleParserFileResolverType resolver)
+    final String language)
   {
     NullCheck.notNull(stream, "Stream");
     NullCheck.notNull(uri, "URI");
-    NullCheck.notNull(resolver, "Resolver");
+    NullCheck.notNull(language, "Language");
 
     final Callable<SAXParser> supplier = () -> {
       synchronized (this.factory) {
@@ -136,16 +131,40 @@ public final class CoResourceBundleParserProvider
       }
     };
 
-    return new Parser(supplier, stream, uri, resolver);
+    return new Parser(supplier, stream, uri, language);
   }
 
-  private static final class Parser implements CoResourceBundleParserType,
-    ContentHandler, ErrorHandler
+  private static final class StringTable implements CoStringTableType
+  {
+    private final Object2ReferenceOpenHashMap<String, String> strings;
+
+    StringTable(
+      final Object2ReferenceOpenHashMap<String, String> in_strings)
+    {
+      this.strings = NullCheck.notNull(in_strings, "Strings");
+    }
+
+    @Override
+    public String get(
+      final String name)
+    {
+      NullCheck.notNull(name, "Name");
+
+      final String result = this.strings.get(name);
+      if (result == null) {
+        throw new NoSuchElementException("No such string: " + name);
+      }
+      return result;
+    }
+  }
+
+  private static final class Parser
+    implements CoStringTableParserType, ContentHandler, ErrorHandler
   {
     private final InputStream stream;
     private final URI uri;
-    private final CoResourceBundleParserResult.Builder result;
-    private final CoResourceBundleParserFileResolverType resolver;
+    private final CoStringTableParserResult.Builder result;
+    private final String language;
     private boolean closed;
     private final Callable<SAXParser> parser_supplier;
     private ContentHandler format_handler;
@@ -155,7 +174,7 @@ public final class CoResourceBundleParserProvider
       final Callable<SAXParser> in_parser_supplier,
       final InputStream in_stream,
       final URI in_uri,
-      final CoResourceBundleParserFileResolverType in_resolver)
+      final String in_language)
     {
       this.parser_supplier =
         NullCheck.notNull(in_parser_supplier, "Parser supplier");
@@ -163,14 +182,14 @@ public final class CoResourceBundleParserProvider
         NullCheck.notNull(in_stream, "Stream");
       this.uri =
         NullCheck.notNull(in_uri, "URI");
-      this.resolver =
-        NullCheck.notNull(in_resolver, "Resolver");
+      this.language =
+        NullCheck.notNull(in_language, "Language");
 
-      this.result = CoResourceBundleParserResult.builder();
+      this.result = CoStringTableParserResult.builder();
     }
 
     @Override
-    public CoResourceBundleParserResult parse()
+    public CoStringTableParserResult parse()
     {
       try {
         final SAXParser parser = this.parser_supplier.call();
@@ -181,14 +200,17 @@ public final class CoResourceBundleParserProvider
         final InputSource source = new InputSource(this.stream);
         source.setPublicId(this.uri.toString());
         reader.parse(source);
+
         return this.result.build();
       } catch (final Exception e) {
-        this.result.addErrors(CoResourceBundleParserError.of(
+        this.result.addErrors(CoStringTableParserError.of(
           this.uri,
           0,
           e.getMessage(),
           Optional.of(e)
         ));
+        this.result.setTable(
+          new StringTable(new Object2ReferenceOpenHashMap<>()));
         return this.result.build();
       }
     }
@@ -233,7 +255,7 @@ public final class CoResourceBundleParserProvider
       final String in_uri)
       throws SAXException
     {
-      final List<CoSchema> schemas = CoSchemas.bundleSchemas();
+      final List<CoSchema> schemas = CoSchemas.stringTableSchemas();
       for (int index = 0; index < schemas.size(); ++index) {
         final CoSchema sch = schemas.get(index);
         if (Objects.equals(sch.namespaceURI().toString(), in_uri)) {
@@ -247,8 +269,8 @@ public final class CoResourceBundleParserProvider
                 new V1Handler(
                   this.uri,
                   this.locator,
-                  this.resolver,
-                  this.result);
+                  this.result,
+                  this.language);
               return;
             }
             default: {
@@ -271,24 +293,24 @@ public final class CoResourceBundleParserProvider
 
     @Override
     public void startElement(
-      final String element_uri,
+      final String in_uri,
       final String local_name,
       final String qualified_name,
-      final Attributes atts)
+      final Attributes attributes)
       throws SAXException
     {
       this.format_handler.startElement(
-        element_uri, local_name, qualified_name, atts);
+        in_uri, local_name, qualified_name, attributes);
     }
 
     @Override
     public void endElement(
-      final String element_uri,
+      final String in_uri,
       final String local_name,
       final String qualified_name)
       throws SAXException
     {
-      this.format_handler.endElement(element_uri, local_name, qualified_name);
+      this.format_handler.endElement(in_uri, local_name, qualified_name);
     }
 
     @Override
@@ -333,7 +355,7 @@ public final class CoResourceBundleParserProvider
       final SAXParseException exception)
       throws SAXException
     {
-      this.result.addWarnings(CoResourceBundleParserWarning.of(
+      this.result.addWarnings(CoStringTableParserWarning.of(
         this.uri,
         exception.getLineNumber(),
         exception.getMessage()));
@@ -344,7 +366,7 @@ public final class CoResourceBundleParserProvider
       final SAXParseException exception)
       throws SAXException
     {
-      this.result.addErrors(CoResourceBundleParserError.of(
+      this.result.addErrors(CoStringTableParserError.of(
         this.uri,
         exception.getLineNumber(),
         exception.getMessage(),
@@ -356,7 +378,7 @@ public final class CoResourceBundleParserProvider
       final SAXParseException exception)
       throws SAXException
     {
-      this.result.addErrors(CoResourceBundleParserError.of(
+      this.result.addErrors(CoStringTableParserError.of(
         this.uri,
         exception.getLineNumber(),
         exception.getMessage(),
@@ -366,30 +388,35 @@ public final class CoResourceBundleParserProvider
 
   private static final class V1Handler implements ContentHandler
   {
-    private final CoResourceBundleParserFileResolverType resolver;
-    private final CoResourceBundleParserResult.Builder result;
     private final URI uri;
-    private Object2ReferenceOpenHashMap<CoResourceID, CoResource> resources;
-    private CoResourcePackageDeclaration.Builder package_builder;
-    private String package_name;
-    private Locator locator;
+    private final Locator locator;
+    private final CoStringTableParserResult.Builder result;
+    private final String language;
+    private final Object2ReferenceOpenHashMap<String, String> strings;
+    private boolean string_table;
+    private String string_name;
+    private boolean content_found;
+    private boolean content_reading;
 
     V1Handler(
       final URI in_uri,
       final Locator in_locator,
-      final CoResourceBundleParserFileResolverType in_resolver,
-      final CoResourceBundleParserResult.Builder in_result)
+      final CoStringTableParserResult.Builder in_result,
+      final String in_language)
     {
       this.uri =
         NullCheck.notNull(in_uri, "URI");
       this.locator =
         NullCheck.notNull(in_locator, "Locator");
-      this.resolver =
-        NullCheck.notNull(in_resolver, "Resolver");
       this.result =
         NullCheck.notNull(in_result, "Result");
+      this.language =
+        NullCheck.notNull(in_language, "Language");
 
-      this.resources = new Object2ReferenceOpenHashMap<>();
+      this.strings =
+        new Object2ReferenceOpenHashMap<>();
+
+      this.string_table = false;
     }
 
     @Override
@@ -432,89 +459,66 @@ public final class CoResourceBundleParserProvider
 
     @Override
     public void startElement(
-      final String element_uri,
+      final String in_uri,
       final String local_name,
       final String qualified_name,
-      final Attributes atts)
+      final Attributes attributes)
       throws SAXException
     {
       switch (local_name) {
-        case "bundle": {
-          break;
+
+        case "string-table": {
+          this.string_table = true;
+          return;
         }
 
-        case "package": {
-          this.finishPackage();
-          this.package_builder = CoResourcePackageDeclaration.builder();
-          this.package_name = atts.getValue("name");
-          this.package_builder.setName(this.package_name);
-          break;
+        case "string": {
+          if (!this.string_table) {
+            final StringBuilder sb = new StringBuilder(128);
+            sb.append("String declared outside of string table.");
+            sb.append(System.lineSeparator());
+            throw new SAXParseException(sb.toString(), this.locator);
+          }
+
+          this.string_name = attributes.getValue("name");
+          LOG.trace("string: {}", this.string_name);
+
+          if (this.strings.containsKey(this.string_name)) {
+            final StringBuilder sb = new StringBuilder(128);
+            sb.append("Duplicate string.");
+            sb.append(System.lineSeparator());
+            sb.append("  String:   ");
+            sb.append(this.string_name);
+            sb.append(System.lineSeparator());
+            sb.append("  Language: ");
+            sb.append(this.language);
+            sb.append(System.lineSeparator());
+            throw new SAXParseException(sb.toString(), this.locator);
+          }
+
+          return;
         }
 
-        case "resource": {
-          final String file = atts.getValue("file");
-          final String name = atts.getValue("name");
-          final String type = atts.getValue("type");
-
-          if (this.package_name == null) {
-            final StringBuilder sb = new StringBuilder(128);
-            sb.append("No package has been defined.");
-            sb.append(System.lineSeparator());
-            sb.append("  Resource: ");
-            sb.append(name);
-            sb.append(System.lineSeparator());
-            this.result.addErrors(CoResourceBundleParserError.of(
-              this.uri,
-              this.locator.getLineNumber(),
-              sb.toString(),
-              Optional.empty()));
-            return;
+        case "content": {
+          if (this.string_name == null) {
+            throw new SAXParseException(
+              "Content specified outside of string declaration.",
+              this.locator);
           }
 
-          final URI file_uri;
-          try {
-            file_uri = this.resolver.resolve(file);
-          } catch (final FileNotFoundException e) {
-            final StringBuilder sb = new StringBuilder(128);
-            sb.append("An exported file is missing.");
-            sb.append(System.lineSeparator());
-            sb.append("  File: ");
-            sb.append(file);
-            sb.append(System.lineSeparator());
-            this.result.addErrors(CoResourceBundleParserError.of(
-              this.uri,
-              this.locator.getLineNumber(),
-              sb.toString(),
-              Optional.of(e)));
-            return;
+          if (!this.content_found) {
+            final String element_language =
+              attributes.getValue("language");
+            this.content_found =
+              Objects.equals(this.language, element_language);
+            this.content_reading = true;
           }
 
-          final CoResourceID resource_id =
-            CoResourceID.of(this.package_name, name);
-          final CoResource resource =
-            CoResource.of(resource_id, type, file_uri);
-
-          if (this.resources.containsKey(resource_id)) {
-            final StringBuilder sb = new StringBuilder(128);
-            sb.append("A resource is already exported.");
-            sb.append(System.lineSeparator());
-            sb.append("  Resource: ");
-            sb.append(resource_id.qualifiedName());
-            sb.append(System.lineSeparator());
-            this.result.addErrors(CoResourceBundleParserError.of(
-              this.uri,
-              this.locator.getLineNumber(),
-              sb.toString(),
-              Optional.empty()));
-            return;
-          }
-
-          this.resources.put(resource_id, resource);
-          break;
+          return;
         }
 
         default: {
-          this.result.addWarnings(CoResourceBundleParserWarning.of(
+          this.result.addWarnings(CoStringTableParserWarning.of(
             this.uri,
             this.locator.getLineNumber(),
             "Unrecognized element: " + local_name
@@ -523,34 +527,50 @@ public final class CoResourceBundleParserProvider
       }
     }
 
-    private void finishPackage()
-    {
-      if (this.package_builder != null) {
-        this.package_builder.putAllResources(this.resources);
-        this.result.putPackages(
-          this.package_name,
-          this.package_builder.build());
-        this.resources = new Object2ReferenceOpenHashMap<>();
-        this.package_builder = null;
-        this.package_name = null;
-      }
-    }
-
     @Override
     public void endElement(
-      final String element_uri,
+      final String in_uri,
       final String local_name,
       final String qualified_name)
       throws SAXException
     {
       switch (local_name) {
-        case "bundle": {
-          this.finishPackage();
-          break;
+
+        case "string-table": {
+          this.result.setTable(new StringTable(this.strings));
+          return;
+        }
+
+        case "string": {
+          try {
+            if (!this.content_found) {
+              final StringBuilder sb = new StringBuilder(128);
+              sb.append("Missing language for string.");
+              sb.append(System.lineSeparator());
+              sb.append("  String:   ");
+              sb.append(this.string_name);
+              sb.append(System.lineSeparator());
+              sb.append("  Language: ");
+              sb.append(this.language);
+              sb.append(System.lineSeparator());
+              throw new SAXParseException(sb.toString(), this.locator);
+            }
+
+            this.string_name = null;
+          } finally {
+            this.content_found = false;
+            this.content_reading = false;
+          }
+          return;
+        }
+
+        case "content": {
+          this.content_reading = false;
+          return;
         }
 
         default: {
-          this.result.addWarnings(CoResourceBundleParserWarning.of(
+          this.result.addWarnings(CoStringTableParserWarning.of(
             this.uri,
             this.locator.getLineNumber(),
             "Unrecognized element: " + local_name
@@ -566,7 +586,14 @@ public final class CoResourceBundleParserProvider
       final int length)
       throws SAXException
     {
+      if (this.content_reading) {
+        LOG.trace(
+          "text: {} at {}",
+          Integer.valueOf(length),
+          Integer.valueOf(start));
 
+        this.strings.put(this.string_name, new String(ch, start, length));
+      }
     }
 
     @Override

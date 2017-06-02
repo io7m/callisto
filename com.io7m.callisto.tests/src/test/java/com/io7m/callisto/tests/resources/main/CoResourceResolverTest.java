@@ -69,7 +69,7 @@ public final class CoResourceResolverTest
       CoreOptions.url("link:classpath:it.unimi.dsi.fastutil.link"),
       CoreOptions.url("link:classpath:com.io7m.jcip.annotations.link"),
       CoreOptions.url("link:classpath:com.io7m.callisto.core.link"),
-      CoreOptions.url("link:classpath:com.io7m.callisto.resources.schemas.link"),
+      CoreOptions.url("link:classpath:com.io7m.callisto.schemas.link"),
       CoreOptions.url("link:classpath:com.io7m.callisto.resources.api.link"),
       CoreOptions.url("link:classpath:com.io7m.callisto.resources.main.link"),
       CoreOptions.url("link:classpath:biz.aQute.bndlib.link"),

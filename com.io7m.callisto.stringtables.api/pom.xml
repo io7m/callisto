@@ -12,11 +12,11 @@
     <version>0.0.1</version>
   </parent>
 
-  <artifactId>com.io7m.callisto.resources.main</artifactId>
+  <artifactId>com.io7m.callisto.stringtables.api</artifactId>
   <packaging>bundle</packaging>
 
-  <name>com.io7m.callisto.resources.main</name>
-  <description>Callisto engine (Resources implementations)</description>
+  <name>com.io7m.callisto.stringtables.api</name>
+  <description>Callisto engine (String tables API)</description>
   <url>http://io7m.github.io/callisto/</url>
 
   <scm>
@@ -28,12 +28,7 @@
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>com.io7m.callisto.resources.api</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>com.io7m.callisto.schemas</artifactId>
+      <artifactId>com.io7m.callisto.core</artifactId>
       <version>${project.version}</version>
     </dependency>
 
@@ -41,27 +36,10 @@
       <groupId>com.io7m.jnull</groupId>
       <artifactId>com.io7m.jnull.core</artifactId>
     </dependency>
-    <dependency>
-      <groupId>com.io7m.junreachable</groupId>
-      <artifactId>com.io7m.junreachable.core</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>it.unimi.dsi</groupId>
-      <artifactId>fastutil</artifactId>
-    </dependency>
 
     <dependency>
-      <groupId>org.osgi</groupId>
-      <artifactId>org.osgi.core</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.osgi</groupId>
-      <artifactId>org.osgi.service.component.annotations</artifactId>
+      <groupId>org.immutables</groupId>
+      <artifactId>value</artifactId>
       <scope>provided</scope>
     </dependency>
   </dependencies>
@@ -81,7 +59,9 @@
         <extensions>true</extensions>
         <configuration>
           <instructions>
-            <Export-Package/>
+            <Export-Package>
+              com.io7m.callisto.stringtables.api
+            </Export-Package>
           </instructions>
         </configuration>
       </plugin>

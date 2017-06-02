@@ -12,11 +12,11 @@
     <version>0.0.1</version>
   </parent>
 
-  <artifactId>com.io7m.callisto.resources.main</artifactId>
+  <artifactId>com.io7m.callisto.stringtables.main</artifactId>
   <packaging>bundle</packaging>
 
-  <name>com.io7m.callisto.resources.main</name>
-  <description>Callisto engine (Resources implementations)</description>
+  <name>com.io7m.callisto.stringtables.main</name>
+  <description>Callisto engine (String tables implementation)</description>
   <url>http://io7m.github.io/callisto/</url>
 
   <scm>
@@ -28,7 +28,7 @@
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>com.io7m.callisto.resources.api</artifactId>
+      <artifactId>com.io7m.callisto.stringtables.api</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
@@ -54,11 +54,6 @@
       <artifactId>fastutil</artifactId>
     </dependency>
 
-    <dependency>
-      <groupId>org.osgi</groupId>
-      <artifactId>org.osgi.core</artifactId>
-      <scope>provided</scope>
-    </dependency>
     <dependency>
       <groupId>org.osgi</groupId>
       <artifactId>org.osgi.service.component.annotations</artifactId>
