@@ -28,6 +28,17 @@
     </xs:documentation>
   </xs:annotation>
 
+  <xs:simpleType name="languageNameType">
+    <xs:annotation>
+      <xs:documentation>
+        The ISO-639-3 code for a language.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[\p{Ll}]{3}"/>
+    </xs:restriction>
+  </xs:simpleType>
+
   <xs:simpleType name="stringNameType">
     <xs:annotation>
       <xs:documentation>
@@ -49,7 +60,7 @@
     <xs:complexType>
       <xs:simpleContent>
         <xs:extension base="xs:string">
-          <xs:attribute name="language" type="xs:language" use="required"/>
+          <xs:attribute name="language" type="s:languageNameType" use="required"/>
         </xs:extension>
       </xs:simpleContent>
     </xs:complexType>
@@ -59,7 +70,8 @@
     <xs:annotation>
       <xs:documentation>
         The definition of a string. A string has a unique name and a set of
-        contents indexed by language.
+        contents indexed by language. A string may not contain two contents
+        that are marked as having the same language.
       </xs:documentation>
     </xs:annotation>
     <xs:complexType>
@@ -68,6 +80,10 @@
       </xs:sequence>
       <xs:attribute name="name" type="s:stringNameType" use="required"/>
     </xs:complexType>
+    <xs:unique name="stringLanguagesAreUnique">
+      <xs:selector xpath="s:content"/>
+      <xs:field xpath="@language"/>
+    </xs:unique>
   </xs:element>
 
   <xs:element name="string-table">
