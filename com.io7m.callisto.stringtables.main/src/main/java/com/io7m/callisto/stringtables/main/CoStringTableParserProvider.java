@@ -31,6 +31,8 @@ import com.io7m.jfsm.core.FSMEnumMutable;
 import com.io7m.jnull.NullCheck;
 import com.io7m.junreachable.UnreachableCodeException;
 import it.unimi.dsi.fastutil.objects.Object2ReferenceOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+import it.unimi.dsi.fastutil.objects.ObjectRBTreeSet;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.slf4j.Logger;
@@ -408,12 +410,14 @@ public final class CoStringTableParserProvider
     private final URI uri;
     private final Locator locator;
     private final CoStringTableParserResult.Builder result;
-    private final String language;
+    private final String language_wanted;
     private final Object2ReferenceOpenHashMap<String, CoString> strings;
     private final FSMEnumMutable<State> fsm;
+    private final ObjectRBTreeSet<String> languages;
     private long octets;
     private String string_name;
     private String language_default;
+    private boolean language_found;
 
     enum State
     {
@@ -437,9 +441,10 @@ public final class CoStringTableParserProvider
         NullCheck.notNull(in_locator, "Locator");
       this.result =
         NullCheck.notNull(in_result, "Result");
-      this.language =
+      this.language_wanted =
         NullCheck.notNull(in_language, "Language");
 
+      this.languages = new ObjectRBTreeSet<>();
       this.strings = new Object2ReferenceOpenHashMap<>();
       this.octets = 0L;
 
@@ -567,8 +572,12 @@ public final class CoStringTableParserProvider
         case STATE_TEXT_ALT_CORRECT_LANGUAGE:
         case STATE_TEXT_ALT: {
           this.fsm.transition(State.STATE_TEXT_ALT);
-          if (Objects.equals(attributes.getValue("language"), this.language)) {
+          final String language_name = attributes.getValue("language");
+          this.languages.add(language_name);
+
+          if (Objects.equals(language_name, this.language_wanted)) {
             this.fsm.transition(State.STATE_TEXT_ALT_CORRECT_LANGUAGE);
+            this.language_found = true;
           }
           break;
         }
@@ -627,6 +636,18 @@ public final class CoStringTableParserProvider
       LOG.trace("string: {}", this.string_name);
 
       /*
+       * For the purposes of producing warning messages for missing
+       * translations it's necessary to track whether or not the current
+       * string constant was either already of the right language, or if
+       * any of the alt texts provided the right language.
+       */
+
+      this.language_found =
+        Objects.equals(this.language_wanted, this.language_default);
+      this.languages.clear();
+      this.languages.add(this.language_default);
+
+      /*
        * XSD validation should ensure this precondition.
        */
 
@@ -658,7 +679,7 @@ public final class CoStringTableParserProvider
         }
 
         case "string": {
-          this.fsm.transition(State.STATE_TABLE);
+          this.onEndElementString();
           return;
         }
 
@@ -679,6 +700,34 @@ public final class CoStringTableParserProvider
             "Unrecognized element: " + local_name
           ));
         }
+      }
+    }
+
+    private void onEndElementString()
+    {
+      this.fsm.transition(State.STATE_TABLE);
+
+      if (!this.language_found) {
+        final StringBuilder sb = new StringBuilder(128)
+          .append("No translation was found for the given string.")
+          .append(System.lineSeparator())
+          .append("  String:   ")
+          .append(this.string_name)
+          .append(System.lineSeparator())
+          .append("  Requested language: ")
+          .append(this.language_wanted)
+          .append(System.lineSeparator())
+          .append("  Available languages: ");
+        this.languages.forEach(lang -> {
+          sb.append(lang);
+          sb.append(" ");
+        });
+        sb.append(System.lineSeparator());
+
+        this.result.addWarnings(CoStringTableParserWarning.of(
+          this.uri,
+          this.locator.getLineNumber(),
+          sb.toString()));
       }
     }
 
@@ -709,7 +758,7 @@ public final class CoStringTableParserProvider
           this.octets = Math.addExact(this.octets, (long) length);
           this.strings.put(
             this.string_name,
-            CoString.of(new String(ch, start, length), this.language));
+            CoString.of(new String(ch, start, length), this.language_wanted));
           break;
         }
       }

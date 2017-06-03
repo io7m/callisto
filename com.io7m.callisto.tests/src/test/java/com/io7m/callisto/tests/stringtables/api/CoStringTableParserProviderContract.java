@@ -67,6 +67,7 @@ public abstract class CoStringTableParserProviderContract
 
       this.dumpErrors(result);
       Assert.assertTrue(result.errors().isEmpty());
+      Assert.assertTrue(result.warnings().isEmpty());
 
       this.expected.expect(CoStringTableExceptionNonexistent.class);
       this.expected.expectMessage(
@@ -86,6 +87,7 @@ public abstract class CoStringTableParserProviderContract
       this.dumpErrors(result);
 
       Assert.assertFalse(result.errors().isEmpty());
+      Assert.assertTrue(result.warnings().isEmpty());
       Assert.assertFalse(
         result.errors()
           .stream()
@@ -106,6 +108,7 @@ public abstract class CoStringTableParserProviderContract
       this.dumpErrors(result);
 
       Assert.assertFalse(result.errors().isEmpty());
+      Assert.assertTrue(result.warnings().isEmpty());
       Assert.assertFalse(
         result.errors()
           .stream()
@@ -127,6 +130,7 @@ public abstract class CoStringTableParserProviderContract
       this.dumpErrors(result);
 
       Assert.assertFalse(result.errors().isEmpty());
+      Assert.assertTrue(result.warnings().isEmpty());
       Assert.assertFalse(
         result.errors()
           .stream()
@@ -148,6 +152,7 @@ public abstract class CoStringTableParserProviderContract
       this.dumpErrors(result);
 
       Assert.assertFalse(result.errors().isEmpty());
+      Assert.assertTrue(result.warnings().isEmpty());
       Assert.assertFalse(
         result.errors()
           .stream()
@@ -173,7 +178,16 @@ public abstract class CoStringTableParserProviderContract
 
       this.dumpErrors(result);
       Assert.assertTrue(result.errors().isEmpty());
+      Assert.assertFalse(result.warnings().isEmpty());
       Assert.assertEquals("Hello world.", result.table().text("hello"));
+
+      Assert.assertFalse(
+        result.warnings()
+          .stream()
+          .filter(e -> e.message().contains(
+            "No translation was found for the given string"))
+          .collect(Collectors.toList())
+          .isEmpty());
     }
   }
 
@@ -189,6 +203,7 @@ public abstract class CoStringTableParserProviderContract
 
       this.dumpErrors(result);
       Assert.assertTrue(result.errors().isEmpty());
+      Assert.assertTrue(result.warnings().isEmpty());
       Assert.assertEquals("Hello world.", result.table().text("hello"));
     }
   }
@@ -205,6 +220,7 @@ public abstract class CoStringTableParserProviderContract
 
       this.dumpErrors(result);
       Assert.assertTrue(result.errors().isEmpty());
+      Assert.assertTrue(result.warnings().isEmpty());
       Assert.assertEquals("Hallo welt.", result.table().text("hello"));
     }
   }
@@ -221,6 +237,7 @@ public abstract class CoStringTableParserProviderContract
 
       this.dumpErrors(result);
       Assert.assertTrue(result.errors().isEmpty());
+      Assert.assertTrue(result.warnings().isEmpty());
       Assert.assertEquals("Bonjour le monde.", result.table().text("hello"));
     }
   }
@@ -235,6 +252,7 @@ public abstract class CoStringTableParserProviderContract
 
       this.dumpErrors(result);
       Assert.assertTrue(result.errors().isEmpty());
+      Assert.assertTrue(result.warnings().isEmpty());
       Assert.assertEquals("Привет мир.", result.table().text("hello"));
     }
   }
@@ -242,6 +260,14 @@ public abstract class CoStringTableParserProviderContract
   private void dumpErrors(
     final CoStringTableParserResult result)
   {
+    result.warnings().forEach(e -> {
+      this.log().warn(
+        "{}:{}: {}",
+        e.uri(),
+        Integer.valueOf(e.line()),
+        e.message());
+    });
+
     result.errors().forEach(e -> {
       this.log().error(
         "{}:{}: {}",
