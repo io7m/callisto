@@ -24,7 +24,7 @@
 
   <xs:complexType name="resourceType">
     <xs:attribute name="name" type="xs:NCName"/>
-    <xs:attribute name="type" type="xs:string"/>
+    <xs:attribute name="type" type="xs:NCName"/>
     <xs:attribute name="file" type="xs:anyURI"/>
   </xs:complexType>
 
