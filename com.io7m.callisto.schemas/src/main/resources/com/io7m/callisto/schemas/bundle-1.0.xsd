@@ -22,29 +22,53 @@
   elementFormDefault="qualified"
   xmlns:xs="http://www.w3.org/2001/XMLSchema">
 
-  <xs:complexType name="resourceType">
-    <xs:attribute name="name" type="xs:NCName"/>
-    <xs:attribute name="type" type="xs:NCName"/>
-    <xs:attribute name="file" type="xs:anyURI"/>
-  </xs:complexType>
+  <xs:annotation>
+    <xs:documentation>
+      Element definitions for declaring resource bundles.
+    </xs:documentation>
+  </xs:annotation>
 
-  <xs:element name="resource" type="c:resourceType"/>
+  <xs:element name="resource">
+    <xs:annotation>
+      <xs:documentation>
+        The declaration of a resource. A resource has a unique name within
+        a package, a type, and a file path relative to the root of the
+        containing bundle.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexType>
+      <xs:attribute name="name" type="xs:NCName"/>
+      <xs:attribute name="type" type="xs:NCName"/>
+      <xs:attribute name="file" type="xs:anyURI"/>
+    </xs:complexType>
+  </xs:element>
 
-  <xs:complexType name="packageType">
-    <xs:sequence minOccurs="0" maxOccurs="unbounded">
-      <xs:element ref="c:resource"/>
-    </xs:sequence>
-    <xs:attribute name="name" type="xs:ID"/>
-  </xs:complexType>
+  <xs:element name="package">
+    <xs:annotation>
+      <xs:documentation>
+        The declaration of a package. A package has a unique name within
+        a bundle, and a list of resources.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexType>
+      <xs:sequence minOccurs="0" maxOccurs="unbounded">
+        <xs:element ref="c:resource"/>
+      </xs:sequence>
+      <xs:attribute name="name" type="xs:ID"/>
+    </xs:complexType>
+  </xs:element>
 
-  <xs:element name="package" type="c:packageType"/>
-
-  <xs:complexType name="bundleType">
-    <xs:sequence minOccurs="0" maxOccurs="unbounded">
-      <xs:element ref="c:package"/>
-    </xs:sequence>
-  </xs:complexType>
-
-  <xs:element name="bundle" type="c:bundleType"/>
+  <xs:element name="bundle">
+    <xs:annotation>
+      <xs:documentation>
+        The declaration of a bundle. A bundle is a set of packages.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexType>
+      <xs:sequence minOccurs="0" maxOccurs="unbounded">
+        <xs:element ref="c:package"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
 
 </xs:schema>
