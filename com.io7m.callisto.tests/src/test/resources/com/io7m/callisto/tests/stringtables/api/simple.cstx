@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<s:string-table xmlns:s="urn:com.io7m.callisto.stringtables:1.0">
+<s:string-table languageDefault="eng" xmlns:s="urn:com.io7m.callisto.stringtables:1.0">
   <s:string name="hello">
-    <s:content language="eng">Hello world.</s:content>
-    <s:content language="deu">Hallo welt.</s:content>
-    <s:content language="spa">Hola mundo.</s:content>
-    <s:content language="fra">Bonjour le monde.</s:content>
-    <s:content language="ita">Ciao mondo.</s:content>
-    <s:content language="rus">Привет мир.</s:content>
+    <s:text>Hello world.</s:text>
+    <s:alt language="deu">Hallo welt.</s:alt>
+    <s:alt language="spa">Hola mundo.</s:alt>
+    <s:alt language="fra">Bonjour le monde.</s:alt>
+    <s:alt language="ita">Ciao mondo.</s:alt>
+    <s:alt language="rus">Привет мир.</s:alt>
   </s:string>
 </s:string-table>

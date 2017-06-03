@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<s:string-table xmlns:s="urn:com.io7m.callisto.stringtables:1.0">
+<s:string-table languageDefault="eng"  xmlns:s="urn:com.io7m.callisto.stringtables:1.0">
   <s:string name="hello">
-    <s:content language="eng">Hello world.</s:content>
+    <s:text>Hello world.</s:text>
   </s:string>
   <s:string name="hello">
-    <s:content language="eng">Hello world.</s:content>
+    <s:text>Hello world.</s:text>
   </s:string>
 </s:string-table>

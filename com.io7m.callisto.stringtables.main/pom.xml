@@ -52,6 +52,14 @@
       <artifactId>com.io7m.jnull.core</artifactId>
     </dependency>
     <dependency>
+      <groupId>com.io7m.jaffirm</groupId>
+      <artifactId>com.io7m.jaffirm.core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.io7m.jfsm</groupId>
+      <artifactId>com.io7m.jfsm.core</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.io7m.junreachable</groupId>
       <artifactId>com.io7m.junreachable.core</artifactId>
     </dependency>

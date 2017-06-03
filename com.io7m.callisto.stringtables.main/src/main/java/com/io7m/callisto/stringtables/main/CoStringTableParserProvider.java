@@ -18,6 +18,7 @@ package com.io7m.callisto.stringtables.main;
 
 import com.io7m.callisto.schemas.CoSchema;
 import com.io7m.callisto.schemas.CoSchemas;
+import com.io7m.callisto.stringtables.api.CoString;
 import com.io7m.callisto.stringtables.api.CoStringTableExceptionNonexistent;
 import com.io7m.callisto.stringtables.api.CoStringTableParserError;
 import com.io7m.callisto.stringtables.api.CoStringTableParserProviderType;
@@ -25,6 +26,8 @@ import com.io7m.callisto.stringtables.api.CoStringTableParserResult;
 import com.io7m.callisto.stringtables.api.CoStringTableParserType;
 import com.io7m.callisto.stringtables.api.CoStringTableParserWarning;
 import com.io7m.callisto.stringtables.api.CoStringTableType;
+import com.io7m.jaffirm.core.Preconditions;
+import com.io7m.jfsm.core.FSMEnumMutable;
 import com.io7m.jnull.NullCheck;
 import com.io7m.junreachable.UnreachableCodeException;
 import it.unimi.dsi.fastutil.objects.Object2ReferenceOpenHashMap;
@@ -136,11 +139,11 @@ public final class CoStringTableParserProvider
 
   private static final class StringTable implements CoStringTableType
   {
-    private final Object2ReferenceOpenHashMap<String, String> strings;
+    private final Object2ReferenceOpenHashMap<String, CoString> strings;
     private final long octets;
 
     StringTable(
-      final Object2ReferenceOpenHashMap<String, String> in_strings,
+      final Object2ReferenceOpenHashMap<String, CoString> in_strings,
       final long in_octets)
     {
       this.strings = NullCheck.notNull(in_strings, "Strings");
@@ -148,12 +151,13 @@ public final class CoStringTableParserProvider
     }
 
     @Override
-    public String get(
+    public CoString string(
       final String name)
+      throws CoStringTableExceptionNonexistent
     {
       NullCheck.notNull(name, "Name");
 
-      final String result = this.strings.get(name);
+      final CoString result = this.strings.get(name);
       if (result == null) {
         throw new CoStringTableExceptionNonexistent("No such string: " + name);
       }
@@ -405,12 +409,21 @@ public final class CoStringTableParserProvider
     private final Locator locator;
     private final CoStringTableParserResult.Builder result;
     private final String language;
-    private final Object2ReferenceOpenHashMap<String, String> strings;
+    private final Object2ReferenceOpenHashMap<String, CoString> strings;
+    private final FSMEnumMutable<State> fsm;
     private long octets;
-    private boolean string_table;
     private String string_name;
-    private boolean content_found;
-    private boolean content_reading;
+    private String language_default;
+
+    enum State
+    {
+      STATE_INITIAL,
+      STATE_TABLE,
+      STATE_STRING,
+      STATE_TEXT_DEFAULT,
+      STATE_TEXT_ALT,
+      STATE_TEXT_ALT_CORRECT_LANGUAGE
+    }
 
     V1Handler(
       final URI in_uri,
@@ -427,11 +440,36 @@ public final class CoStringTableParserProvider
       this.language =
         NullCheck.notNull(in_language, "Language");
 
-      this.strings =
-        new Object2ReferenceOpenHashMap<>();
-
-      this.string_table = false;
+      this.strings = new Object2ReferenceOpenHashMap<>();
       this.octets = 0L;
+
+      this.fsm =
+        FSMEnumMutable.builder(State.STATE_INITIAL)
+          .addTransition(
+            State.STATE_INITIAL, State.STATE_TABLE)
+          .addTransition(
+            State.STATE_TABLE, State.STATE_STRING)
+          .addTransition(
+            State.STATE_STRING, State.STATE_TEXT_DEFAULT)
+          .addTransition(
+            State.STATE_STRING, State.STATE_TEXT_ALT)
+          .addTransition(
+            State.STATE_TEXT_DEFAULT, State.STATE_TEXT_ALT)
+          .addTransition(
+            State.STATE_TEXT_DEFAULT, State.STATE_STRING)
+          .addTransition(
+            State.STATE_TEXT_ALT, State.STATE_TEXT_ALT)
+          .addTransition(
+            State.STATE_TEXT_ALT, State.STATE_TEXT_ALT_CORRECT_LANGUAGE)
+          .addTransition(
+            State.STATE_TEXT_ALT_CORRECT_LANGUAGE, State.STATE_TEXT_ALT)
+          .addTransition(
+            State.STATE_TEXT_ALT_CORRECT_LANGUAGE, State.STATE_STRING)
+          .addTransition(
+            State.STATE_TEXT_ALT, State.STATE_STRING)
+          .addTransition(
+            State.STATE_STRING, State.STATE_TABLE)
+          .build();
     }
 
     @Override
@@ -483,54 +521,22 @@ public final class CoStringTableParserProvider
       switch (local_name) {
 
         case "string-table": {
-          this.string_table = true;
+          this.onElementTable(attributes);
           return;
         }
 
         case "string": {
-          if (!this.string_table) {
-            final StringBuilder sb =
-              new StringBuilder(128)
-                .append("String declared outside of string table.")
-                .append(System.lineSeparator());
-            throw new SAXParseException(sb.toString(), this.locator);
-          }
-
-          this.string_name = attributes.getValue("name");
-          LOG.trace("string: {}", this.string_name);
-
-          if (this.strings.containsKey(this.string_name)) {
-            final StringBuilder sb =
-              new StringBuilder(128)
-                .append("Duplicate string.")
-                .append(System.lineSeparator())
-                .append("  String:   ")
-                .append(this.string_name)
-                .append(System.lineSeparator())
-                .append("  Language: ")
-                .append(this.language)
-                .append(System.lineSeparator());
-            throw new SAXParseException(sb.toString(), this.locator);
-          }
-
+          this.onElementString(attributes);
           return;
         }
 
-        case "content": {
-          if (this.string_name == null) {
-            throw new SAXParseException(
-              "Content specified outside of string declaration.",
-              this.locator);
-          }
+        case "text": {
+          this.onElementText(attributes);
+          return;
+        }
 
-          if (!this.content_found) {
-            final String element_language =
-              attributes.getValue("language");
-            this.content_found =
-              Objects.equals(this.language, element_language);
-            this.content_reading = true;
-          }
-
+        case "alt": {
+          this.onElementAlt(attributes);
           return;
         }
 
@@ -542,6 +548,92 @@ public final class CoStringTableParserProvider
           ));
         }
       }
+    }
+
+    private void onElementTable(
+      final Attributes attributes)
+    {
+      this.fsm.transition(State.STATE_TABLE);
+      this.language_default = attributes.getValue("languageDefault");
+    }
+
+    private void onElementAlt(
+      final Attributes attributes)
+      throws SAXParseException
+    {
+      switch (this.fsm.current()) {
+        case STATE_STRING:
+        case STATE_TEXT_DEFAULT:
+        case STATE_TEXT_ALT_CORRECT_LANGUAGE:
+        case STATE_TEXT_ALT: {
+          this.fsm.transition(State.STATE_TEXT_ALT);
+          if (Objects.equals(attributes.getValue("language"), this.language)) {
+            this.fsm.transition(State.STATE_TEXT_ALT_CORRECT_LANGUAGE);
+          }
+          break;
+        }
+
+        case STATE_INITIAL:
+        case STATE_TABLE: {
+          throw new SAXParseException(
+            "Alternative text specified outside of string declaration.",
+            this.locator);
+        }
+      }
+    }
+
+    private void onElementText(
+      final Attributes attributes)
+      throws SAXParseException
+    {
+      switch (this.fsm.current()) {
+        case STATE_STRING: {
+          this.fsm.transition(State.STATE_TEXT_DEFAULT);
+          break;
+        }
+
+        case STATE_INITIAL:
+        case STATE_TABLE:
+        case STATE_TEXT_DEFAULT:
+        case STATE_TEXT_ALT_CORRECT_LANGUAGE:
+        case STATE_TEXT_ALT: {
+          throw new SAXParseException(
+            "Text specified outside of string declaration.", this.locator);
+        }
+      }
+    }
+
+    private void onElementString(
+      final Attributes attributes)
+      throws SAXParseException
+    {
+      switch (this.fsm.current()) {
+        case STATE_TABLE: {
+          this.fsm.transition(State.STATE_STRING);
+          break;
+        }
+
+        case STATE_INITIAL:
+        case STATE_STRING:
+        case STATE_TEXT_DEFAULT:
+        case STATE_TEXT_ALT_CORRECT_LANGUAGE:
+        case STATE_TEXT_ALT: {
+          throw new SAXParseException(
+            "String declared outside of string table.", this.locator);
+        }
+      }
+
+      this.string_name = attributes.getValue("name");
+      LOG.trace("string: {}", this.string_name);
+
+      /*
+       * XSD validation should ensure this precondition.
+       */
+
+      Preconditions.checkPrecondition(
+        this.string_name,
+        !this.strings.containsKey(this.string_name),
+        s -> "String names must be unique");
     }
 
     @Override
@@ -566,31 +658,17 @@ public final class CoStringTableParserProvider
         }
 
         case "string": {
-          try {
-            if (!this.content_found) {
-              final StringBuilder sb =
-                new StringBuilder(128)
-                  .append("Missing language for string.")
-                  .append(System.lineSeparator())
-                  .append("  String:   ")
-                  .append(this.string_name)
-                  .append(System.lineSeparator())
-                  .append("  Language: ")
-                  .append(this.language)
-                  .append(System.lineSeparator());
-              throw new SAXParseException(sb.toString(), this.locator);
-            }
-
-            this.string_name = null;
-          } finally {
-            this.content_found = false;
-            this.content_reading = false;
-          }
+          this.fsm.transition(State.STATE_TABLE);
           return;
         }
 
-        case "content": {
-          this.content_reading = false;
+        case "text": {
+          this.fsm.transition(State.STATE_STRING);
+          return;
+        }
+
+        case "alt": {
+          this.fsm.transition(State.STATE_STRING);
           return;
         }
 
@@ -611,10 +689,29 @@ public final class CoStringTableParserProvider
       final int length)
       throws SAXException
     {
-      if (this.content_reading) {
-        // This isn't strictly the number of octets, but a precise size isn't necessary.
-        this.octets = Math.addExact(this.octets, (long) length);
-        this.strings.put(this.string_name, new String(ch, start, length));
+      switch (this.fsm.current()) {
+        case STATE_INITIAL:
+        case STATE_TABLE:
+        case STATE_TEXT_ALT:
+        case STATE_STRING: {
+          break;
+        }
+
+        case STATE_TEXT_DEFAULT: {
+          this.octets = Math.addExact(this.octets, (long) length);
+          this.strings.put(
+            this.string_name,
+            CoString.of(new String(ch, start, length), this.language_default));
+          break;
+        }
+
+        case STATE_TEXT_ALT_CORRECT_LANGUAGE: {
+          this.octets = Math.addExact(this.octets, (long) length);
+          this.strings.put(
+            this.string_name,
+            CoString.of(new String(ch, start, length), this.language));
+          break;
+        }
       }
     }
 

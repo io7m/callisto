@@ -71,7 +71,7 @@ public abstract class CoStringTableParserProviderContract
       this.expected.expect(CoStringTableExceptionNonexistent.class);
       this.expected.expectMessage(
         StringContains.containsString("nonexistent"));
-      result.table().get("nonexistent");
+      result.table().text("nonexistent");
     }
   }
 
@@ -89,7 +89,7 @@ public abstract class CoStringTableParserProviderContract
       Assert.assertFalse(
         result.errors()
           .stream()
-          .filter(e -> e.message().contains("Duplicate string"))
+          .filter(e -> e.message().contains("Duplicate unique value"))
           .collect(Collectors.toList())
           .isEmpty());
     }
@@ -152,7 +152,7 @@ public abstract class CoStringTableParserProviderContract
         result.errors()
           .stream()
           .filter(e -> e.message().contains(
-            "Content specified outside of string declaration"))
+            "Text specified outside of string declaration"))
           .collect(Collectors.toList())
           .isEmpty());
     }
@@ -162,19 +162,18 @@ public abstract class CoStringTableParserProviderContract
   public final void testSimpleUnknown()
     throws Exception
   {
+    /*
+     * A request for an unknown language will result in the strings for the
+     * default language instead.
+     */
+
     try (final CoStringTableParserType p =
            this.createParserStream(stream("simple.cstx"), "alien")) {
       final CoStringTableParserResult result = p.parse();
 
       this.dumpErrors(result);
-
-      Assert.assertFalse(result.errors().isEmpty());
-      Assert.assertFalse(
-        result.errors()
-          .stream()
-          .filter(e -> e.message().contains("Missing language for string"))
-          .collect(Collectors.toList())
-          .isEmpty());
+      Assert.assertTrue(result.errors().isEmpty());
+      Assert.assertEquals("Hello world.", result.table().text("hello"));
     }
   }
 
@@ -190,7 +189,7 @@ public abstract class CoStringTableParserProviderContract
 
       this.dumpErrors(result);
       Assert.assertTrue(result.errors().isEmpty());
-      Assert.assertEquals("Hello world.", result.table().get("hello"));
+      Assert.assertEquals("Hello world.", result.table().text("hello"));
     }
   }
 
@@ -206,7 +205,7 @@ public abstract class CoStringTableParserProviderContract
 
       this.dumpErrors(result);
       Assert.assertTrue(result.errors().isEmpty());
-      Assert.assertEquals("Hallo welt.", result.table().get("hello"));
+      Assert.assertEquals("Hallo welt.", result.table().text("hello"));
     }
   }
 
@@ -222,7 +221,7 @@ public abstract class CoStringTableParserProviderContract
 
       this.dumpErrors(result);
       Assert.assertTrue(result.errors().isEmpty());
-      Assert.assertEquals("Bonjour le monde.", result.table().get("hello"));
+      Assert.assertEquals("Bonjour le monde.", result.table().text("hello"));
     }
   }
 
@@ -236,7 +235,7 @@ public abstract class CoStringTableParserProviderContract
 
       this.dumpErrors(result);
       Assert.assertTrue(result.errors().isEmpty());
-      Assert.assertEquals("Привет мир.", result.table().get("hello"));
+      Assert.assertEquals("Привет мир.", result.table().text("hello"));
     }
   }
 
@@ -249,9 +248,7 @@ public abstract class CoStringTableParserProviderContract
         e.uri(),
         Integer.valueOf(e.line()),
         e.message());
-      e.exception().ifPresent(ex -> {
-        this.log().error("", ex);
-      });
+      e.exception().ifPresent(ex -> this.log().error("", ex));
     });
   }
 }

@@ -51,16 +51,31 @@
     </xs:restriction>
   </xs:simpleType>
 
-  <xs:element name="content">
+  <xs:element name="text">
     <xs:annotation>
       <xs:documentation>
-        The actual content of a string in a specific language.
+        The actual text of a string in the default language.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexType>
+      <xs:simpleContent>
+        <xs:extension base="xs:string"/>
+      </xs:simpleContent>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="alt">
+    <xs:annotation>
+      <xs:documentation>
+        A translation of a string in a specific language.
       </xs:documentation>
     </xs:annotation>
     <xs:complexType>
       <xs:simpleContent>
         <xs:extension base="xs:string">
-          <xs:attribute name="language" type="s:languageNameType" use="required"/>
+          <xs:attribute name="language"
+                        type="s:languageNameType"
+                        use="required"/>
         </xs:extension>
       </xs:simpleContent>
     </xs:complexType>
@@ -69,14 +84,18 @@
   <xs:element name="string">
     <xs:annotation>
       <xs:documentation>
-        The definition of a string. A string has a unique name and a set of
-        contents indexed by language. A string may not contain two contents
-        that are marked as having the same language.
+        The definition of a string. A string has a unique name, a required
+        translation for the default language, and a set of optional extra
+        translations indexed by language. A string may not contain two
+        translations that are marked as having the same language.
       </xs:documentation>
     </xs:annotation>
     <xs:complexType>
-      <xs:sequence minOccurs="1" maxOccurs="unbounded">
-        <xs:element ref="s:content"/>
+      <xs:sequence minOccurs="1" maxOccurs="1">
+        <xs:element ref="s:text"/>
+        <xs:sequence minOccurs="0" maxOccurs="unbounded">
+          <xs:element ref="s:alt"/>
+        </xs:sequence>
       </xs:sequence>
       <xs:attribute name="name" type="s:stringNameType" use="required"/>
     </xs:complexType>
@@ -97,6 +116,9 @@
       <xs:sequence minOccurs="0" maxOccurs="unbounded">
         <xs:element ref="s:string"/>
       </xs:sequence>
+      <xs:attribute name="languageDefault"
+                    type="s:languageNameType"
+                    use="required"/>
     </xs:complexType>
     <xs:unique name="stringNamesAreUnique">
       <xs:selector xpath="s:string"/>

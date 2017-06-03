@@ -37,7 +37,24 @@ public interface CoStringTableType
    *                                           appear in the string table
    */
 
-  String get(String name)
+  default String text(
+    final String name)
+    throws CoStringTableExceptionNonexistent
+  {
+    return this.string(name).value();
+  }
+
+  /**
+   * @param name The string name
+   *
+   * @return The localized string value for the given constant
+   *
+   * @throws CoStringTableExceptionNonexistent Iff the given constant does not
+   *                                           appear in the string table
+   */
+
+  CoString string(
+    String name)
     throws CoStringTableExceptionNonexistent;
 
   /**
