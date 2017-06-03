@@ -22,31 +22,54 @@
   elementFormDefault="qualified"
   xmlns:xs="http://www.w3.org/2001/XMLSchema">
 
-  <xs:complexType name="contentType">
-    <xs:simpleContent>
-      <xs:extension base="xs:string">
-        <xs:attribute name="language" type="xs:language"/>
-      </xs:extension>
-    </xs:simpleContent>
-  </xs:complexType>
+  <xs:annotation>
+    <xs:documentation>
+      Element definitions for declaring string tables.
+    </xs:documentation>
+  </xs:annotation>
 
-  <xs:element name="content" type="s:contentType"/>
+  <xs:element name="content">
+    <xs:annotation>
+      <xs:documentation>
+        The actual content of a string in a specific language.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexType>
+      <xs:simpleContent>
+        <xs:extension base="xs:string">
+          <xs:attribute name="language" type="xs:language"/>
+        </xs:extension>
+      </xs:simpleContent>
+    </xs:complexType>
+  </xs:element>
 
-  <xs:complexType name="stringType">
-    <xs:sequence minOccurs="1" maxOccurs="unbounded">
-      <xs:element ref="s:content"/>
-    </xs:sequence>
-    <xs:attribute name="name" type="xs:ID"/>
-  </xs:complexType>
+  <xs:element name="string">
+    <xs:annotation>
+      <xs:documentation>
+        The definition of a string. A string has a unique name and a set of
+        contents indexed by language.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexType>
+      <xs:sequence minOccurs="1" maxOccurs="unbounded">
+        <xs:element ref="s:content"/>
+      </xs:sequence>
+      <xs:attribute name="name" type="xs:ID"/>
+    </xs:complexType>
+  </xs:element>
 
-  <xs:element name="string" type="s:stringType"/>
-
-  <xs:complexType name="stringTableType">
-    <xs:sequence minOccurs="0" maxOccurs="unbounded">
-      <xs:element ref="s:string"/>
-    </xs:sequence>
-  </xs:complexType>
-
-  <xs:element name="string-table" type="s:stringTableType"/>
+  <xs:element name="string-table">
+    <xs:annotation>
+      <xs:documentation>
+        The definition of a string table. A string table contains a set of
+        uniquely-named strings.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexType>
+      <xs:sequence minOccurs="0" maxOccurs="unbounded">
+        <xs:element ref="s:string"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
 
 </xs:schema>
