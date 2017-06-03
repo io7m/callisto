@@ -28,6 +28,32 @@
     </xs:documentation>
   </xs:annotation>
 
+  <xs:simpleType name="resourceNameType">
+    <xs:annotation>
+      <xs:documentation>
+        The type of resource names. Resource names may consist of letters,
+        numbers, and the underscore, and must begin with a letter.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[\p{Ll}\p{Lu}][\p{Ll}\p{Lu}\p{Nd}_]*"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="resourceTypeNameType">
+    <xs:annotation>
+      <xs:documentation>
+        The type of resource type names. Resource type names are a sequence
+        of dot-separated names that may consist of lowercase letters, numbers,
+        and the underscore. Each name segment must begin with a lowercase
+        letter.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:pattern value="([\p{Ll}][\p{Ll}\p{Nd}_]*)(\.[\p{Ll}][\p{Ll}\p{Nd}_]*)*"/>
+    </xs:restriction>
+  </xs:simpleType>
+
   <xs:element name="resource">
     <xs:annotation>
       <xs:documentation>
@@ -37,25 +63,42 @@
       </xs:documentation>
     </xs:annotation>
     <xs:complexType>
-      <xs:attribute name="name" type="xs:NCName"/>
-      <xs:attribute name="type" type="xs:NCName"/>
-      <xs:attribute name="file" type="xs:anyURI"/>
+      <xs:attribute name="name" type="c:resourceNameType" use="required"/>
+      <xs:attribute name="type" type="c:resourceTypeNameType" use="required"/>
+      <xs:attribute name="file" type="xs:anyURI" use="required"/>
     </xs:complexType>
   </xs:element>
+
+  <xs:simpleType name="packageNameType">
+    <xs:annotation>
+      <xs:documentation>
+        The type of package names. Package names are a sequence of dot-separated
+        names that may consist of lowercase letters, numbers, and the
+        underscore. Each name must begin with a lowercase letter.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:pattern value="([\p{Ll}][\p{Ll}\p{Nd}_]*)(\.[\p{Ll}][\p{Ll}\p{Nd}_]*)*"/>
+    </xs:restriction>
+  </xs:simpleType>
 
   <xs:element name="package">
     <xs:annotation>
       <xs:documentation>
-        The declaration of a package. A package has a unique name within
-        a bundle, and a list of resources.
+        The declaration of a package. A package contains a list of resources,
+        each of which must be uniquely named within the package.
       </xs:documentation>
     </xs:annotation>
     <xs:complexType>
       <xs:sequence minOccurs="0" maxOccurs="unbounded">
         <xs:element ref="c:resource"/>
       </xs:sequence>
-      <xs:attribute name="name" type="xs:ID"/>
+      <xs:attribute name="name" type="c:packageNameType" use="required"/>
     </xs:complexType>
+    <xs:unique name="resourceNamesAreUnique">
+      <xs:selector xpath="c:resource"/>
+      <xs:field xpath="@name"/>
+    </xs:unique>
   </xs:element>
 
   <xs:element name="bundle">
@@ -69,6 +112,10 @@
         <xs:element ref="c:package"/>
       </xs:sequence>
     </xs:complexType>
+    <xs:unique name="packageNamesAreUnique">
+      <xs:selector xpath="c:package"/>
+      <xs:field xpath="@name"/>
+    </xs:unique>
   </xs:element>
 
 </xs:schema>

@@ -88,7 +88,7 @@ public abstract class CoResourceBundleParserProviderContract
       Assert.assertFalse(
         result.errors()
           .stream()
-          .filter(e -> e.message().contains("There are multiple occurrences of ID value 'a.b.c'"))
+          .filter(e -> e.message().contains("Duplicate unique value [a.b.c] declared for identity constraint of element \"bundle\""))
           .collect(Collectors.toList())
           .isEmpty());
     }
