@@ -27,6 +27,13 @@ import org.osgi.framework.Bundle;
 public interface CoStringTableProviderType
 {
   /**
+   * The persistent identifier used to configure string table providers.
+   */
+
+  String CONFIGURATION_PERSISTENT_IDENTITY =
+    "com.io7m.callisto.stringtables.provider";
+
+  /**
    * Retrieve a string table.
    *
    * @param requester The requesting bundle

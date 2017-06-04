@@ -41,6 +41,8 @@ import org.osgi.service.component.annotations.Modified;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -59,10 +61,16 @@ import static com.io7m.callisto.stringtables.api.CoStringTableType.RESOURCE_TYPE
 
 @Component(
   configurationPolicy = ConfigurationPolicy.OPTIONAL,
-  configurationPid = "com.io7m.callisto.stringtables.main.provider",
+  configurationPid = CoStringTableProviderType.CONFIGURATION_PERSISTENT_IDENTITY,
   service = CoStringTableProviderType.class)
 public final class CoStringTableProvider implements CoStringTableProviderType
 {
+  private static final Logger LOG;
+
+  static {
+    LOG = LoggerFactory.getLogger(CoStringTableProvider.class);
+  }
+
   /**
    * Use a default 8mb cache size.
    */
@@ -73,6 +81,22 @@ public final class CoStringTableProvider implements CoStringTableProviderType
   private volatile CoStringTableParserProviderType parsers;
   private volatile LoadingCache<CoStringTableRequest, CoStringTableType> cache;
   private long size_max;
+
+  /**
+   * Set the cache size.
+   *
+   * @param size The new cache size in octets
+   */
+
+  public void setCacheSize(
+    final long size)
+  {
+    this.cache = this.newCache(size);
+
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("string table cache size: {} octets", Long.valueOf(size));
+    }
+  }
 
   /**
    * Construct a provider.
@@ -130,7 +154,7 @@ public final class CoStringTableProvider implements CoStringTableProviderType
   public void onActivate()
     throws Exception
   {
-    this.cache = this.newCache(DEFAULT_CACHE_SIZE);
+    this.setCacheSize(DEFAULT_CACHE_SIZE);
   }
 
   private LoadingCache<CoStringTableRequest, CoStringTableType> newCache(
@@ -174,11 +198,22 @@ public final class CoStringTableProvider implements CoStringTableProviderType
     final Map<String, Object> configuration)
     throws Exception
   {
+    LOG.debug("onModified: {}", configuration);
+
     try {
       if (configuration.containsKey("cache_size")) {
-        final long size =
-          Long.parseUnsignedLong((String) configuration.get("cache_size"));
-        this.cache = this.newCache(size);
+        final Object size_raw = configuration.get("cache_size");
+        final long size;
+        if (size_raw instanceof String) {
+          size = Long.parseUnsignedLong((String) size_raw);
+        } else if (size_raw instanceof Number) {
+          size = ((Number) size_raw).longValue();
+        } else {
+          throw new IllegalArgumentException(
+            "cache_size must be numeric or parseable as a numeric value");
+        }
+
+        this.setCacheSize(size);
       }
     } catch (final NumberFormatException e) {
       throw new ConfigurationException("cache_size", e.getMessage(), e);
