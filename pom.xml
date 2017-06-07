@@ -24,6 +24,11 @@
     <module>com.io7m.callisto.core</module>
     <module>com.io7m.callisto.distribution</module>
     <module>com.io7m.callisto.documentation</module>
+    <module>com.io7m.callisto.resources.api</module>
+    <module>com.io7m.callisto.resources.main</module>
+    <module>com.io7m.callisto.schemas</module>
+    <module>com.io7m.callisto.stringtables.api</module>
+    <module>com.io7m.callisto.stringtables.main</module>
     <module>com.io7m.callisto.tests</module>
   </modules>
 
@@ -35,6 +40,10 @@
     <io7m.checkstyle.artifact>com.io7m.callisto.checkstyle</io7m.checkstyle.artifact>
     <io7m.checkstyle.path>/com/io7m/callisto/checkstyle/checkstyle.xml</io7m.checkstyle.path>
     <io7m.api.previousVersion>0.0.1</io7m.api.previousVersion>
+
+    <com.io7m.callisto.pax.exam.version>4.11.0</com.io7m.callisto.pax.exam.version>
+    <com.io7m.callisto.slf4j.version>1.7.22</com.io7m.callisto.slf4j.version>
+    <com.io7m.callisto.osgi.log.version>1.3.0</com.io7m.callisto.osgi.log.version>
   </properties>
 
   <inceptionYear>2017</inceptionYear>
@@ -108,7 +117,69 @@
         <artifactId>com.io7m.jproperties.core</artifactId>
         <version>[1.0.0, 2.0.0)</version>
       </dependency>
+      <dependency>
+        <groupId>com.io7m.jaffirm</groupId>
+        <artifactId>com.io7m.jaffirm.core</artifactId>
+        <version>[1.0.0, 2.0.0)</version>
+      </dependency>
+      <dependency>
+        <groupId>com.io7m.jcip</groupId>
+        <artifactId>jcip-annotations</artifactId>
+        <version>1.0.2</version>
+      </dependency>
+      <dependency>
+        <groupId>com.io7m.jfsm</groupId>
+        <artifactId>com.io7m.jfsm.core</artifactId>
+        <version>0.1.1</version>
+      </dependency>
 
+      <dependency>
+        <groupId>org.immutables</groupId>
+        <artifactId>value</artifactId>
+        <version>2.5.1</version>
+      </dependency>
+      <dependency>
+        <groupId>io.javaslang</groupId>
+        <artifactId>javaslang</artifactId>
+        <version>2.1.0-alpha</version>
+      </dependency>
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-api</artifactId>
+        <version>${com.io7m.callisto.slf4j.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>commons-io</groupId>
+        <artifactId>commons-io</artifactId>
+        <version>2.5</version>
+      </dependency>
+      <dependency>
+        <groupId>ch.qos.logback</groupId>
+        <artifactId>logback-classic</artifactId>
+        <version>1.2.3</version>
+      </dependency>
+      <dependency>
+        <groupId>it.unimi.dsi</groupId>
+        <artifactId>fastutil</artifactId>
+        <version>7.2.0</version>
+      </dependency>
+      <dependency>
+        <groupId>com.github.ben-manes.caffeine</groupId>
+        <artifactId>caffeine</artifactId>
+        <version>2.5.2</version>
+      </dependency>
+
+      <!-- OSGi -->
+      <dependency>
+        <groupId>org.osgi</groupId>
+        <artifactId>org.osgi.service.log</artifactId>
+        <version>1.3.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.osgi</groupId>
+        <artifactId>org.osgi.service.event</artifactId>
+        <version>1.3.1</version>
+      </dependency>
       <dependency>
         <groupId>org.osgi</groupId>
         <artifactId>org.osgi.service.component.annotations</artifactId>
@@ -125,40 +196,16 @@
         <version>6.0.0</version>
       </dependency>
       <dependency>
-        <groupId>org.immutables</groupId>
-        <artifactId>value</artifactId>
-        <version>2.4.6</version>
-      </dependency>
-      <dependency>
-        <groupId>io.javaslang</groupId>
-        <artifactId>javaslang</artifactId>
-        <version>2.1.0-alpha</version>
-      </dependency>
-      <dependency>
-        <groupId>org.slf4j</groupId>
-        <artifactId>slf4j-api</artifactId>
-        <version>1.7.22</version>
-      </dependency>
-      <dependency>
-        <groupId>commons-io</groupId>
-        <artifactId>commons-io</artifactId>
-        <version>2.5</version>
-      </dependency>
-      <dependency>
-        <groupId>ch.qos.logback</groupId>
-        <artifactId>logback-classic</artifactId>
-        <version>1.2.3</version>
+        <groupId>org.osgi</groupId>
+        <artifactId>org.osgi.service.cm</artifactId>
+        <version>1.5.0</version>
       </dependency>
 
-      <dependency>
-        <groupId>org.osgi</groupId>
-        <artifactId>org.osgi.service.log</artifactId>
-        <version>1.3.0</version>
-      </dependency>
+      <!-- Apache Felix -->
       <dependency>
         <groupId>org.apache.felix</groupId>
         <artifactId>org.apache.felix.framework</artifactId>
-        <version>5.6.2</version>
+        <version>5.6.4</version>
       </dependency>
       <dependency>
         <groupId>org.apache.felix</groupId>
@@ -168,12 +215,12 @@
       <dependency>
         <groupId>org.apache.felix</groupId>
         <artifactId>org.apache.felix.main</artifactId>
-        <version>5.6.2</version>
+        <version>5.6.4</version>
       </dependency>
       <dependency>
         <groupId>org.apache.felix</groupId>
         <artifactId>org.apache.felix.bundlerepository</artifactId>
-        <version>2.0.8</version>
+        <version>2.0.10</version>
       </dependency>
       <dependency>
         <groupId>org.apache.felix</groupId>
@@ -182,8 +229,13 @@
       </dependency>
       <dependency>
         <groupId>org.apache.felix</groupId>
+        <artifactId>org.apache.felix.eventadmin</artifactId>
+        <version>1.4.8</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.felix</groupId>
         <artifactId>org.apache.felix.fileinstall</artifactId>
-        <version>3.5.8</version>
+        <version>3.6.0</version>
       </dependency>
       <dependency>
         <groupId>org.apache.felix</groupId>
@@ -193,7 +245,7 @@
       <dependency>
         <groupId>org.apache.felix</groupId>
         <artifactId>org.apache.felix.gogo.runtime</artifactId>
-        <version>1.0.2</version>
+        <version>1.0.6</version>
       </dependency>
       <dependency>
         <groupId>org.apache.felix</groupId>
@@ -213,7 +265,7 @@
       <dependency>
         <groupId>org.apache.felix</groupId>
         <artifactId>org.apache.felix.scr</artifactId>
-        <version>2.0.8</version>
+        <version>2.0.10</version>
       </dependency>
       <dependency>
         <groupId>org.apache.felix</groupId>
@@ -226,6 +278,39 @@
         <version>1.4.3</version>
       </dependency>
 
+      <!-- Pax Exam -->
+      <dependency>
+        <groupId>org.ops4j.pax.tinybundles</groupId>
+        <artifactId>tinybundles</artifactId>
+        <version>2.1.1</version>
+      </dependency>
+      <dependency>
+        <groupId>org.ops4j.pax.exam</groupId>
+        <artifactId>pax-exam-container-native</artifactId>
+        <version>${com.io7m.callisto.pax.exam.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.ops4j.pax.exam</groupId>
+        <artifactId>pax-exam-junit4</artifactId>
+        <version>${com.io7m.callisto.pax.exam.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.ops4j.pax.exam</groupId>
+        <artifactId>pax-exam-link-mvn</artifactId>
+        <version>${com.io7m.callisto.pax.exam.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>javax.inject</groupId>
+        <artifactId>javax.inject</artifactId>
+        <version>1</version>
+      </dependency>
+
+      <!-- JUnit -->
+      <dependency>
+        <groupId>org.jmockit</groupId>
+        <artifactId>jmockit</artifactId>
+        <version>1.31</version>
+      </dependency>
       <dependency>
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>
@@ -252,6 +337,16 @@
           <groupId>com.io7m.kstructural</groupId>
           <artifactId>io7m-kstructural-maven-plugin</artifactId>
           <version>0.3.1</version>
+        </plugin>
+
+        <!--
+        Alta Maven Plugin
+        http://veithen.github.io/alta/index.html
+        -->
+        <plugin>
+          <groupId>com.github.veithen.alta</groupId>
+          <artifactId>alta-maven-plugin</artifactId>
+          <version>0.5</version>
         </plugin>
       </plugins>
     </pluginManagement>

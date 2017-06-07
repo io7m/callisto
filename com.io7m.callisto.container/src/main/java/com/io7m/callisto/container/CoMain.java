@@ -17,6 +17,7 @@
 package com.io7m.callisto.container;
 
 import com.io7m.jproperties.JProperties;
+import com.io7m.jproperties.JPropertyNonexistent;
 import com.io7m.junreachable.UnreachableCodeException;
 import org.apache.felix.framework.Felix;
 import org.apache.felix.framework.util.FelixConstants;
@@ -28,6 +29,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Hashtable;
@@ -194,16 +197,29 @@ public final class CoMain
   private static void propertiesSetExports(
     final Logger log,
     final Map config_props)
+    throws IOException, JPropertyNonexistent
   {
-    final String slf4j_version = "0.0.0";
-    final String log_version = "1.3.0";
+    final String version_slf4j;
+    final String version_osgi_log;
+
+    try (final InputStream stream =
+           CoMain.class.getResourceAsStream("versions.properties")) {
+
+      final Properties p = new Properties();
+      p.load(stream);
+
+      version_slf4j =
+        JProperties.getString(p, "com.io7m.callisto.slf4j.version");
+      version_osgi_log =
+        JProperties.getString(p, "com.io7m.callisto.osgi.log.version");
+    }
 
     final Collection<String> exports = new ArrayList<>(8);
-    exports.add(export("org.slf4j", slf4j_version));
-    exports.add(export("org.slf4j.event", slf4j_version));
-    exports.add(export("org.slf4j.helpers", slf4j_version));
-    exports.add(export("org.slf4j.spi", slf4j_version));
-    exports.add(export("org.osgi.service.log", log_version));
+    exports.add(export("org.slf4j", version_slf4j));
+    exports.add(export("org.slf4j.event", version_slf4j));
+    exports.add(export("org.slf4j.helpers", version_slf4j));
+    exports.add(export("org.slf4j.spi", version_slf4j));
+    exports.add(export("org.osgi.service.log", version_osgi_log));
     exports.add(export("sun.misc", "0.0.0"));
     exports.add(export("sun.misc.resources", "0.0.0"));
 

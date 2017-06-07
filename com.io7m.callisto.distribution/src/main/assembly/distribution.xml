@@ -71,6 +71,7 @@
       <excludes>
         <exclude>org.apache.felix:*</exclude>
         <exclude>com.io7m.callisto:*</exclude>
+        <exclude>org.slf4j:*</exclude>
       </excludes>
       <scope>runtime</scope>
       <outputDirectory>lib-user</outputDirectory>
