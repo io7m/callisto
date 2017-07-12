@@ -1,0 +1,69 @@
+//
+// Copyright © 2017 <code@io7m.com> http://io7m.com
+//
+// Permission to use, copy, modify, and/or distribute this software for any
+// purpose with or without fee is hereby granted, provided that the above
+// copyright notice and this permission notice appear in all copies.
+//
+// THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+// WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+// MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+// SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+// WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+// ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR
+// IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+//
+
+syntax = "proto3";
+
+option optimize_for = LITE_RUNTIME;
+
+package com.io7m.callisto.prototype0.messages;
+
+message CoClientHello
+{
+  string name = 1;
+  string password = 2;
+  fixed64 bundle_hash = 3;
+}
+
+message CoServerHelloOK
+{
+  fixed32 client_id = 1;
+}
+
+message CoServerHelloError
+{
+  string message = 1;
+}
+
+message CoServerHello
+{
+  oneof value {
+    CoServerHelloOK ok = 1;
+    CoServerHelloError error = 2;
+  }
+}
+
+message CoMessageData
+{
+  uint32 sequence = 1;
+  uint32 type_group = 2;
+  uint32 type_name = 3;
+  bytes data = 4;
+}
+
+message CoClientPacket
+{
+  uint32 sequence = 1;
+  fixed64 ack = 2;
+  fixed32 client_id = 3;
+  repeated CoMessageData messages = 4;
+}
+
+message CoServerPacket
+{
+  uint32 sequence = 1;
+  fixed64 ack = 2;
+  repeated CoMessageData messages = 3;
+}
