@@ -14,13 +14,13 @@
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-package com.io7m.callisto.prototype0.entities;
+package com.io7m.callisto.prototype0.events;
 
-public final class CoEntityTraitOnDestroyException extends CoEntityException
+/**
+ * The base type of events.
+ */
+
+public interface CoEventType
 {
-  public CoEntityTraitOnDestroyException(
-    final Exception cause)
-  {
-    super(cause.getMessage(), cause);
-  }
+  // No extra methods
 }

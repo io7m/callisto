@@ -20,5 +20,5 @@ public interface CoEntityTraitProviderType<T extends CoEntityTraitType>
 {
   Class<T> type();
 
-  T create();
+  T create(CoEntityType e);
 }

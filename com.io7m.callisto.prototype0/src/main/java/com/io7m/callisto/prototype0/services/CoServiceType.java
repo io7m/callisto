@@ -14,15 +14,11 @@
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-package com.io7m.callisto.prototype0.entities;
+package com.io7m.callisto.prototype0.services;
 
-import com.io7m.callisto.prototype0.messages.CoMessageType;
+import org.osgi.service.component.annotations.Deactivate;
 
-/**
- * The base type of messages sent to entities.
- */
-
-public interface CoEntityMessageType extends CoMessageType
+public interface CoServiceType
 {
-  // No extra methods
+  void shutDown();
 }

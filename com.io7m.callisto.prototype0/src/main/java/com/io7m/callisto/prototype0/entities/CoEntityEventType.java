@@ -16,11 +16,17 @@
 
 package com.io7m.callisto.prototype0.entities;
 
-public final class CoEntityTraitOnDestroyException extends CoEntityException
+import com.io7m.callisto.prototype0.events.CoEventType;
+
+/**
+ * The type of events related to entities.
+ */
+
+public interface CoEntityEventType extends CoEventType
 {
-  public CoEntityTraitOnDestroyException(
-    final Exception cause)
-  {
-    super(cause.getMessage(), cause);
-  }
+  /**
+   * @return The entity to which the event refers
+   */
+
+  CoEntityType entity();
 }

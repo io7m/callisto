@@ -31,18 +31,6 @@ public interface CoEntityTraitType
   CoEntityType owner();
 
   /**
-   * The trait has been attached to a new owner.
-   *
-   * @param owner The new owner
-   *
-   * @throws CoException On errors
-   */
-
-  void onAttach(
-    CoEntityType owner)
-    throws CoException;
-
-  /**
    * The trait has been destroyed.
    *
    * @throws CoException On errors

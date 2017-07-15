@@ -16,11 +16,17 @@
 
 package com.io7m.callisto.prototype0.entities;
 
-public final class CoEntityTraitOnDestroyException extends CoEntityException
+import com.io7m.callisto.core.CoImmutableStyleType;
+import org.immutables.value.Value;
+
+@CoImmutableStyleType
+@Value.Immutable
+public interface CoEntityLifecycleEventType extends CoEntityEventType
 {
-  public CoEntityTraitOnDestroyException(
-    final Exception cause)
-  {
-    super(cause.getMessage(), cause);
-  }
+  @Override
+  @Value.Parameter
+  CoEntityType entity();
+
+  @Value.Parameter
+  CoEntityLifecycle lifecycle();
 }

@@ -15,9 +15,9 @@
  */
 
 /**
- * Message types.
+ * Event types.
  */
 
 @com.io7m.jnull.NonNullByDefault
-package com.io7m.callisto.prototype0.messages;
+package com.io7m.callisto.prototype0.events;
 

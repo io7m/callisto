@@ -16,11 +16,28 @@
 
 package com.io7m.callisto.prototype0.entities;
 
-public final class CoEntityTraitOnDestroyException extends CoEntityException
+import io.vavr.collection.Map;
+
+/**
+ * The type of entity trait assemblies.
+ */
+
+public interface CoAssemblyType
 {
-  public CoEntityTraitOnDestroyException(
-    final Exception cause)
-  {
-    super(cause.getMessage(), cause);
-  }
+  /**
+   * @return The name of the assembly
+   */
+
+  CoAssemblyName name();
+
+  /**
+   * The map of trait providers that will be called.
+   *
+   * @param <T> The precise type of trait
+   *
+   * @return The trait providers
+   */
+
+  <T extends CoEntityTraitType>
+  Map<Class<T>, CoEntityTraitProviderType<T>> traitProviders();
 }

@@ -32,12 +32,12 @@ public interface CoRoomIDType extends Comparable<CoRoomIDType>
    */
 
   @Value.Parameter
-  long value();
+  int value();
 
   @Override
   default int compareTo(
     final CoRoomIDType o)
   {
-    return Long.compareUnsigned(this.value(), o.value());
+    return Integer.compareUnsigned(this.value(), o.value());
   }
 }

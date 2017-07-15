@@ -16,11 +16,7 @@
 
 package com.io7m.callisto.prototype0.entities;
 
-import io.reactivex.Observable;
-import io.reactivex.disposables.Disposable;
-
 import java.util.Optional;
-import java.util.function.Consumer;
 
 /**
  * The type of entities.
@@ -100,46 +96,6 @@ public interface CoEntityType
 
   <T extends CoEntityTraitType> void traitDestroy(
     Class<T> c)
-    throws CoEntityDestroyedException;
-
-  /**
-   * Provide read-only access to the entity messages. Any message
-   * sent to the entity with {@link #send(CoEntityMessageType)} will be sent
-   * to any subscribers.
-   *
-   * @return The observable message queue
-   */
-
-  Observable<CoEntityMessageType> messages();
-
-  /**
-   * Subscribe to messages sent to this entity.
-   *
-   * @param type The type of messages that should be received
-   * @param f    The function that will receive messages
-   * @param <M>  The precise type of messages
-   *
-   * @return A subscription to the messages
-   */
-
-  default <M extends CoEntityMessageType> Disposable subscribe(
-    final Class<M> type,
-    final Consumer<M> f)
-  {
-    return this.messages().ofType(type).subscribe(f::accept);
-  }
-
-  /**
-   * Send a message to this entity.
-   *
-   * @param m The message
-   *
-   * @throws CoEntityDestroyedException If the entity has already been
-   *                                    destroyed
-   */
-
-  void send(
-    final CoEntityMessageType m)
     throws CoEntityDestroyedException;
 
   /**

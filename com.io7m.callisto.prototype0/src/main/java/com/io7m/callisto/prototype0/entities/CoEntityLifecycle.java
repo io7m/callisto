@@ -16,31 +16,11 @@
 
 package com.io7m.callisto.prototype0.entities;
 
-import com.io7m.callisto.core.CoException;
-
-public interface CoEntityListenerType
+public enum CoEntityLifecycle
 {
-  void onEntityTraitAdded(
-    CoEntityType e,
-    CoEntityTraitType t);
+  ENTITY_CREATED,
 
-  void onEntityTraitAddError(
-    CoEntityType e,
-    CoEntityTraitType t,
-    CoException x);
+  ENTITY_TRAITS_CHANGED,
 
-  void onEntityTraitDestroyed(
-    CoEntityType e,
-    CoEntityTraitType t);
-
-  void onEntityTraitDestroyError(
-    CoEntityType e,
-    CoEntityTraitType t,
-    CoException x);
-
-  void onEntityDestroyError(
-    CoException x);
-
-  void onEntityDestroyed(
-    CoEntityType e);
+  ENTITY_DESTROYED
 }

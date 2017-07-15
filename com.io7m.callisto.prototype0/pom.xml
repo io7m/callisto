@@ -63,8 +63,18 @@
     </dependency>
 
     <dependency>
+      <groupId>org.osgi</groupId>
+      <artifactId>org.osgi.service.component.annotations</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
       <groupId>org.immutables</groupId>
       <artifactId>value</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.immutables.vavr</groupId>
+      <artifactId>vavr-encodings</artifactId>
       <scope>provided</scope>
     </dependency>
   </dependencies>

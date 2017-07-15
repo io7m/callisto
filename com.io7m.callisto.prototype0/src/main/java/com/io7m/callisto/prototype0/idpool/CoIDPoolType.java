@@ -14,13 +14,11 @@
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-package com.io7m.callisto.prototype0.entities;
+package com.io7m.callisto.prototype0.idpool;
 
-public final class CoEntityTraitOnDestroyException extends CoEntityException
+public interface CoIDPoolType
 {
-  public CoEntityTraitOnDestroyException(
-    final Exception cause)
-  {
-    super(cause.getMessage(), cause);
-  }
+  int fresh();
+
+  void release(int x);
 }

@@ -14,13 +14,12 @@
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-package com.io7m.callisto.prototype0.messages;
+package com.io7m.callisto.prototype0.entities;
 
-/**
- * The base type of messages.
- */
+import com.io7m.callisto.prototype0.services.CoServiceType;
 
-public interface CoMessageType
+public interface CoEntityServiceType extends CoServiceType
 {
-  // No extra methods
+  CoEntityType createEntity(
+    CoAssemblyType assembly);
 }

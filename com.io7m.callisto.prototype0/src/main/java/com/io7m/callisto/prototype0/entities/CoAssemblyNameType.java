@@ -19,25 +19,49 @@ package com.io7m.callisto.prototype0.entities;
 import com.io7m.callisto.core.CoImmutableStyleType;
 import org.immutables.value.Value;
 
+import java.util.regex.Pattern;
+
 /**
- * The type of unique identifiers for entities.
+ * The type of assembly names.
  */
 
 @CoImmutableStyleType
 @Value.Immutable
-public interface CoEntityIDType extends Comparable<CoEntityIDType>
+public interface CoAssemblyNameType
 {
   /**
-   * @return The value of the identifier
+   * The pattern that defines valid assembly names.
+   */
+
+  Pattern VALID_NAME =
+    Pattern.compile("[a-z0-9]([a-z0-9_]*)(\\.[a-z0-9]([a-z0-9_]*))*");
+
+  /**
+   * @return The actual name value
    */
 
   @Value.Parameter
-  int value();
+  String value();
 
-  @Override
-  default int compareTo(
-    final CoEntityIDType o)
+  /**
+   * Check preconditions for the type.
+   */
+
+  @Value.Check
+  default void checkPreconditions()
   {
-    return Integer.compareUnsigned(this.value(), o.value());
+    if (this.value().length() > 64 && !VALID_NAME.matcher(this.value()).matches()) {
+      throw new IllegalArgumentException(
+        new StringBuilder(64)
+          .append("Invalid assembly name.")
+          .append(System.lineSeparator())
+          .append("  Received: ")
+          .append(this.value())
+          .append(System.lineSeparator())
+          .append("  Expected: ")
+          .append(VALID_NAME.pattern())
+          .append(System.lineSeparator())
+          .toString());
+    }
   }
 }

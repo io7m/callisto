@@ -16,11 +16,11 @@
 
 package com.io7m.callisto.prototype0.entities;
 
-public final class CoEntityTraitOnDestroyException extends CoEntityException
+public final class CoEntityTraitOnAttachException extends CoEntityException
 {
-  public CoEntityTraitOnDestroyException(
+  public CoEntityTraitOnAttachException(
     final Exception cause)
   {
-    super(cause.getMessage(), cause);
+    super(cause);
   }
 }
