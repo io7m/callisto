@@ -16,8 +16,6 @@
 
 package com.io7m.callisto.prototype0.services;
 
-import org.osgi.service.component.annotations.Deactivate;
-
 public interface CoServiceType
 {
   void shutDown();

@@ -30,6 +30,7 @@ public final class CoObservableExample
     final PublishSubject<T> s = PublishSubject.create();
     s.ofType(T.class).subscribe(x -> System.out.println("T: " + x));
     s.ofType(A.class).subscribe(x -> System.out.println("A: " + x));
+    s.ofType(A.class).subscribe(x -> { throw new IllegalArgumentException("BOOM!"); });
     s.ofType(B.class).subscribe(x -> System.out.println("B: " + x));
 
     s.onNext(new A());

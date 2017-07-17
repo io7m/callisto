@@ -14,28 +14,32 @@
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-package com.io7m.callisto.prototype0.rooms;
+package com.io7m.callisto.prototype0.services;
 
-import com.io7m.callisto.prototype0.entities.CoEntityID;
-import com.io7m.callisto.prototype0.entities.CoEntityType;
-import com.io7m.jnull.NullCheck;
-import io.vavr.collection.HashMap;
+import com.io7m.callisto.prototype0.services.CoServiceType;
+import org.slf4j.Logger;
 
-public final class CoRoom implements CoRoomType
+public abstract class CoAbstractService implements CoServiceType
 {
-  private final CoRoomID id;
-  private final HashMap<CoEntityID, CoEntityType> entities;
+  private volatile boolean activated;
 
-  private CoRoom(
-    final CoRoomID in_id)
+  protected abstract Logger log();
+
+  protected final void onActivateActual()
   {
-    this.id = NullCheck.notNull(in_id, "ID");
-    this.entities = HashMap.empty();
+    this.log().debug("onActivate");
+    this.activated = true;
   }
 
-  @Override
-  public CoRoomID id()
+  protected final boolean isActivated()
   {
-    return this.id;
+    return this.activated;
+  }
+
+  protected final void checkActivated()
+  {
+    if (!this.isActivated()) {
+      throw new IllegalStateException("Service has not been activated");
+    }
   }
 }

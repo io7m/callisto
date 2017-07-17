@@ -16,6 +16,10 @@
 
 package com.io7m.callisto.prototype0.rooms;
 
+/**
+ * The type of loaded and active room instances.
+ */
+
 public interface CoRoomType
 {
   /**

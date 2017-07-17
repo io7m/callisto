@@ -31,6 +31,13 @@ public interface CoEntityTraitType
   CoEntityType owner();
 
   /**
+   * @return The provider that created this trait
+   */
+
+  <T extends CoEntityTraitType>
+  CoEntityTraitProviderType<T> provider();
+
+  /**
    * The trait has been destroyed.
    *
    * @throws CoException On errors

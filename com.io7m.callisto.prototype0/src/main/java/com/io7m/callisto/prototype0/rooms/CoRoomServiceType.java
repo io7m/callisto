@@ -16,7 +16,7 @@
 
 package com.io7m.callisto.prototype0.rooms;
 
-public interface CoRoomListenerType
+public interface CoRoomServiceType
 {
 
 }

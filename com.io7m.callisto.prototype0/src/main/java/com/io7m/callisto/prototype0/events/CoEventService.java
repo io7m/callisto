@@ -16,18 +16,26 @@
 
 package com.io7m.callisto.prototype0.events;
 
+import com.io7m.callisto.prototype0.services.CoAbstractService;
 import com.io7m.callisto.prototype0.entities.CoEntityLifecycleEvent;
 import com.io7m.jnull.NullCheck;
 import com.io7m.junreachable.UnreachableCodeException;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.subjects.PublishSubject;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
+import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Component
-public final class CoEventService implements CoEventServiceType
+public final class CoEventService
+  extends CoAbstractService implements CoEventServiceType
 {
+  private static final Logger LOG =
+    LoggerFactory.getLogger(CoEventService.class);
+
   private final PublishSubject<CoEventType> events;
   private final Disposable entity_events;
   private final Int2ReferenceOpenHashMap<PublishSubject<CoEventType>> entity_subjects;
@@ -73,10 +81,18 @@ public final class CoEventService implements CoEventServiceType
     throw new UnreachableCodeException();
   }
 
+  @Activate
+  public void onActivate()
+  {
+    this.onActivateActual();
+  }
+
   @Override
   @Deactivate
   public void shutDown()
   {
+    this.checkActivated();
+
     this.events.onComplete();
 
     synchronized (this.entity_subjects) {
@@ -93,6 +109,13 @@ public final class CoEventService implements CoEventServiceType
     final CoEventType e)
   {
     NullCheck.notNull(e, "Event");
+    this.checkActivated();
     this.events.onNext(e);
+  }
+
+  @Override
+  protected Logger log()
+  {
+    return LOG;
   }
 }
