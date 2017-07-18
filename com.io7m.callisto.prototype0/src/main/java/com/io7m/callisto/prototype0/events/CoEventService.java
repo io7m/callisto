@@ -20,6 +20,7 @@ import com.io7m.callisto.prototype0.services.CoAbstractService;
 import com.io7m.callisto.prototype0.entities.CoEntityLifecycleEvent;
 import com.io7m.jnull.NullCheck;
 import com.io7m.junreachable.UnreachableCodeException;
+import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.subjects.PublishSubject;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
@@ -111,6 +112,12 @@ public final class CoEventService
     NullCheck.notNull(e, "Event");
     this.checkActivated();
     this.events.onNext(e);
+  }
+
+  @Override
+  public Observable<CoEventType> events()
+  {
+    return this.events;
   }
 
   @Override

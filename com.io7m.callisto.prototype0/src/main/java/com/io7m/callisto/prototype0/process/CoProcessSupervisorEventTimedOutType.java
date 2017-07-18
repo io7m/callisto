@@ -14,14 +14,28 @@
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-package com.io7m.callisto.prototype0.events;
+package com.io7m.callisto.prototype0.process;
 
-import com.io7m.callisto.prototype0.services.CoServiceType;
-import io.reactivex.Observable;
+import com.io7m.callisto.core.CoImmutableStyleType;
+import org.immutables.value.Value;
 
-public interface CoEventServiceType extends CoServiceType
+@CoImmutableStyleType
+@Value.Immutable
+public interface CoProcessSupervisorEventTimedOutType
+  extends CoProcessSupervisorEventType
 {
-  void post(CoEventType e);
+  @Value.Parameter
+  CoProcessType subsystem();
 
-  Observable<CoEventType> events();
+  @Override
+  default <C, O, E extends Exception>
+  O match(
+    final C context,
+    final CoProcessSupervisorEventMatcherType<C, CoProcessSupervisorEventRequestType, O, E> on_request,
+    final CoProcessSupervisorEventMatcherType<C, CoProcessSupervisorEventResponseType, O, E> on_response,
+    final CoProcessSupervisorEventMatcherType<C, CoProcessSupervisorEventTimedOutType, O, E> on_timed_out)
+    throws E
+  {
+    return on_timed_out.match(context, this);
+  }
 }

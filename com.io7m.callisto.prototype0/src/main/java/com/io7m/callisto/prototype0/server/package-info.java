@@ -14,14 +14,10 @@
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-package com.io7m.callisto.prototype0.events;
+/**
+ * Server.
+ */
 
-import com.io7m.callisto.prototype0.services.CoServiceType;
-import io.reactivex.Observable;
+@com.io7m.jnull.NonNullByDefault
+package com.io7m.callisto.prototype0.server;
 
-public interface CoEventServiceType extends CoServiceType
-{
-  void post(CoEventType e);
-
-  Observable<CoEventType> events();
-}

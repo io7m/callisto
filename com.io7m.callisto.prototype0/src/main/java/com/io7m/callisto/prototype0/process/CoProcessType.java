@@ -14,14 +14,19 @@
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-package com.io7m.callisto.prototype0.events;
+package com.io7m.callisto.prototype0.process;
 
-import com.io7m.callisto.prototype0.services.CoServiceType;
-import io.reactivex.Observable;
+import java.util.concurrent.Future;
 
-public interface CoEventServiceType extends CoServiceType
+public interface CoProcessType
 {
-  void post(CoEventType e);
+  String name();
 
-  Observable<CoEventType> events();
+  Future<Void> initialize();
+
+  Future<Void> start();
+
+  Future<Void> stop();
+
+  Future<Void> destroy();
 }

@@ -14,14 +14,16 @@
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-package com.io7m.callisto.prototype0.events;
+package com.io7m.callisto.prototype0.client;
 
-import com.io7m.callisto.prototype0.services.CoServiceType;
-import io.reactivex.Observable;
+import com.io7m.callisto.core.CoImmutableStyleType;
+import com.io7m.callisto.prototype0.events.CoEventType;
+import org.immutables.value.Value;
 
-public interface CoEventServiceType extends CoServiceType
+@CoImmutableStyleType
+@Value.Immutable
+public interface CoClientTickEventType extends CoEventType
 {
-  void post(CoEventType e);
-
-  Observable<CoEventType> events();
+  @Value.Parameter
+  int frame();
 }

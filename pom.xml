@@ -126,6 +126,11 @@
         <artifactId>com.io7m.jfsm.core</artifactId>
         <version>0.1.1</version>
       </dependency>
+      <dependency>
+        <groupId>com.io7m.timehack6435126</groupId>
+        <artifactId>io7m-timehack6435126-core</artifactId>
+        <version>[1.0.0, 2.0.0)</version>
+      </dependency>
 
       <dependency>
         <groupId>org.immutables</groupId>
@@ -176,6 +181,16 @@
         <groupId>com.google.protobuf</groupId>
         <artifactId>protobuf-java</artifactId>
         <version>3.3.1</version>
+      </dependency>
+      <dependency>
+        <groupId>com.io7m.bundles</groupId>
+        <artifactId>org.lwjgl.glfw</artifactId>
+        <version>3.1.1</version>
+      </dependency>
+      <dependency>
+        <groupId>com.io7m.bundles</groupId>
+        <artifactId>org.lwjgl.opengl</artifactId>
+        <version>3.1.1</version>
       </dependency>
 
       <!-- OSGi -->

@@ -14,14 +14,17 @@
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-package com.io7m.callisto.prototype0.events;
+package com.io7m.callisto.prototype0.process;
 
-import com.io7m.callisto.prototype0.services.CoServiceType;
-import io.reactivex.Observable;
+import com.io7m.callisto.prototype0.events.CoEventType;
 
-public interface CoEventServiceType extends CoServiceType
+public interface CoProcessSupervisorEventType extends CoEventType
 {
-  void post(CoEventType e);
-
-  Observable<CoEventType> events();
+  <C, O, E extends Exception>
+  O match(
+    C context,
+    CoProcessSupervisorEventMatcherType<C, CoProcessSupervisorEventRequestType, O, E> on_request,
+    CoProcessSupervisorEventMatcherType<C, CoProcessSupervisorEventResponseType, O, E> on_response,
+    CoProcessSupervisorEventMatcherType<C, CoProcessSupervisorEventTimedOutType, O, E> on_timed_out)
+    throws E;
 }

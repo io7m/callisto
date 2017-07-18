@@ -44,7 +44,15 @@
       <groupId>com.io7m.jcip</groupId>
       <artifactId>jcip-annotations</artifactId>
     </dependency>
+    <dependency>
+      <groupId>com.io7m.timehack6435126</groupId>
+      <artifactId>io7m-timehack6435126-core</artifactId>
+    </dependency>
 
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+    </dependency>
     <dependency>
       <groupId>io.reactivex.rxjava2</groupId>
       <artifactId>rxjava</artifactId>
@@ -64,6 +72,14 @@
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.io7m.bundles</groupId>
+      <artifactId>org.lwjgl.glfw</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.io7m.bundles</groupId>
+      <artifactId>org.lwjgl.opengl</artifactId>
     </dependency>
 
     <dependency>
