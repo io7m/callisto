@@ -51,6 +51,7 @@ public final class CoServer implements CoServerType
     this.processes = new ReferenceArrayList<>();
     this.processes.add(new CoServerClock(this.events));
     this.processes.add(new CoServerLogic(this.events));
+    this.processes.add(new CoServerNetwork(this.events));
     this.processes.add(new CoProcessSupervisor(this.events, this.processes));
   }
 

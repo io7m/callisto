@@ -16,7 +16,13 @@
 
 package com.io7m.callisto.prototype0.transport;
 
+import com.io7m.callisto.prototype0.events.CoEventType;
+
+import java.util.Queue;
+
 public interface CoTransportType
 {
+  void sendEvent(CoEventType e);
 
+  Queue<CoEventType> receiveEvents();
 }

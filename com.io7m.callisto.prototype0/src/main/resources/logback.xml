@@ -5,12 +5,12 @@
     name="STDERR"
     class="ch.qos.logback.core.ConsoleAppender">
     <encoder>
-      <pattern>%level [%thread] %logger{128}: %msg%n</pattern>
+      <pattern>%date{"HH:mm:ss.SSS"} %level [%thread] %logger{128}: %msg%n</pattern>
     </encoder>
     <target>System.err</target>
   </appender>
 
-  <root level="TRACE">
+  <root level="ERROR">
     <appender-ref ref="STDERR"/>
   </root>
 

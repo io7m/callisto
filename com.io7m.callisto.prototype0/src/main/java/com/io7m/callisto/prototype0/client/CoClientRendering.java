@@ -18,6 +18,7 @@ package com.io7m.callisto.prototype0.client;
 
 import com.io7m.callisto.prototype0.events.CoEventServiceType;
 import com.io7m.callisto.prototype0.process.CoProcessAbstract;
+import com.io7m.junreachable.UnimplementedCodeException;
 import io.reactivex.disposables.Disposable;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWErrorCallback;
@@ -62,7 +63,7 @@ public final class CoClientRendering extends CoProcessAbstract
     this.tick_sub =
       this.events().events()
         .ofType(CoClientTickEvent.class)
-        .subscribeOn(this.scheduler())
+        .observeOn(this.scheduler())
         .subscribe(this::onTickEvent, CoClientRendering::onTickEventError);
   }
 
@@ -79,6 +80,7 @@ public final class CoClientRendering extends CoProcessAbstract
 
     if (GLFW.glfwWindowShouldClose(this.context_rendering)) {
       LOG.debug("window close requested");
+      throw new UnimplementedCodeException();
     }
   }
 

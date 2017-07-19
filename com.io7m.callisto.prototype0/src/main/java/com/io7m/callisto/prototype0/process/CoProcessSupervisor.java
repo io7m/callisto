@@ -25,7 +25,9 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 public final class CoProcessSupervisor extends CoProcessAbstract
@@ -38,9 +40,11 @@ public final class CoProcessSupervisor extends CoProcessAbstract
 
   private final ReferenceOpenHashSet<CoProcessType> watched;
   private final
-  @GuardedBy("watched") ReferenceOpenHashSet<CoProcessType> inactive;
+  @GuardedBy("watched") ReferenceOpenHashSet<CoProcessType> unresponsive;
   private final Disposable supervise_sub;
   private final ScheduledExecutorService sched_exec;
+  private Future<?> send;
+  private ScheduledFuture<?> check;
 
   public CoProcessSupervisor(
     final CoEventServiceType in_events,
@@ -55,7 +59,7 @@ public final class CoProcessSupervisor extends CoProcessAbstract
       });
 
     this.watched = new ReferenceOpenHashSet<>(in_processes);
-    this.inactive = new ReferenceOpenHashSet<>();
+    this.unresponsive = new ReferenceOpenHashSet<>();
 
     this.sched_exec = Executors.newScheduledThreadPool(1, r -> {
       final Thread th = new Thread(r);
@@ -67,7 +71,7 @@ public final class CoProcessSupervisor extends CoProcessAbstract
     this.supervise_sub =
       this.events().events()
         .ofType(CoProcessSupervisorEventType.class)
-        .subscribeOn(this.scheduler())
+        .observeOn(this.scheduler())
         .subscribe(
           this::onSupervisorEvent,
           CoProcessSupervisor::onSupervisorEventError);
@@ -104,7 +108,7 @@ public final class CoProcessSupervisor extends CoProcessAbstract
     LOG.trace("process {} responded", input.subsystem());
 
     synchronized (this.watched) {
-      this.inactive.remove(input.subsystem());
+      this.unresponsive.remove(input.subsystem());
     }
     return null;
   }
@@ -139,11 +143,10 @@ public final class CoProcessSupervisor extends CoProcessAbstract
     LOG.debug("start");
 
     synchronized (this.watched) {
-      this.inactive.clear();
+      this.unresponsive.clear();
     }
 
-    this.sched_exec.scheduleAtFixedRate(
-      this::doTick, 0L, 5L, TimeUnit.SECONDS);
+    this.scheduleNextRequest();
   }
 
   @Override
@@ -157,38 +160,68 @@ public final class CoProcessSupervisor extends CoProcessAbstract
   {
     LOG.debug("stop");
     this.supervise_sub.dispose();
+
+    final Future<?> s = this.send;
+    if (s != null) {
+      s.cancel(true);
+    }
+
+    final ScheduledFuture<?> c = this.check;
+    if (c != null) {
+      c.cancel(true);
+    }
+
     this.sched_exec.shutdown();
   }
 
-  private void doTick()
+  private void doSendRequests()
   {
     /*
-     * Check if all processes have removed themselves from the inactive set.
-     */
-
-    LOG.trace("checking processes");
-
-    final ReferenceOpenHashSet<CoProcessType> current_inactive;
-    synchronized (this.watched) {
-      current_inactive = new ReferenceOpenHashSet<>(this.inactive);
-    }
-
-    LOG.trace("inactive: {}", current_inactive);
-
-    if (!current_inactive.isEmpty()) {
-      current_inactive.forEach(
-        c -> this.events().post(CoProcessSupervisorEventTimedOut.of(c)));
-    }
-
-    /*
-     * Mark all processes as inactive and then allow them to mark themselves
+     * Mark all processes as unresponsive and then allow them to mark themselves
      * as active when requested.
      */
 
     synchronized (this.watched) {
-      this.inactive.addAll(this.watched);
+      this.unresponsive.addAll(this.watched);
     }
 
+    LOG.trace("sending process request");
     this.events().post(REQUEST);
+
+    this.scheduleNextCheck();
+  }
+
+  private void scheduleNextCheck()
+  {
+    this.check = this.sched_exec.schedule(
+      () -> this.executor().execute(this::doCheckResponses), 10L, TimeUnit.SECONDS);
+  }
+
+  private void doCheckResponses()
+  {
+    /*
+     * Check if all processes have removed themselves from the unresponsive set.
+     */
+
+    LOG.trace("checking processes");
+
+    final ReferenceOpenHashSet<CoProcessType> current_unresponsive;
+    synchronized (this.watched) {
+      current_unresponsive = new ReferenceOpenHashSet<>(this.unresponsive);
+    }
+
+    LOG.trace("unresponsive: {}", current_unresponsive);
+
+    if (!current_unresponsive.isEmpty()) {
+      current_unresponsive.forEach(
+        c -> this.events().post(CoProcessSupervisorEventTimedOut.of(c)));
+    }
+
+    this.scheduleNextRequest();
+  }
+
+  private void scheduleNextRequest()
+  {
+    this.send = this.executor().submit(this::doSendRequests);
   }
 }

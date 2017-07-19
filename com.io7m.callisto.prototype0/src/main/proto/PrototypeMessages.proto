@@ -45,12 +45,18 @@ message CoServerHello
   }
 }
 
-message CoMessageData
+message CoEventData
 {
   uint32 sequence = 1;
-  uint32 type_group = 2;
-  uint32 type_name = 3;
-  bytes data = 4;
+  uint32 type = 2;
+  bytes data = 3;
+}
+
+message CoMessageData
+{
+  oneof value {
+    CoEventData event = 1;
+  }
 }
 
 message CoClientPacket

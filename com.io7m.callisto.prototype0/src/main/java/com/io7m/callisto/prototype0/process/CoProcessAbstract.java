@@ -79,10 +79,11 @@ public abstract class CoProcessAbstract implements CoProcessType
       return CompletableFuture.completedFuture(null);
     }
 
-    this.sub_supervisor = this.events().events()
-      .ofType(CoProcessSupervisorEventRequest.class)
-      .subscribeOn(this.scheduler)
-      .subscribe(this::onSupervisorRequest);
+    this.sub_supervisor =
+      this.events().events()
+        .ofType(CoProcessSupervisorEventRequest.class)
+        .observeOn(this.scheduler)
+        .subscribe(this::onSupervisorRequest);
 
     return this.exec.submit(() -> {
       switch (this.state) {

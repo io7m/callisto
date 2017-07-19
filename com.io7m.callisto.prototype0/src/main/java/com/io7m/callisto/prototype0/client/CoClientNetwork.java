@@ -21,33 +21,19 @@ import com.io7m.callisto.prototype0.process.CoProcessAbstract;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-
-public final class CoClientClock extends CoProcessAbstract
+public final class CoClientNetwork extends CoProcessAbstract
 {
   private static final Logger LOG =
-    LoggerFactory.getLogger(CoClientClock.class);
+    LoggerFactory.getLogger(CoClientNetwork.class);
 
-  private final ScheduledExecutorService sched_exec;
-
-  public CoClientClock(
+  public CoClientNetwork(
     final CoEventServiceType in_events)
   {
     super(
       in_events,
       r -> {
         final Thread th = new Thread(r);
-        th.setName("com.io7m.callisto.client.clock." + th.getId());
-        return th;
-      });
-
-    this.sched_exec =
-      Executors.newScheduledThreadPool(1, r -> {
-        final Thread th = new Thread(r);
-        th.setName("com.io7m.callisto.client.clock.act." + th.getId());
+        th.setName("com.io7m.callisto.client.network." + th.getId());
         return th;
       });
   }
@@ -55,12 +41,7 @@ public final class CoClientClock extends CoProcessAbstract
   @Override
   public String name()
   {
-    return "clock";
-  }
-
-  private void doTick()
-  {
-    this.events().post(CoClientTickEvent.CLIENT_TICK_EVENT);
+    return "network";
   }
 
   @Override
@@ -79,15 +60,12 @@ public final class CoClientClock extends CoProcessAbstract
   protected void doStart()
   {
     LOG.debug("start");
-    this.sched_exec.scheduleAtFixedRate(
-      this::doTick, 0L, 1000L / 60L, TimeUnit.MILLISECONDS);
   }
 
   @Override
   protected void doStop()
   {
     LOG.debug("stop");
-    this.sched_exec.shutdown();
   }
 
   @Override

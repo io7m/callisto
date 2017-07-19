@@ -50,8 +50,11 @@ public final class CoClient implements CoClientType
     this.processes.add(new CoClientClock(this.events));
     this.processes.add(new CoClientLogic(this.events));
     this.processes.add(new CoClientRendering(this.events));
+    this.processes.add(new CoClientNetwork(this.events));
     this.processes.add(new CoProcessSupervisor(this.events, this.processes));
   }
+
+
 
   private static void waitForFutures(
     final Iterable<Future<Void>> futures,

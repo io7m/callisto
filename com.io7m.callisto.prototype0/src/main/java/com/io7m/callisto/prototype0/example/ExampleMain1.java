@@ -23,6 +23,7 @@ import com.io7m.timehack6435126.TimeHack6435126;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -39,7 +40,7 @@ public final class ExampleMain1
 
   public static void main(
     final String[] args)
-    throws TimeoutException, ExecutionException
+    throws TimeoutException, ExecutionException, InterruptedException
   {
     TimeHack6435126.enableHighResolutionTimer();
 
@@ -50,18 +51,21 @@ public final class ExampleMain1
     server_events.onActivate();
 
     final CoClient client = new CoClient(client_events);
-    client.startSynchronously(1L, TimeUnit.SECONDS);
+    client.startSynchronously(3L, TimeUnit.SECONDS);
 
-    final CoServer server = new CoServer(server_events);
-    server.startSynchronously(1L, TimeUnit.SECONDS);
+    //final CoServer server = new CoServer(server_events);
+    //server.startSynchronously(3L, TimeUnit.SECONDS);
 
-    try {
-      Thread.sleep(TimeUnit.MILLISECONDS.convert(3L, TimeUnit.SECONDS));
-    } catch (final InterruptedException e) {
-      Thread.currentThread().interrupt();
-    }
-
-    client.shutDownSynchronously(1L, TimeUnit.SECONDS);
-    server.shutDownSynchronously(1L, TimeUnit.SECONDS);
+    final Thread th = new Thread(() -> {
+      try {
+        System.in.read();
+        client.shutDownSynchronously(3L, TimeUnit.SECONDS);
+        // server.shutDownSynchronously(3L, TimeUnit.SECONDS);
+      } catch (final Exception e) {
+        LOG.error("failed: ", e);
+      }
+    });
+    th.start();
+    th.join();
   }
 }

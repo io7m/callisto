@@ -32,7 +32,6 @@ public final class CoServerClock extends CoProcessAbstract
   private static final Logger LOG =
     LoggerFactory.getLogger(CoServerClock.class);
 
-  private final AtomicInteger frame;
   private final ScheduledExecutorService sched_exec;
 
   public CoServerClock(
@@ -52,8 +51,6 @@ public final class CoServerClock extends CoProcessAbstract
         th.setName("com.io7m.callisto.client.clock.act." + th.getId());
         return th;
       });
-
-    this.frame = new AtomicInteger(0);
   }
 
   @Override
@@ -64,7 +61,7 @@ public final class CoServerClock extends CoProcessAbstract
 
   private void doTick()
   {
-    this.events().post(CoClientTickEvent.of(this.frame.getAndIncrement()));
+    this.events().post(CoServerTickEvent.SERVER_TICK_EVENT);
   }
 
   @Override
