@@ -17,6 +17,7 @@
 package com.io7m.callisto.prototype0.client;
 
 import com.io7m.callisto.prototype0.events.CoEventServiceType;
+import com.io7m.callisto.prototype0.events.CoEventType;
 import com.io7m.callisto.prototype0.process.CoProcessAbstract;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +31,9 @@ public final class CoClientClock extends CoProcessAbstract
 {
   private static final Logger LOG =
     LoggerFactory.getLogger(CoClientClock.class);
+
+  private static final CoClientTickEvent TICK =
+    CoClientTickEvent.of(60);
 
   private final ScheduledExecutorService sched_exec;
 
@@ -60,7 +64,7 @@ public final class CoClientClock extends CoProcessAbstract
 
   private void doTick()
   {
-    this.events().post(CoClientTickEvent.CLIENT_TICK_EVENT);
+    this.events().post(TICK);
   }
 
   @Override

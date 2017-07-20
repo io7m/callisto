@@ -128,8 +128,13 @@
       </dependency>
       <dependency>
         <groupId>com.io7m.timehack6435126</groupId>
-        <artifactId>io7m-timehack6435126-core</artifactId>
+        <artifactId>com.io7m.timehack6435126.core</artifactId>
         <version>[1.0.0, 2.0.0)</version>
+      </dependency>
+      <dependency>
+        <groupId>com.io7m.jserial</groupId>
+        <artifactId>com.io7m.jserial.core</artifactId>
+        <version>0.3.0</version>
       </dependency>
 
       <dependency>

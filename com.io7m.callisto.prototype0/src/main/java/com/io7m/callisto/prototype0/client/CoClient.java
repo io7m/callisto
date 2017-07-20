@@ -17,6 +17,8 @@
 package com.io7m.callisto.prototype0.client;
 
 import com.io7m.callisto.prototype0.events.CoEventService;
+import com.io7m.callisto.prototype0.events.CoEventServiceType;
+import com.io7m.callisto.prototype0.network.CoNetworkProviderType;
 import com.io7m.callisto.prototype0.process.CoProcessSupervisor;
 import com.io7m.callisto.prototype0.process.CoProcessType;
 import com.io7m.jnull.NullCheck;
@@ -25,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -36,25 +39,31 @@ public final class CoClient implements CoClientType
   private static final Logger LOG =
     LoggerFactory.getLogger(CoClient.class);
 
-  private final CoEventService events;
+  private final CoEventServiceType events;
   private final ReferenceArrayList<CoProcessType> processes;
+  private final CoNetworkProviderType network;
+  private final CoClientNetwork network_process;
 
   public CoClient(
-    final CoEventService in_events)
+    final CoNetworkProviderType in_network,
+    final CoEventServiceType in_events)
   {
+    this.network =
+      NullCheck.notNull(in_network, "Network");
     this.events =
       NullCheck.notNull(in_events, "Events");
+
+    this.network_process =
+      new CoClientNetwork(this.events, this.network);
 
     this.processes = new ReferenceArrayList<>();
     this.processes.add(new CoClientAudio(this.events));
     this.processes.add(new CoClientClock(this.events));
     this.processes.add(new CoClientLogic(this.events));
     this.processes.add(new CoClientRendering(this.events));
-    this.processes.add(new CoClientNetwork(this.events));
+    this.processes.add(this.network_process);
     this.processes.add(new CoProcessSupervisor(this.events, this.processes));
   }
-
-
 
   private static void waitForFutures(
     final Iterable<Future<Void>> futures,
@@ -122,5 +131,11 @@ public final class CoClient implements CoClientType
 
     LOG.debug("waiting for processes to be destroyed");
     waitForFutures(futures1, time, unit);
+  }
+
+  public Future<Void> connect(
+    final Properties props)
+  {
+    return this.network_process.connect(props);
   }
 }

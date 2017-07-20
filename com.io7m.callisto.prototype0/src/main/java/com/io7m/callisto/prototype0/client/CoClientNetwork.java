@@ -17,17 +17,33 @@
 package com.io7m.callisto.prototype0.client;
 
 import com.io7m.callisto.prototype0.events.CoEventServiceType;
+import com.io7m.callisto.prototype0.network.CoNetworkProviderType;
 import com.io7m.callisto.prototype0.process.CoProcessAbstract;
+import com.io7m.callisto.prototype0.ticks.CoTickDivisor;
+import com.io7m.jnull.NullCheck;
+import com.io7m.jproperties.JProperties;
+import com.io7m.jproperties.JPropertyNonexistent;
+import io.reactivex.disposables.Disposable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.Properties;
+import java.util.concurrent.Future;
 
 public final class CoClientNetwork extends CoProcessAbstract
 {
   private static final Logger LOG =
     LoggerFactory.getLogger(CoClientNetwork.class);
 
+  private final CoNetworkProviderType network;
+  private final Disposable sub_tick;
+  private final CoTickDivisor tick_divisor;
+  private CoClientServerHandler handler;
+
   public CoClientNetwork(
-    final CoEventServiceType in_events)
+    final CoEventServiceType in_events,
+    final CoNetworkProviderType in_network)
   {
     super(
       in_events,
@@ -36,6 +52,33 @@ public final class CoClientNetwork extends CoProcessAbstract
         th.setName("com.io7m.callisto.client.network." + th.getId());
         return th;
       });
+
+    this.network =
+      NullCheck.notNull(in_network, "Network");
+
+    this.tick_divisor =
+      new CoTickDivisor(60.0, 30.0);
+
+    this.sub_tick =
+      in_events.events()
+        .ofType(CoClientTickEvent.class)
+        .observeOn(this.scheduler())
+        .subscribe(this::onTickEvent);
+  }
+
+  private void onTickEvent(
+    final CoClientTickEvent e)
+  {
+    final CoClientServerHandler h = this.handler;
+    if (h != null) {
+      if (this.tick_divisor.tickNow()) {
+        try {
+          h.onTick();
+        } catch (final IOException ex) {
+          LOG.error("i/o error: ", ex);
+        }
+      }
+    }
   }
 
   @Override
@@ -66,11 +109,44 @@ public final class CoClientNetwork extends CoProcessAbstract
   protected void doStop()
   {
     LOG.debug("stop");
+    this.sub_tick.dispose();
+
+    final CoClientServerHandler h = this.handler;
+    if (h != null) {
+      try {
+        h.close();
+      } catch (final IOException e) {
+        LOG.error("i/o error: ", e);
+      }
+    }
   }
 
   @Override
   protected void doDestroy()
   {
     LOG.debug("destroy");
+  }
+
+  public Future<Void> connect(
+    final Properties props)
+  {
+    return this.executor().submit(() -> this.doConnect(props));
+  }
+
+  private Void doConnect(
+    final Properties props)
+    throws IOException, JPropertyNonexistent
+  {
+    LOG.debug("trying to connect to server");
+
+    final String user =
+      JProperties.getString(props, "user");
+    final String pass =
+      JProperties.getStringOptional(props, "password", "");
+
+    this.handler = new CoClientServerHandler(
+      this.events(), this.network.createPacketSink(props));
+    this.handler.onStart(user, pass);
+    return null;
   }
 }

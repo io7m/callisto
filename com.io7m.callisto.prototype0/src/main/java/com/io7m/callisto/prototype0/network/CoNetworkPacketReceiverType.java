@@ -14,10 +14,14 @@
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/**
- * Transport.
- */
+package com.io7m.callisto.prototype0.network;
 
-@com.io7m.jnull.NonNullByDefault
-package com.io7m.callisto.prototype0.transport;
+import java.net.SocketAddress;
+import java.nio.ByteBuffer;
 
+public interface CoNetworkPacketReceiverType
+{
+  void receive(
+    SocketAddress address,
+    ByteBuffer buffer);
+}

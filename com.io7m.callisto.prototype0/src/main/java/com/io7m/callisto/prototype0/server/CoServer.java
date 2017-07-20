@@ -20,6 +20,8 @@ import com.io7m.callisto.prototype0.client.CoClientAudio;
 import com.io7m.callisto.prototype0.client.CoClientRendering;
 import com.io7m.callisto.prototype0.client.CoClientType;
 import com.io7m.callisto.prototype0.events.CoEventService;
+import com.io7m.callisto.prototype0.events.CoEventServiceType;
+import com.io7m.callisto.prototype0.network.CoNetworkProviderType;
 import com.io7m.callisto.prototype0.process.CoProcessSupervisor;
 import com.io7m.callisto.prototype0.process.CoProcessType;
 import com.io7m.jnull.NullCheck;
@@ -39,19 +41,23 @@ public final class CoServer implements CoServerType
   private static final Logger LOG =
     LoggerFactory.getLogger(CoServer.class);
 
-  private final CoEventService events;
+  private final CoEventServiceType events;
   private final ReferenceArrayList<CoProcessType> processes;
+  private final CoNetworkProviderType network;
 
   public CoServer(
-    final CoEventService in_events)
+    final CoNetworkProviderType in_network,
+    final CoEventServiceType in_events)
   {
+    this.network =
+      NullCheck.notNull(in_network, "Network");
     this.events =
       NullCheck.notNull(in_events, "Events");
 
     this.processes = new ReferenceArrayList<>();
     this.processes.add(new CoServerClock(this.events));
     this.processes.add(new CoServerLogic(this.events));
-    this.processes.add(new CoServerNetwork(this.events));
+    this.processes.add(new CoServerNetwork(this.events, in_network));
     this.processes.add(new CoProcessSupervisor(this.events, this.processes));
   }
 

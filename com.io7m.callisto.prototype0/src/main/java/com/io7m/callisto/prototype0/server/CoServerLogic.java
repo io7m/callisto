@@ -33,7 +33,7 @@ public final class CoServerLogic extends CoProcessAbstract
       in_events,
       r -> {
         final Thread th = new Thread(r);
-        th.setName("com.io7m.callisto.client.logic." + th.getId());
+        th.setName("com.io7m.callisto.server.logic." + th.getId());
         return th;
       });
   }

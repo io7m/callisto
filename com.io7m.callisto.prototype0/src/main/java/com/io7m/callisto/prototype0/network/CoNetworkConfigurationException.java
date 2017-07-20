@@ -14,15 +14,13 @@
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-package com.io7m.callisto.prototype0.transport;
+package com.io7m.callisto.prototype0.network;
 
-import com.io7m.callisto.prototype0.events.CoEventType;
-
-import java.util.Queue;
-
-public interface CoTransportType
+public final class CoNetworkConfigurationException extends CoNetworkException
 {
-  void sendEvent(CoEventType e);
-
-  Queue<CoEventType> receiveEvents();
+  public CoNetworkConfigurationException(
+    final Throwable cause)
+  {
+    super(cause);
+  }
 }
