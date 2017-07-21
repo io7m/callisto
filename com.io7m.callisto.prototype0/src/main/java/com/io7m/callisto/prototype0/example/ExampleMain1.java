@@ -115,6 +115,7 @@ public final class ExampleMain1
         LOG.error("failed: ", e);
       }
     });
+    th.setName("com.io7m.callisto.example.wait_for_key");
     th.start();
     th.join();
   }
