@@ -20,6 +20,8 @@ import com.io7m.callisto.prototype0.client.CoClient;
 import com.io7m.callisto.prototype0.client.CoClientTickEvent;
 import com.io7m.callisto.prototype0.events.CoEventService;
 import com.io7m.callisto.prototype0.network.CoNetworkProviderLocal;
+import com.io7m.callisto.prototype0.network.CoNetworkProviderType;
+import com.io7m.callisto.prototype0.network.CoNetworkProviderUDP;
 import com.io7m.callisto.prototype0.server.CoServer;
 import com.io7m.callisto.prototype0.server.CoServerTickEvent;
 import com.io7m.timehack6435126.TimeHack6435126;
@@ -63,7 +65,7 @@ public final class ExampleMain1
       .filter(e -> !(e instanceof CoServerTickEvent))
       .subscribe(e -> LOG.trace("server event: {}", e));
 
-    final CoNetworkProviderLocal network = new CoNetworkProviderLocal();
+    final CoNetworkProviderType network = new CoNetworkProviderLocal();
 
     final CoClient client = new CoClient(network, client_events);
     client.startSynchronously(3L, TimeUnit.SECONDS);

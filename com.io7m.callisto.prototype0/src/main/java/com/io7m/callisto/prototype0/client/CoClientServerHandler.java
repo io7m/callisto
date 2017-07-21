@@ -34,6 +34,7 @@ public final class CoClientServerHandler implements Closeable
   private final int sequence;
   private final FSMEnumMutable<State> state;
   private final CoEventServiceType events;
+  private int hello_attempts;
   private int time;
   private int client_id;
   private String user;
@@ -57,6 +58,7 @@ public final class CoClientServerHandler implements Closeable
     this.sequence = 0;
     this.client_id = 0;
     this.time = 0;
+    this.hello_attempts = 0;
 
     this.state =
       FSMEnumMutable.builder(State.STATE_INITIAL)
@@ -102,7 +104,14 @@ public final class CoClientServerHandler implements Closeable
         return;
 
       case STATE_WAITING_FOR_HELLO: {
-        if (this.time % 20 == 0) {
+        if (this.hello_attempts == 10) {
+          this.events.post(CoClientNetworkEventConnectionTimedOut.of(
+            String.format("Could not establish a connection to the server after %d attempts",
+                          Integer.valueOf(this.hello_attempts))));
+          this.state.transition(State.STATE_DISCONNECTED);
+        }
+
+        if (this.time % 120 == 0) {
           this.sendHello(this.user, this.pass);
         }
         break;
@@ -226,6 +235,7 @@ public final class CoClientServerHandler implements Closeable
     final String pass)
     throws IOException
   {
+    ++this.hello_attempts;
     this.sendMessage(
       CoClientPacket.newBuilder()
         .setHello(CoClientHello.newBuilder()

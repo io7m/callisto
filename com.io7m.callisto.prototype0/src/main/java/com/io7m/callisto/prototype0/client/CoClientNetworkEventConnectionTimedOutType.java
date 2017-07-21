@@ -17,18 +17,19 @@
 package com.io7m.callisto.prototype0.client;
 
 import com.io7m.callisto.core.CoImmutableStyleType;
-import com.io7m.callisto.prototype0.events.CoEventType;
+import org.immutables.value.Value;
 
 @CoImmutableStyleType
-public interface CoClientNetworkEventType extends CoEventType
+@Value.Immutable
+public interface CoClientNetworkEventConnectionTimedOutType
+  extends CoClientNetworkEventType
 {
-  enum Type
-  {
-    CLIENT_CONNECTED,
-    CLIENT_CONNECTION_REFUSED,
-    CLIENT_CONNECTION_TIMED_OUT,
-    CLIENT_DISCONNECTED
-  }
+  @Value.Parameter
+  String message();
 
-  Type type();
+  @Override
+  default Type type()
+  {
+    return Type.CLIENT_CONNECTION_TIMED_OUT;
+  }
 }
