@@ -34,9 +34,14 @@ import java.net.SocketAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.security.SecureRandom;
 import java.util.Iterator;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public final class CoNetworkProviderLocal implements CoNetworkProviderType
 {
@@ -45,11 +50,27 @@ public final class CoNetworkProviderLocal implements CoNetworkProviderType
 
   private final Object2ReferenceOpenHashMap<InetSocketAddress, Node> nodes;
   private final CoIDPoolType ports;
+  private final ExecutorService exec;
+  private final SecureRandom random;
+  private final double loss;
+  private final long latency_min;
+  private final long latency_max;
 
   public CoNetworkProviderLocal()
   {
     this.nodes = new Object2ReferenceOpenHashMap<>();
     this.ports = new CoIDPool();
+    this.random = new SecureRandom();
+    this.loss = 0.0;
+    this.latency_min = 10L;
+    this.latency_max = 100L;
+
+    this.exec = Executors.newSingleThreadExecutor(r -> {
+      final Thread th = new Thread(r);
+      th.setName("com.io7m.callisto.network.local.deliver");
+      th.setDaemon(true);
+      return th;
+    });
   }
 
   @Override
@@ -125,8 +146,8 @@ public final class CoNetworkProviderLocal implements CoNetworkProviderType
     }
   }
 
-  private final class Node implements CoNetworkPacketSourceType,
-    CoNetworkPacketSinkType
+  private final class Node
+    implements CoNetworkPacketSourceType, CoNetworkPacketSinkType
   {
     private final InetSocketAddress bind;
     private final InetSocketAddress remote;
@@ -157,8 +178,38 @@ public final class CoNetworkProviderLocal implements CoNetworkProviderType
         final ByteBuffer clone = ByteBuffer.allocate(data.limit());
         clone.put(data);
         clone.rewind();
-        peer.incoming.add(CoNetworkLocalDatagram.of(this.bind, clone));
+        peer.enqueueIncoming(CoNetworkLocalDatagram.of(this.bind, clone));
       }
+    }
+
+    private void enqueueIncoming(
+      final CoNetworkLocalDatagram datagram)
+    {
+      final CoNetworkProviderLocal c = CoNetworkProviderLocal.this;
+
+      if (c.random.nextDouble() <= c.loss) {
+        LOG.debug("[{} -> {}]: losing packet",
+                  datagram.sender(),
+                  this.bind);
+        return;
+      }
+
+      final long delay =
+        c.latency_min + (long) c.random.nextInt((int) (c.latency_max - c.latency_min));
+
+      LOG.trace("[{} -> {}]: delaying delivery {}ms",
+                datagram.sender(),
+                this.bind,
+                Long.valueOf(delay));
+
+      c.exec.execute(() -> {
+        try {
+          Thread.sleep(delay);
+        } catch (final InterruptedException e) {
+          Thread.currentThread().interrupt();
+        }
+        this.incoming.add(datagram);
+      });
     }
 
     @Override
@@ -179,7 +230,7 @@ public final class CoNetworkProviderLocal implements CoNetworkProviderType
         final ByteBuffer clone = ByteBuffer.allocate(data.limit());
         clone.put(data);
         clone.rewind();
-        peer.incoming.add(CoNetworkLocalDatagram.of(this.bind, clone));
+        peer.enqueueIncoming(CoNetworkLocalDatagram.of(this.bind, clone));
       }
     }
 
