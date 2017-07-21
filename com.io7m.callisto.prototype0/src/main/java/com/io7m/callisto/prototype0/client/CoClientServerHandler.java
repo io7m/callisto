@@ -167,7 +167,7 @@ public final class CoClientServerHandler implements Closeable
   {
     switch (this.state.current()) {
       case STATE_CONNECTED: {
-        LOG.debug("received data packet: {}", data);
+        LOG.debug("received ServerData packet: {}", data);
         break;
       }
       case STATE_INITIAL:
@@ -183,6 +183,8 @@ public final class CoClientServerHandler implements Closeable
     final SocketAddress address,
     final CoServerHello hello)
   {
+    LOG.debug("ServerHello: {}: {}", address, hello);
+
     switch (this.state.current()) {
       case STATE_WAITING_FOR_HELLO: {
         switch (hello.getValueCase()) {
@@ -202,7 +204,7 @@ public final class CoClientServerHandler implements Closeable
       case STATE_INITIAL:
       case STATE_CONNECTED:
       case STATE_DISCONNECTED: {
-        LOG.error("ignored unexpected Hello packet");
+        LOG.error("ignored unexpected ServerHello packet");
         break;
       }
     }

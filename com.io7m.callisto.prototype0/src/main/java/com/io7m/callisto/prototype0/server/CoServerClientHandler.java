@@ -98,7 +98,7 @@ public final class CoServerClientHandler implements Closeable
     final SocketAddress address,
     final CoClientData data)
   {
-    LOG.debug("data: {}: {}", address, data);
+    LOG.debug("ClientData: {}: {}", address, data);
   }
 
   private void onReceivedHello(
@@ -106,7 +106,7 @@ public final class CoServerClientHandler implements Closeable
     final CoClientHello hello)
     throws IOException
   {
-    LOG.debug("hello: {}: {}", address, hello);
+    LOG.debug("ClientHello: {}: {}", address, hello);
 
     final String name =
       NullCheck.notNull(hello.getName(), "Name");

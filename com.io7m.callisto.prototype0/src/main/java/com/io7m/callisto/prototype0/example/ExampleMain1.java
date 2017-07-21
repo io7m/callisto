@@ -16,12 +16,15 @@
 
 package com.io7m.callisto.prototype0.example;
 
+import com.codahale.metrics.JmxReporter;
+import com.codahale.metrics.Meter;
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.Slf4jReporter;
 import com.io7m.callisto.prototype0.client.CoClient;
 import com.io7m.callisto.prototype0.client.CoClientTickEvent;
 import com.io7m.callisto.prototype0.events.CoEventService;
 import com.io7m.callisto.prototype0.network.CoNetworkProviderLocal;
 import com.io7m.callisto.prototype0.network.CoNetworkProviderType;
-import com.io7m.callisto.prototype0.network.CoNetworkProviderUDP;
 import com.io7m.callisto.prototype0.server.CoServer;
 import com.io7m.callisto.prototype0.server.CoServerTickEvent;
 import com.io7m.timehack6435126.TimeHack6435126;
@@ -29,9 +32,10 @@ import io.reactivex.schedulers.Schedulers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -51,10 +55,21 @@ public final class ExampleMain1
   {
     TimeHack6435126.enableHighResolutionTimer();
 
+    final MetricRegistry metrics =
+      new MetricRegistry();
+    final Meter client_event_meter =
+      metrics.meter("com.io7m.callisto.client.events");
+    final Meter server_event_meter =
+      metrics.meter("com.io7m.callisto.server.events");
+
     final CoEventService client_events = new CoEventService();
     client_events.onActivate();
     client_events.events()
       .observeOn(Schedulers.single())
+      .map(e -> {
+        client_event_meter.mark();
+        return e;
+      })
       .filter(e -> !(e instanceof CoClientTickEvent))
       .subscribe(e -> LOG.trace("client event: {}", e));
 
@@ -62,8 +77,19 @@ public final class ExampleMain1
     server_events.onActivate();
     server_events.events()
       .observeOn(Schedulers.single())
+      .map(e -> {
+        server_event_meter.mark();
+        return e;
+      })
       .filter(e -> !(e instanceof CoServerTickEvent))
       .subscribe(e -> LOG.trace("server event: {}", e));
+
+    final Slf4jReporter reporter = Slf4jReporter.forRegistry(metrics)
+      .outputTo(LOG)
+      .convertRatesTo(TimeUnit.SECONDS)
+      .convertDurationsTo(TimeUnit.MILLISECONDS)
+      .build();
+    reporter.start(5L, TimeUnit.SECONDS);
 
     final CoNetworkProviderType network = new CoNetworkProviderLocal();
 
