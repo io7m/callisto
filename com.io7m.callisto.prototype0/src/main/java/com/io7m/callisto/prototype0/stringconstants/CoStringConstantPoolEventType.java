@@ -14,13 +14,19 @@
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-package com.io7m.callisto.prototype0.network;
+package com.io7m.callisto.prototype0.stringconstants;
 
-import java.util.Properties;
+import com.io7m.callisto.core.CoImmutableStyleType;
+import com.io7m.callisto.prototype0.events.CoEventType;
 
-public interface CoNetworkProviderType
+@CoImmutableStyleType
+public interface CoStringConstantPoolEventType extends CoEventType
 {
-  CoNetworkPacketPeerType createPeer(
-    Properties p)
-    throws CoNetworkException;
+  enum Type
+  {
+    STRING_CONSTANT_POOL_UPDATED,
+    STRING_CONSTANT_POOL_UPDATE_RECEIVED
+  }
+
+  Type type();
 }

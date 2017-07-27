@@ -1,68 +1,99 @@
 package com.io7m.callisto.prototype0.server;
 
+import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.MessageLite;
 import com.io7m.callisto.prototype0.events.CoEventServiceType;
 import com.io7m.callisto.prototype0.idpool.CoIDPoolUnpredictable;
-import com.io7m.callisto.prototype0.network.CoNetworkPacketSourceType;
+import com.io7m.callisto.prototype0.messages.CoClientData;
+import com.io7m.callisto.prototype0.messages.CoClientHello;
+import com.io7m.callisto.prototype0.messages.CoClientPacket;
+import com.io7m.callisto.prototype0.messages.CoServerHello;
+import com.io7m.callisto.prototype0.messages.CoServerHelloError;
+import com.io7m.callisto.prototype0.messages.CoServerHelloOK;
+import com.io7m.callisto.prototype0.messages.CoServerPacket;
+import com.io7m.callisto.prototype0.messages.CoStringConstantCompression;
+import com.io7m.callisto.prototype0.messages.CoStringConstantPoolUpdate;
+import com.io7m.callisto.prototype0.messages.CoStringConstantPoolUpdateCompressed;
+import com.io7m.callisto.prototype0.network.CoNetworkPacketPeerType;
+import com.io7m.callisto.prototype0.stringconstants.CoStringConstantPoolServiceType;
 import com.io7m.jnull.NullCheck;
+import com.io7m.junreachable.UnimplementedCodeException;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceRBTreeMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
-
-import static com.io7m.callisto.prototype0.messages.PrototypeMessages.CoClientData;
-import static com.io7m.callisto.prototype0.messages.PrototypeMessages.CoClientHello;
-import static com.io7m.callisto.prototype0.messages.PrototypeMessages.CoClientPacket;
-import static com.io7m.callisto.prototype0.messages.PrototypeMessages.CoServerHello;
-import static com.io7m.callisto.prototype0.messages.PrototypeMessages.CoServerHelloError;
-import static com.io7m.callisto.prototype0.messages.PrototypeMessages.CoServerHelloOK;
-import static com.io7m.callisto.prototype0.messages.PrototypeMessages.CoServerPacket;
+import java.util.zip.Deflater;
+import java.util.zip.DeflaterOutputStream;
 
 public final class CoServerClientHandler implements Closeable
 {
   private static final Logger LOG =
     LoggerFactory.getLogger(CoServerClientHandler.class);
 
-  private final CoNetworkPacketSourceType source;
+  private final CoNetworkPacketPeerType source;
   private final Object2IntOpenHashMap<String> client_ids_by_name;
   private final Int2ReferenceRBTreeMap<Client> client_by_id;
   private final CoIDPoolUnpredictable ids;
   private final ByteBuffer buffer;
   private final CoEventServiceType events;
+  private final CoStringConstantPoolServiceType strings;
   private int time;
-
-  private static final class Client
-  {
-    private final String name;
-    private final int id;
-
-    public Client(
-      final int in_id,
-      final String in_name)
-    {
-      this.id = in_id;
-      this.name = NullCheck.notNull(in_name, "Name");
-    }
-  }
 
   public CoServerClientHandler(
     final CoEventServiceType in_events,
-    final CoNetworkPacketSourceType in_source)
+    final CoStringConstantPoolServiceType in_strings,
+    final CoNetworkPacketPeerType in_source)
   {
     this.events = NullCheck.notNull(in_events, "Events");
     this.source = NullCheck.notNull(in_source, "Source");
+    this.strings = NullCheck.notNull(in_strings, "Strings");
 
     this.client_ids_by_name = new Object2IntOpenHashMap<>();
     this.client_by_id = new Int2ReferenceRBTreeMap<>();
     this.ids = new CoIDPoolUnpredictable();
     this.buffer = ByteBuffer.allocateDirect(1200);
+  }
+
+  private static CoServerPacket helloOK(
+    final int id)
+  {
+    final CoServerHelloOK ho =
+      CoServerHelloOK.newBuilder()
+        .setClientId(id)
+        .build();
+
+    final CoServerHello h =
+      CoServerHello.newBuilder()
+        .setOk(ho)
+        .build();
+
+    return CoServerPacket.newBuilder().setHello(h).build();
+  }
+
+  private static CoServerPacket helloError(
+    final String message)
+  {
+    final CoServerHelloError he =
+      CoServerHelloError
+        .newBuilder()
+        .setMessage(message)
+        .build();
+
+    final CoServerHello h =
+      CoServerHello.newBuilder()
+        .setError(he)
+        .build();
+
+    return CoServerPacket.newBuilder().setHello(h).build();
   }
 
   private void onReceivedPacket(
@@ -128,39 +159,35 @@ public final class CoServerClientHandler implements Closeable
       Integer.toUnsignedString(id, 16));
     this.sendMessage(address, helloOK(id));
     this.events.post(CoServerNetworkEventConnected.of(id, name, address));
+    this.sendMessage(address, this.stringsUpdate(this.strings.view()));
   }
 
-  private static CoServerPacket helloOK(
-    final int id)
+  private MessageLite stringsUpdate(
+    final Int2ReferenceMap<String> view)
   {
-    final CoServerHelloOK ho =
-      CoServerHelloOK.newBuilder()
-        .setClientId(id)
+    final CoStringConstantPoolUpdate inner =
+      CoStringConstantPoolUpdate.newBuilder()
+        .putAllStrings(view)
         .build();
 
-    final CoServerHello h =
-      CoServerHello.newBuilder()
-        .setOk(ho)
-        .build();
+    final Deflater def = new Deflater(9);
+    try (final ByteArrayOutputStream b_out = new ByteArrayOutputStream(1200)) {
+      try (final DeflaterOutputStream out = new DeflaterOutputStream(
+        b_out,
+        def)) {
+        inner.writeTo(out);
 
-    return CoServerPacket.newBuilder().setHello(h).build();
-  }
+        final CoStringConstantPoolUpdateCompressed outer =
+          CoStringConstantPoolUpdateCompressed.newBuilder()
+            .setAlgorithm(CoStringConstantCompression.COMPRESSION_DEFLATE)
+            .setData(ByteString.copyFrom(b_out.toByteArray()))
+            .build();
 
-  private static CoServerPacket helloError(
-    final String message)
-  {
-    final CoServerHelloError he =
-      CoServerHelloError
-        .newBuilder()
-        .setMessage(message)
-        .build();
-
-    final CoServerHello h =
-      CoServerHello.newBuilder()
-        .setError(he)
-        .build();
-
-    return CoServerPacket.newBuilder().setHello(h).build();
+        throw new UnimplementedCodeException();
+      }
+    } catch (final IOException e) {
+      throw new UnimplementedCodeException(e);
+    }
   }
 
   private void sendMessage(
@@ -202,6 +229,34 @@ public final class CoServerClientHandler implements Closeable
     }
   }
 
+  public void onTick()
+    throws IOException
+  {
+    ++this.time;
+    this.source.poll(this::onReceivedPacket);
+  }
+
+  @Override
+  public void close()
+    throws IOException
+  {
+    this.source.close();
+  }
+
+  private static final class Client
+  {
+    private final String name;
+    private final int id;
+
+    public Client(
+      final int in_id,
+      final String in_name)
+    {
+      this.id = in_id;
+      this.name = NullCheck.notNull(in_name, "Name");
+    }
+  }
+
   private static final class ByteBufferOutputStream extends OutputStream
   {
     private final ByteBuffer buffer;
@@ -219,19 +274,5 @@ public final class CoServerClientHandler implements Closeable
     {
       this.buffer.put((byte) b);
     }
-  }
-
-  public void onTick()
-    throws IOException
-  {
-    ++this.time;
-    this.source.poll(this::onReceivedPacket);
-  }
-
-  @Override
-  public void close()
-    throws IOException
-  {
-    this.source.close();
   }
 }

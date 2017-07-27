@@ -3,7 +3,14 @@ package com.io7m.callisto.prototype0.client;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.MessageLite;
 import com.io7m.callisto.prototype0.events.CoEventServiceType;
-import com.io7m.callisto.prototype0.network.CoNetworkPacketSinkType;
+import com.io7m.callisto.prototype0.messages.CoClientHello;
+import com.io7m.callisto.prototype0.messages.CoClientPacket;
+import com.io7m.callisto.prototype0.messages.CoServerData;
+import com.io7m.callisto.prototype0.messages.CoServerHello;
+import com.io7m.callisto.prototype0.messages.CoServerHelloError;
+import com.io7m.callisto.prototype0.messages.CoServerHelloOK;
+import com.io7m.callisto.prototype0.messages.CoServerPacket;
+import com.io7m.callisto.prototype0.network.CoNetworkPacketPeerType;
 import com.io7m.jfsm.core.FSMEnumMutable;
 import com.io7m.jnull.NullCheck;
 import com.io7m.junreachable.UnreachableCodeException;
@@ -16,24 +23,18 @@ import java.io.OutputStream;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 
-import static com.io7m.callisto.prototype0.messages.PrototypeMessages.CoClientHello;
-import static com.io7m.callisto.prototype0.messages.PrototypeMessages.CoClientPacket;
-import static com.io7m.callisto.prototype0.messages.PrototypeMessages.CoServerData;
-import static com.io7m.callisto.prototype0.messages.PrototypeMessages.CoServerHello;
-import static com.io7m.callisto.prototype0.messages.PrototypeMessages.CoServerHelloError;
-import static com.io7m.callisto.prototype0.messages.PrototypeMessages.CoServerHelloOK;
-import static com.io7m.callisto.prototype0.messages.PrototypeMessages.CoServerPacket;
 
 public final class CoClientServerHandler implements Closeable
 {
   private static final Logger LOG =
     LoggerFactory.getLogger(CoClientServerHandler.class);
 
-  private final CoNetworkPacketSinkType sink;
+  private final CoNetworkPacketPeerType peer;
   private final ByteBuffer buffer;
   private final int sequence;
   private final FSMEnumMutable<State> state;
   private final CoEventServiceType events;
+  private final SocketAddress remote;
   private int hello_attempts;
   private int time;
   private int client_id;
@@ -50,10 +51,12 @@ public final class CoClientServerHandler implements Closeable
 
   public CoClientServerHandler(
     final CoEventServiceType in_events,
-    final CoNetworkPacketSinkType in_sink)
+    final CoNetworkPacketPeerType in_peer,
+    final SocketAddress in_remote)
   {
     this.events = NullCheck.notNull(in_events, "Events");
-    this.sink = NullCheck.notNull(in_sink, "Sink");
+    this.peer = NullCheck.notNull(in_peer, "Peer");
+    this.remote = NullCheck.notNull(in_remote, "Remote");
     this.buffer = ByteBuffer.allocateDirect(1200);
     this.sequence = 0;
     this.client_id = 0;
@@ -106,8 +109,9 @@ public final class CoClientServerHandler implements Closeable
       case STATE_WAITING_FOR_HELLO: {
         if (this.hello_attempts == 10) {
           this.events.post(CoClientNetworkEventConnectionTimedOut.of(
-            String.format("Could not establish a connection to the server after %d attempts",
-                          Integer.valueOf(this.hello_attempts))));
+            String.format(
+              "Could not establish a connection to the server after %d attempts",
+              Integer.valueOf(this.hello_attempts))));
           this.state.transition(State.STATE_DISCONNECTED);
         }
 
@@ -122,7 +126,7 @@ public final class CoClientServerHandler implements Closeable
       }
     }
 
-    this.sink.poll(this::onReceivedMessage);
+    this.peer.poll(this::onReceivedMessage);
   }
 
   private void onReceivedMessage(
@@ -259,14 +263,14 @@ public final class CoClientServerHandler implements Closeable
     }
 
     this.buffer.flip();
-    this.sink.send(this.buffer);
+    this.peer.send(this.remote, this.buffer);
   }
 
   @Override
   public void close()
     throws IOException
   {
-    this.sink.close();
+    this.peer.close();
   }
 
   private static final class ByteBufferOutputStream extends OutputStream

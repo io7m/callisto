@@ -14,13 +14,19 @@
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-package com.io7m.callisto.prototype0.network;
+package com.io7m.callisto.prototype0.stringconstants;
 
-import java.util.Properties;
+import com.io7m.callisto.core.CoImmutableStyleType;
+import org.immutables.value.Value;
 
-public interface CoNetworkProviderType
+@CoImmutableStyleType
+@Value.Immutable
+public interface CoStringConstantPoolEventUpdatedType
+  extends CoStringConstantPoolEventType
 {
-  CoNetworkPacketPeerType createPeer(
-    Properties p)
-    throws CoNetworkException;
+  @Override
+  default Type type()
+  {
+    return Type.STRING_CONSTANT_POOL_UPDATED;
+  }
 }

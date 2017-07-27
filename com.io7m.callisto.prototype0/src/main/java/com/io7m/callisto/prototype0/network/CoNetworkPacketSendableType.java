@@ -16,11 +16,14 @@
 
 package com.io7m.callisto.prototype0.network;
 
-import java.util.Properties;
+import java.io.IOException;
+import java.net.SocketAddress;
+import java.nio.ByteBuffer;
 
-public interface CoNetworkProviderType
+public interface CoNetworkPacketSendableType
 {
-  CoNetworkPacketPeerType createPeer(
-    Properties p)
-    throws CoNetworkException;
+  void send(
+    SocketAddress remote_address,
+    ByteBuffer data)
+    throws IOException;
 }

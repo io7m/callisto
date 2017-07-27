@@ -14,13 +14,14 @@
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-package com.io7m.callisto.prototype0.network;
+package com.io7m.callisto.prototype0.transport;
 
-import java.util.Properties;
+import com.io7m.callisto.prototype0.events.CoEventType;
 
-public interface CoNetworkProviderType
+public interface CoTransportType
 {
-  CoNetworkPacketPeerType createPeer(
-    Properties p)
-    throws CoNetworkException;
+  void enqueue(
+    CoEventType e);
+
+  void poll();
 }

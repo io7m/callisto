@@ -17,6 +17,7 @@
 package com.io7m.callisto.prototype0.client;
 
 import com.io7m.callisto.prototype0.events.CoEventServiceType;
+import com.io7m.callisto.prototype0.network.CoNetworkPacketPeerType;
 import com.io7m.callisto.prototype0.network.CoNetworkProviderType;
 import com.io7m.callisto.prototype0.process.CoProcessAbstract;
 import com.io7m.callisto.prototype0.ticks.CoTickDivisor;
@@ -144,8 +145,15 @@ public final class CoClientNetwork extends CoProcessAbstract
     final String pass =
       JProperties.getStringOptional(props, "password", "");
 
-    this.handler = new CoClientServerHandler(
-      this.events(), this.network.createPacketSink(props));
+    final CoNetworkPacketPeerType peer =
+      this.network.createPeer(props);
+
+    this.handler =
+      new CoClientServerHandler(
+        this.events(),
+        peer,
+        peer.remote().get());
+
     this.handler.onStart(user, pass);
     return null;
   }

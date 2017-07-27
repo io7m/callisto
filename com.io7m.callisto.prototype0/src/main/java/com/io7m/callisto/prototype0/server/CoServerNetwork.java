@@ -19,6 +19,7 @@ package com.io7m.callisto.prototype0.server;
 import com.io7m.callisto.prototype0.events.CoEventServiceType;
 import com.io7m.callisto.prototype0.network.CoNetworkProviderType;
 import com.io7m.callisto.prototype0.process.CoProcessAbstract;
+import com.io7m.callisto.prototype0.stringconstants.CoStringConstantPoolServiceType;
 import com.io7m.callisto.prototype0.ticks.CoTickDivisor;
 import com.io7m.jnull.NullCheck;
 import io.reactivex.disposables.Disposable;
@@ -36,10 +37,12 @@ public final class CoServerNetwork extends CoProcessAbstract
   private final CoNetworkProviderType network;
   private final CoTickDivisor tick_divisor;
   private final Disposable sub_tick;
+  private final CoStringConstantPoolServiceType strings;
   private CoServerClientHandler handler;
 
   public CoServerNetwork(
     final CoEventServiceType in_events,
+    final CoStringConstantPoolServiceType in_strings,
     final CoNetworkProviderType in_network)
   {
     super(
@@ -52,6 +55,8 @@ public final class CoServerNetwork extends CoProcessAbstract
 
     this.network =
       NullCheck.notNull(in_network, "Network");
+    this.strings =
+      NullCheck.notNull(in_strings, "Strings");
     this.tick_divisor =
       new CoTickDivisor(60, 30);
 
@@ -100,7 +105,9 @@ public final class CoServerNetwork extends CoProcessAbstract
 
     this.handler =
       new CoServerClientHandler(
-        this.events(), this.network.createPacketSource(props));
+        this.events(),
+        this.strings,
+        this.network.createPeer(props));
   }
 
   @Override

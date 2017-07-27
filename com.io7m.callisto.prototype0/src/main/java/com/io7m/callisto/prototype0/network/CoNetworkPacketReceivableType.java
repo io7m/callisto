@@ -16,11 +16,11 @@
 
 package com.io7m.callisto.prototype0.network;
 
-import java.util.Properties;
+import java.io.IOException;
 
-public interface CoNetworkProviderType
+public interface CoNetworkPacketReceivableType
 {
-  CoNetworkPacketPeerType createPeer(
-    Properties p)
-    throws CoNetworkException;
+  void poll(
+    CoNetworkPacketReceiverType receiver)
+    throws IOException;
 }

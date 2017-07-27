@@ -33,6 +33,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
+import java.util.Optional;
 import java.util.Properties;
 
 public final class CoNetworkProviderUDP implements CoNetworkProviderType
@@ -46,82 +47,109 @@ public final class CoNetworkProviderUDP implements CoNetworkProviderType
   }
 
   @Override
-  public CoNetworkPacketSourceType createPacketSource(
+  public CoNetworkPacketPeerType createPeer(
     final Properties p)
     throws CoNetworkException
   {
     NullCheck.notNull(p, "Properties");
 
+    DatagramChannel channel = null;
+    Selector selector = null;
+
     try {
-      final BigInteger addr_port =
-        JProperties.getBigInteger(p, "local_port");
-      final String addr_text =
-        JProperties.getString(p, "local_address");
+      channel = DatagramChannel.open();
+      selector = Selector.open();
 
-      final int port = addr_port.intValueExact();
-      final InetAddress addr = InetAddress.getByName(addr_text);
-      final InetSocketAddress sock_addr = new InetSocketAddress(addr, port);
-      final DatagramChannel channel = DatagramChannel.open();
-      final Selector selector = Selector.open();
+      final Optional<InetSocketAddress> bound;
+      if (p.containsKey("local_address")) {
+        final BigInteger addr_port =
+          JProperties.getBigInteger(p, "local_port");
+        final String addr_text =
+          JProperties.getString(p, "local_address");
 
-      LOG.debug("bind {}", sock_addr);
-      channel.bind(sock_addr);
+        final int port =
+          addr_port.intValueExact();
+        final InetAddress addr =
+          InetAddress.getByName(addr_text);
+        final InetSocketAddress sock_addr =
+          new InetSocketAddress(addr, port);
+
+        LOG.debug("bind {}", sock_addr);
+        channel.bind(sock_addr);
+        bound = Optional.of(sock_addr);
+      } else {
+        bound = Optional.empty();
+      }
+
       channel.configureBlocking(false);
+
+      final Optional<SocketAddress> remote;
+      if (p.containsKey("remote_address")) {
+        final BigInteger addr_port =
+          JProperties.getBigInteger(p, "remote_port");
+        final String addr_text =
+          JProperties.getString(p, "remote_address");
+
+        final int port =
+          addr_port.intValueExact();
+        final InetAddress addr =
+          InetAddress.getByName(addr_text);
+        final InetSocketAddress sock_addr =
+          new InetSocketAddress(addr, port);
+
+        LOG.debug("connect {}", sock_addr);
+        channel.connect(sock_addr);
+        remote = Optional.of(sock_addr);
+      } else {
+        remote = Optional.empty();
+      }
+
       channel.register(selector, SelectionKey.OP_READ);
-      return new PacketSource(sock_addr, selector, channel);
+      return new Peer(bound, remote, selector, channel);
     } catch (final JPropertyNonexistent | JPropertyIncorrectType | UnknownHostException | ArithmeticException ex) {
-      throw new CoNetworkConfigurationException(ex);
+      final CoNetworkConfigurationException thrown =
+        new CoNetworkConfigurationException(ex);
+
+      try {
+        if (channel != null) {
+          channel.close();
+        }
+      } catch (final IOException e) {
+        thrown.addSuppressed(e);
+      }
+
+      try {
+        if (selector != null) {
+          selector.close();
+        }
+      } catch (final IOException e) {
+        thrown.addSuppressed(e);
+      }
+
+      throw thrown;
     } catch (final IOException e) {
       throw new CoNetworkIOException(e);
     }
   }
 
-  @Override
-  public CoNetworkPacketSinkType createPacketSink(
-    final Properties p)
-    throws CoNetworkException
+  private static final class Peer implements CoNetworkPacketPeerType
   {
-    NullCheck.notNull(p, "Properties");
-
-    try {
-      final BigInteger addr_port =
-        JProperties.getBigInteger(p, "remote_port");
-      final String addr_text =
-        JProperties.getString(p, "remote_address");
-
-      final int port = addr_port.intValueExact();
-      final InetAddress addr = InetAddress.getByName(addr_text);
-      final InetSocketAddress sock_addr = new InetSocketAddress(addr, port);
-      final DatagramChannel channel = DatagramChannel.open();
-      final Selector selector = Selector.open();
-
-      LOG.debug("connect {}", sock_addr);
-      channel.connect(sock_addr);
-      channel.configureBlocking(false);
-      channel.register(selector, SelectionKey.OP_READ);
-      return new PacketSource(sock_addr, selector, channel);
-    } catch (final JPropertyNonexistent | JPropertyIncorrectType | UnknownHostException | ArithmeticException ex) {
-      throw new CoNetworkConfigurationException(ex);
-    } catch (final IOException e) {
-      throw new CoNetworkIOException(e);
-    }
-  }
-
-  private static final class PacketSource
-    implements CoNetworkPacketSourceType, CoNetworkPacketSinkType
-  {
-    private final InetSocketAddress local_address;
+    private final Optional<InetSocketAddress> local_address;
     private final Selector selector;
     private final DatagramChannel channel;
     private final ByteBuffer buffer;
+    private final Optional<SocketAddress> remote_address;
 
-    private PacketSource(
-      final InetSocketAddress in_sock_addr,
+    private Peer(
+      final Optional<InetSocketAddress> in_bind_addr,
+      final Optional<SocketAddress> in_remote_addr,
       final Selector in_selector,
       final DatagramChannel in_channel)
     {
       this.local_address =
-        NullCheck.notNull(in_sock_addr, "Socket Address");
+        NullCheck.notNull(in_bind_addr, "Bound Address");
+      this.remote_address =
+        NullCheck.notNull(in_remote_addr, "Remote Address");
       this.selector =
         NullCheck.notNull(in_selector, "Selector");
       this.channel =
@@ -174,22 +202,19 @@ public final class CoNetworkProviderUDP implements CoNetworkProviderType
 
     @Override
     public void send(
-      final SocketAddress address,
+      final SocketAddress remote_address,
       final ByteBuffer data)
       throws IOException
     {
-      NullCheck.notNull(address, "Address");
+      NullCheck.notNull(remote_address, "Address");
       NullCheck.notNull(data, "Data");
-      this.channel.send(data, address);
+      this.channel.send(data, remote_address);
     }
 
     @Override
-    public void send(
-      final ByteBuffer data)
-      throws IOException
+    public Optional<SocketAddress> remote()
     {
-      NullCheck.notNull(data, "Data");
-      this.channel.send(data, this.channel.getRemoteAddress());
+      return this.remote_address;
     }
   }
 }

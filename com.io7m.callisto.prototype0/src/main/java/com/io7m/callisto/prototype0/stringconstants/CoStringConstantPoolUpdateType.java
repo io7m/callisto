@@ -14,21 +14,13 @@
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-package com.io7m.callisto.prototype0.network;
+package com.io7m.callisto.prototype0.stringconstants;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.net.SocketAddress;
-import java.nio.ByteBuffer;
-
-public interface CoNetworkPacketSourceType extends Closeable
+public interface CoStringConstantPoolUpdateType
 {
-  void send(
-    SocketAddress address,
-    ByteBuffer data)
-    throws IOException;
+  void set(
+    int index,
+    String value);
 
-  void poll(
-    CoNetworkPacketReceiverType receiver)
-    throws IOException;
+  void update();
 }

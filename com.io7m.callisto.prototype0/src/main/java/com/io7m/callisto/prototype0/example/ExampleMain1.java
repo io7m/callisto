@@ -16,7 +16,6 @@
 
 package com.io7m.callisto.prototype0.example;
 
-import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Slf4jReporter;
@@ -27,6 +26,8 @@ import com.io7m.callisto.prototype0.network.CoNetworkProviderLocal;
 import com.io7m.callisto.prototype0.network.CoNetworkProviderType;
 import com.io7m.callisto.prototype0.server.CoServer;
 import com.io7m.callisto.prototype0.server.CoServerTickEvent;
+import com.io7m.callisto.prototype0.stringconstants.CoStringConstantPoolService;
+import com.io7m.callisto.prototype0.stringconstants.CoStringConstantPoolServiceType;
 import com.io7m.timehack6435126.TimeHack6435126;
 import io.reactivex.schedulers.Schedulers;
 import org.slf4j.Logger;
@@ -34,8 +35,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -96,7 +95,11 @@ public final class ExampleMain1
     final CoClient client = new CoClient(network, client_events);
     client.startSynchronously(3L, TimeUnit.SECONDS);
 
-    final CoServer server = new CoServer(network, server_events);
+    final CoStringConstantPoolServiceType server_strings =
+      new CoStringConstantPoolService(server_events);
+
+    final CoServer server =
+      new CoServer(network, server_strings, server_events);
     server.startSynchronously(3L, TimeUnit.SECONDS);
 
     final Properties props = new Properties();

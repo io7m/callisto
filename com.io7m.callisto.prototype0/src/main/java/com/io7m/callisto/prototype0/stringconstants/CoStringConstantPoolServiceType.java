@@ -14,19 +14,16 @@
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-package com.io7m.callisto.prototype0.network;
+package com.io7m.callisto.prototype0.stringconstants;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.nio.ByteBuffer;
+import com.io7m.callisto.prototype0.services.CoServiceType;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 
-public interface CoNetworkPacketSinkType extends Closeable
+public interface CoStringConstantPoolServiceType extends CoServiceType
 {
-  void send(
-    ByteBuffer data)
-    throws IOException;
+  String lookup(CoStringConstantReference r);
 
-  void poll(
-    CoNetworkPacketReceiverType receiver)
-    throws IOException;
+  Int2ReferenceMap<String> view();
+
+  CoStringConstantPoolUpdateType update();
 }

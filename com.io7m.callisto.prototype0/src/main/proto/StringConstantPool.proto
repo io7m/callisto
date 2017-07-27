@@ -21,75 +21,23 @@ option java_multiple_files = true;
 
 package com.io7m.callisto.prototype0.messages;
 
-message CoEventData
+message CoStringConstantPoolUpdate
 {
-  uint32 sequence = 1;
-  uint32 type = 2;
-  bytes data = 3;
+  map<uint32, string> strings = 1;
 }
 
-message CoMessageData
+enum CoStringConstantCompression
 {
-  oneof value
-  {
-    CoEventData event = 1;
-  }
+  COMPRESSION_DEFLATE = 0;
 }
 
-message CoClientHello
+message CoStringConstantPoolUpdateCompressed
 {
-  string name = 1;
-  string password = 2;
+  CoStringConstantCompression algorithm = 1;
+  bytes data = 2;
 }
 
-message CoClientData
+message CoStringConstant
 {
-  uint32 sequence = 1;
-  fixed64 ack = 2;
-  fixed32 client_id = 3;
-  repeated CoMessageData messages = 4;
-}
-
-message CoClientPacket
-{
-  oneof value
-  {
-    CoClientHello hello = 1;
-    CoClientData data = 2;
-  }
-}
-
-message CoServerHelloOK
-{
-  fixed32 client_id = 1;
-}
-
-message CoServerHelloError
-{
-  string message = 1;
-}
-
-message CoServerHello
-{
-  oneof value
-  {
-    CoServerHelloOK ok = 1;
-    CoServerHelloError error = 2;
-  }
-}
-
-message CoServerData
-{
-  uint32 sequence = 1;
-  fixed64 ack = 2;
-  repeated CoMessageData messages = 3;
-}
-
-message CoServerPacket
-{
-  oneof value
-  {
-    CoServerHello hello = 1;
-    CoServerData data = 2;
-  }
+  uint32 value = 1;
 }

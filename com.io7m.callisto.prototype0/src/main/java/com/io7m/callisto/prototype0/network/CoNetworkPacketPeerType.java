@@ -16,11 +16,12 @@
 
 package com.io7m.callisto.prototype0.network;
 
-import java.util.Properties;
+import java.io.Closeable;
+import java.net.SocketAddress;
+import java.util.Optional;
 
-public interface CoNetworkProviderType
+public interface CoNetworkPacketPeerType
+  extends Closeable, CoNetworkPacketSendableType, CoNetworkPacketReceivableType
 {
-  CoNetworkPacketPeerType createPeer(
-    Properties p)
-    throws CoNetworkException;
+  Optional<SocketAddress> remote();
 }

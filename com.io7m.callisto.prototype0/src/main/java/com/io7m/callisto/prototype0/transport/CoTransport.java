@@ -14,13 +14,36 @@
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-package com.io7m.callisto.prototype0.network;
+package com.io7m.callisto.prototype0.transport;
 
-import java.util.Properties;
+import com.io7m.callisto.prototype0.events.CoEventType;
+import com.io7m.jnull.NullCheck;
+import com.io7m.junreachable.UnimplementedCodeException;
 
-public interface CoNetworkProviderType
+public final class CoTransport implements CoTransportType
 {
-  CoNetworkPacketPeerType createPeer(
-    Properties p)
-    throws CoNetworkException;
+  private final int id;
+
+  private CoTransport(
+    final int in_id)
+  {
+    this.id = in_id;
+  }
+
+  @Override
+  public void enqueue(
+    final CoEventType e)
+  {
+    NullCheck.notNull(e, "Event");
+
+    // TODO: Generated method stub
+    throw new UnimplementedCodeException();
+  }
+
+  @Override
+  public void poll()
+  {
+    // TODO: Generated method stub
+    throw new UnimplementedCodeException();
+  }
 }

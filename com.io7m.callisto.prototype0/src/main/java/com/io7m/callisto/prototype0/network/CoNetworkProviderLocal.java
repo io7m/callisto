@@ -36,12 +36,12 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 import java.util.Iterator;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 public final class CoNetworkProviderLocal implements CoNetworkProviderType
 {
@@ -74,112 +74,79 @@ public final class CoNetworkProviderLocal implements CoNetworkProviderType
   }
 
   @Override
-  public CoNetworkPacketSourceType createPacketSource(
-    final Properties p)
-  {
-    NullCheck.notNull(p, "Properties");
-
-    try {
-      final BigInteger addr_port =
-        JProperties.getBigInteger(p, "local_port");
-      final String addr_text =
-        JProperties.getString(p, "local_address");
-
-      final int port =
-        addr_port.intValueExact();
-      final InetAddress addr =
-        InetAddress.getByName(addr_text);
-      final InetSocketAddress bind_address =
-        new InetSocketAddress(addr, port);
-
-      LOG.debug("bind {}", bind_address);
-
-      final Node node = new Node(bind_address, null);
-      synchronized (this.nodes) {
-        if (this.nodes.containsKey(bind_address)) {
-          throw new SocketException("Address already in use: " + bind_address);
-        }
-        this.nodes.put(bind_address, node);
-      }
-      return node;
-    } catch (final JPropertyNonexistent | JPropertyIncorrectType | UnknownHostException | ArithmeticException | SocketException ex) {
-      throw new CoNetworkConfigurationException(ex);
-    }
-  }
-
-  @Override
-  public CoNetworkPacketSinkType createPacketSink(
+  public CoNetworkPacketPeerType createPeer(
     final Properties p)
     throws CoNetworkException
   {
     NullCheck.notNull(p, "Properties");
 
     try {
-      final BigInteger addr_port =
-        JProperties.getBigInteger(p, "remote_port");
-      final String addr_text =
-        JProperties.getString(p, "remote_address");
+      final Node node;
 
-      final InetSocketAddress bind_address =
-        new InetSocketAddress("::1", this.ports.fresh());
-
-      final int port =
-        addr_port.intValueExact();
-      final InetAddress addr =
-        InetAddress.getByName(addr_text);
-      final InetSocketAddress remote_address =
-        new InetSocketAddress(addr, port);
-
-      LOG.debug("bind {}", bind_address);
-      LOG.debug("connect {}", remote_address);
-
-      final Node node = new Node(bind_address, remote_address);
       synchronized (this.nodes) {
+
+        final InetSocketAddress bind_address;
+        if (p.containsKey("local_port")) {
+          final BigInteger addr_port =
+            JProperties.getBigInteger(p, "local_port");
+          final String addr_text =
+            JProperties.getString(p, "local_address");
+
+          final int port =
+            addr_port.intValueExact();
+          final InetAddress addr =
+            InetAddress.getByName(addr_text);
+          bind_address =
+            new InetSocketAddress(addr, port);
+        } else {
+          bind_address =
+            new InetSocketAddress("::1", this.ports.fresh());
+        }
+
+        final Optional<InetSocketAddress> remote_address;
+        if (p.containsKey("remote_address")) {
+          final BigInteger addr_port =
+            JProperties.getBigInteger(p, "remote_port");
+          final String addr_text =
+            JProperties.getString(p, "remote_address");
+
+          final int port =
+            addr_port.intValueExact();
+          final InetAddress addr =
+            InetAddress.getByName(addr_text);
+          remote_address = Optional.of(new InetSocketAddress(addr, port));
+        } else {
+          remote_address = Optional.empty();
+        }
+
+        LOG.debug("bind {}", bind_address);
         if (this.nodes.containsKey(bind_address)) {
           throw new SocketException("Address already in use: " + bind_address);
         }
+
+        node = new Node(bind_address, remote_address);
         this.nodes.put(bind_address, node);
       }
+
       return node;
-    } catch (final JPropertyNonexistent | JPropertyIncorrectType | UnknownHostException | ArithmeticException | SocketException ex) {
+    } catch (final JPropertyNonexistent | JPropertyIncorrectType | ArithmeticException | SocketException | UnknownHostException ex) {
       throw new CoNetworkConfigurationException(ex);
     }
   }
 
-  private final class Node
-    implements CoNetworkPacketSourceType, CoNetworkPacketSinkType
+  private final class Node implements CoNetworkPacketPeerType
   {
     private final InetSocketAddress bind;
-    private final InetSocketAddress remote;
     private final ConcurrentLinkedQueue<CoNetworkLocalDatagram> incoming;
+    private final Optional<InetSocketAddress> remote;
 
     private Node(
       final InetSocketAddress bind_addr,
-      final InetSocketAddress remote_addr)
+      final Optional<InetSocketAddress> remote_addr)
     {
       this.bind = bind_addr;
       this.remote = remote_addr;
       this.incoming = new ConcurrentLinkedQueue<>();
-    }
-
-    @Override
-    public void send(
-      final ByteBuffer data)
-      throws IOException
-    {
-      NullCheck.notNull(data, "Data");
-
-      final Node peer;
-      synchronized (CoNetworkProviderLocal.this.nodes) {
-        peer = CoNetworkProviderLocal.this.nodes.get(this.remote);
-      }
-
-      if (peer != null) {
-        final ByteBuffer clone = ByteBuffer.allocate(data.limit());
-        clone.put(data);
-        clone.rewind();
-        peer.enqueueIncoming(CoNetworkLocalDatagram.of(this.bind, clone));
-      }
     }
 
     private void enqueueIncoming(
@@ -188,19 +155,21 @@ public final class CoNetworkProviderLocal implements CoNetworkProviderType
       final CoNetworkProviderLocal c = CoNetworkProviderLocal.this;
 
       if (c.random.nextDouble() <= c.loss) {
-        LOG.debug("[{} -> {}]: losing packet",
-                  datagram.sender(),
-                  this.bind);
+        LOG.debug(
+          "[{} -> {}]: losing packet",
+          datagram.sender(),
+          this.bind);
         return;
       }
 
       final long delay =
         c.latency_min + (long) c.random.nextInt((int) (c.latency_max - c.latency_min));
 
-      LOG.trace("[{} -> {}]: delaying delivery {}ms",
-                datagram.sender(),
-                this.bind,
-                Long.valueOf(delay));
+      LOG.trace(
+        "[{} -> {}]: delaying delivery {}ms",
+        datagram.sender(),
+        this.bind,
+        Long.valueOf(delay));
 
       c.exec.execute(() -> {
         try {
@@ -214,16 +183,16 @@ public final class CoNetworkProviderLocal implements CoNetworkProviderType
 
     @Override
     public void send(
-      final SocketAddress address,
+      final SocketAddress remote_address,
       final ByteBuffer data)
       throws IOException
     {
-      NullCheck.notNull(address, "Address");
+      NullCheck.notNull(remote_address, "Address");
       NullCheck.notNull(data, "Data");
 
       final Node peer;
       synchronized (CoNetworkProviderLocal.this.nodes) {
-        peer = CoNetworkProviderLocal.this.nodes.get(address);
+        peer = CoNetworkProviderLocal.this.nodes.get(remote_address);
       }
 
       if (peer != null) {
@@ -254,6 +223,12 @@ public final class CoNetworkProviderLocal implements CoNetworkProviderType
       throws IOException
     {
       CoNetworkProviderLocal.this.closeNode(this.bind);
+    }
+
+    @Override
+    public Optional<SocketAddress> remote()
+    {
+      return this.remote.map(Function.identity());
     }
   }
 

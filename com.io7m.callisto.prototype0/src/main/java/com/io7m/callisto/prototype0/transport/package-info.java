@@ -14,13 +14,10 @@
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-package com.io7m.callisto.prototype0.network;
+/**
+ * Reliable transport API.
+ */
 
-import java.util.Properties;
+@com.io7m.jnull.NonNullByDefault
+package com.io7m.callisto.prototype0.transport;
 
-public interface CoNetworkProviderType
-{
-  CoNetworkPacketPeerType createPeer(
-    Properties p)
-    throws CoNetworkException;
-}

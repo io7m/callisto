@@ -24,6 +24,7 @@ import com.io7m.callisto.prototype0.events.CoEventServiceType;
 import com.io7m.callisto.prototype0.network.CoNetworkProviderType;
 import com.io7m.callisto.prototype0.process.CoProcessSupervisor;
 import com.io7m.callisto.prototype0.process.CoProcessType;
+import com.io7m.callisto.prototype0.stringconstants.CoStringConstantPoolServiceType;
 import com.io7m.jnull.NullCheck;
 import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
 import org.slf4j.Logger;
@@ -47,6 +48,7 @@ public final class CoServer implements CoServerType
 
   public CoServer(
     final CoNetworkProviderType in_network,
+    final CoStringConstantPoolServiceType in_strings,
     final CoEventServiceType in_events)
   {
     this.network =
@@ -57,7 +59,7 @@ public final class CoServer implements CoServerType
     this.processes = new ReferenceArrayList<>();
     this.processes.add(new CoServerClock(this.events));
     this.processes.add(new CoServerLogic(this.events));
-    this.processes.add(new CoServerNetwork(this.events, in_network));
+    this.processes.add(new CoServerNetwork(this.events, in_strings, in_network));
     this.processes.add(new CoProcessSupervisor(this.events, this.processes));
   }
 
