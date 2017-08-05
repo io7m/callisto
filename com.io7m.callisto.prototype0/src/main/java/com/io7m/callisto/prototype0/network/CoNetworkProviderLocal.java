@@ -74,7 +74,7 @@ public final class CoNetworkProviderLocal implements CoNetworkProviderType
   }
 
   @Override
-  public CoNetworkPacketPeerType createPeer(
+  public CoNetworkPacketSocketType createSocket(
     final Properties p)
     throws CoNetworkException
   {
@@ -134,7 +134,18 @@ public final class CoNetworkProviderLocal implements CoNetworkProviderType
     }
   }
 
-  private final class Node implements CoNetworkPacketPeerType
+  private void closeNode(
+    final InetSocketAddress bind)
+  {
+    LOG.debug("close {}", bind);
+
+    synchronized (CoNetworkProviderLocal.this.nodes) {
+      this.ports.release(bind.getPort());
+      this.nodes.remove(bind, this);
+    }
+  }
+
+  private final class Node implements CoNetworkPacketSocketType
   {
     private final InetSocketAddress bind;
     private final ConcurrentLinkedQueue<CoNetworkLocalDatagram> incoming;
@@ -182,10 +193,15 @@ public final class CoNetworkProviderLocal implements CoNetworkProviderType
     }
 
     @Override
+    public int maximumTransferUnit()
+    {
+      return 1200;
+    }
+
+    @Override
     public void send(
       final SocketAddress remote_address,
       final ByteBuffer data)
-      throws IOException
     {
       NullCheck.notNull(remote_address, "Address");
       NullCheck.notNull(data, "Data");
@@ -206,7 +222,6 @@ public final class CoNetworkProviderLocal implements CoNetworkProviderType
     @Override
     public void poll(
       final CoNetworkPacketReceiverType receiver)
-      throws IOException
     {
       NullCheck.notNull(receiver, "Receiver");
 
@@ -229,17 +244,6 @@ public final class CoNetworkProviderLocal implements CoNetworkProviderType
     public Optional<SocketAddress> remote()
     {
       return this.remote.map(Function.identity());
-    }
-  }
-
-  private void closeNode(
-    final InetSocketAddress bind)
-  {
-    LOG.debug("close {}", bind);
-
-    synchronized (CoNetworkProviderLocal.this.nodes) {
-      this.ports.release(bind.getPort());
-      this.nodes.remove(bind, this);
     }
   }
 }

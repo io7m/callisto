@@ -16,11 +16,11 @@
 
 package com.io7m.callisto.prototype0.client;
 
-import com.io7m.callisto.prototype0.events.CoEventService;
 import com.io7m.callisto.prototype0.events.CoEventServiceType;
 import com.io7m.callisto.prototype0.network.CoNetworkProviderType;
 import com.io7m.callisto.prototype0.process.CoProcessSupervisor;
 import com.io7m.callisto.prototype0.process.CoProcessType;
+import com.io7m.callisto.prototype0.stringconstants.CoStringConstantPoolServiceType;
 import com.io7m.jnull.NullCheck;
 import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
 import org.slf4j.Logger;
@@ -46,6 +46,7 @@ public final class CoClient implements CoClientType
 
   public CoClient(
     final CoNetworkProviderType in_network,
+    final CoStringConstantPoolServiceType in_strings,
     final CoEventServiceType in_events)
   {
     this.network =
@@ -54,7 +55,7 @@ public final class CoClient implements CoClientType
       NullCheck.notNull(in_events, "Events");
 
     this.network_process =
-      new CoClientNetwork(this.events, this.network);
+      new CoClientNetwork(this.events, in_strings, this.network);
 
     this.processes = new ReferenceArrayList<>();
     this.processes.add(new CoClientAudio(this.events));
@@ -86,24 +87,24 @@ public final class CoClient implements CoClientType
     final TimeUnit unit)
     throws TimeoutException, ExecutionException
   {
-    LOG.debug("initializing processes");
+    LOG.trace("initializing processes");
 
     final List<Future<Void>> futures0 =
       this.processes.stream()
         .map(CoProcessType::initialize)
         .collect(Collectors.toList());
 
-    LOG.debug("waiting for processes to initialize");
+    LOG.trace("waiting for processes to initialize");
     waitForFutures(futures0, time, unit);
 
-    LOG.debug("starting processes");
+    LOG.trace("starting processes");
 
     final List<Future<Void>> futures1 =
       this.processes.stream()
         .map(CoProcessType::start)
         .collect(Collectors.toList());
 
-    LOG.debug("waiting for processes to start");
+    LOG.trace("waiting for processes to start");
     waitForFutures(futures1, time, unit);
   }
 
@@ -112,24 +113,24 @@ public final class CoClient implements CoClientType
     final TimeUnit unit)
     throws TimeoutException, ExecutionException
   {
-    LOG.debug("stopping processes");
+    LOG.trace("stopping processes");
 
     final List<Future<Void>> futures0 =
       this.processes.stream()
         .map(CoProcessType::stop)
         .collect(Collectors.toList());
 
-    LOG.debug("waiting for processes to be stopped");
+    LOG.trace("waiting for processes to be stopped");
     waitForFutures(futures0, time, unit);
 
-    LOG.debug("destroying processes");
+    LOG.trace("destroying processes");
 
     final List<Future<Void>> futures1 =
       this.processes.stream()
         .map(CoProcessType::destroy)
         .collect(Collectors.toList());
 
-    LOG.debug("waiting for processes to be destroyed");
+    LOG.trace("waiting for processes to be destroyed");
     waitForFutures(futures1, time, unit);
   }
 

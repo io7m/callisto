@@ -21,75 +21,76 @@ option java_multiple_files = true;
 
 package com.io7m.callisto.prototype0.messages;
 
-message CoEventData
+import "StringConstantPool.proto";
+
+message CoHello
 {
-  uint32 sequence = 1;
-  uint32 type = 2;
-  bytes data = 3;
+  bytes password = 1;
 }
 
-message CoMessageData
+message CoHelloResponseOK
 {
-  oneof value
-  {
-    CoEventData event = 1;
-  }
+  fixed32 connection_id = 1;
 }
 
-message CoClientHello
-{
-  string name = 1;
-  string password = 2;
-}
-
-message CoClientData
-{
-  uint32 sequence = 1;
-  fixed64 ack = 2;
-  fixed32 client_id = 3;
-  repeated CoMessageData messages = 4;
-}
-
-message CoClientPacket
-{
-  oneof value
-  {
-    CoClientHello hello = 1;
-    CoClientData data = 2;
-  }
-}
-
-message CoServerHelloOK
-{
-  fixed32 client_id = 1;
-}
-
-message CoServerHelloError
+message CoHelloResponseError
 {
   string message = 1;
 }
 
-message CoServerHello
+message CoHelloResponse
 {
-  oneof value
-  {
-    CoServerHelloOK ok = 1;
-    CoServerHelloError error = 2;
+  oneof value {
+    CoHelloResponseOK    ok    = 1;
+    CoHelloResponseError error = 2;
   }
 }
 
-message CoServerData
+message CoPacketIdentifier
 {
-  uint32 sequence = 1;
-  fixed64 ack = 2;
-  repeated CoMessageData messages = 3;
+  fixed32 connection_id              = 1;
+  uint32  channel                    = 2;
+  uint32  sequence                   = 3;
+  uint32  sequence_received_reliable = 4;
+  fixed32 sequence_received_ack      = 5;
 }
 
-message CoServerPacket
+message CoMessage
 {
-  oneof value
-  {
-    CoServerHello hello = 1;
-    CoServerData data = 2;
+  uint32           message_id   = 1;
+  CoStringConstant message_type = 2;
+  bytes            message_data = 3;
+}
+
+message CoDataReliable
+{
+  CoPacketIdentifier id       = 1;
+  repeated CoMessage messages = 2;
+}
+
+message CoDataUnreliable
+{
+  CoPacketIdentifier id       = 1;
+  repeated CoMessage messages = 2;
+}
+
+message CoDataReliableFragment
+{
+  CoPacketIdentifier id             = 1;
+  uint32             fragment_index = 2;
+  uint32             fragment_count = 3;
+  uint32             message_id     = 4;
+  CoStringConstant   message_type   = 5;
+  bytes              message_data   = 6;
+}
+
+message CoPacket
+{
+  oneof value {
+    CoHello                hello                  = 1;
+    CoHelloResponse        hello_response         = 2;
+    CoDataReliable         data_reliable          = 3;
+    CoDataUnreliable       data_unreliable        = 4;
+    CoDataReliableFragment data_reliable_fragment = 5;
   }
 }

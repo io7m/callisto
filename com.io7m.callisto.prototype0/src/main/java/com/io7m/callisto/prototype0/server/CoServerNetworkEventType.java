@@ -22,11 +22,11 @@ import com.io7m.callisto.prototype0.events.CoEventType;
 @CoImmutableStyleType
 public interface CoServerNetworkEventType extends CoEventType
 {
+  Type type();
+
   enum Type
   {
     SERVER_CLIENT_CONNECTED,
     SERVER_CLIENT_DISCONNECTED
   }
-
-  Type type();
 }

@@ -47,7 +47,7 @@ public final class CoNetworkProviderUDP implements CoNetworkProviderType
   }
 
   @Override
-  public CoNetworkPacketPeerType createPeer(
+  public CoNetworkPacketSocketType createSocket(
     final Properties p)
     throws CoNetworkException
   {
@@ -132,7 +132,7 @@ public final class CoNetworkProviderUDP implements CoNetworkProviderType
     }
   }
 
-  private static final class Peer implements CoNetworkPacketPeerType
+  private static final class Peer implements CoNetworkPacketSocketType
   {
     private final Optional<InetSocketAddress> local_address;
     private final Selector selector;
@@ -182,33 +182,78 @@ public final class CoNetworkProviderUDP implements CoNetworkProviderType
     @Override
     public void poll(
       final CoNetworkPacketReceiverType receiver)
-      throws IOException
     {
       NullCheck.notNull(receiver, "Receiver");
 
-      while (true) {
-        final int r = this.selector.selectNow();
-        if (r == 0) {
-          break;
-        }
+      try {
+        while (true) {
+          final int r = this.selector.selectNow();
+          if (r == 0) {
+            break;
+          }
 
-        this.selector.selectedKeys().clear();
-        this.buffer.rewind();
-        final SocketAddress address = this.channel.receive(this.buffer);
-        this.buffer.flip();
-        receiver.receive(address, this.buffer);
+          this.selector.selectedKeys().clear();
+          this.buffer.clear();
+          final SocketAddress address = this.channel.receive(this.buffer);
+          this.buffer.flip();
+
+          if (LOG.isTraceEnabled()) {
+            LOG.trace(
+              "receive: {}: {} octets",
+              address,
+              Integer.valueOf(this.buffer.remaining()));
+          }
+
+          receiver.receive(address, this.buffer);
+        }
+      } catch (final IOException e) {
+        throw new CoNetworkIOException(e);
       }
+    }
+
+    @Override
+    public int maximumTransferUnit()
+    {
+      return 1200;
     }
 
     @Override
     public void send(
       final SocketAddress remote_address,
       final ByteBuffer data)
-      throws IOException
     {
       NullCheck.notNull(remote_address, "Address");
       NullCheck.notNull(data, "Data");
-      this.channel.send(data, remote_address);
+
+      final int size = data.remaining();
+      if (size > this.maximumTransferUnit()) {
+        throw new CoNetworkPacketTooLargeException(
+          new StringBuilder(128)
+            .append("Packet too large to send.")
+            .append(System.lineSeparator())
+            .append("  Maximum: ")
+            .append(this.maximumTransferUnit())
+            .append(" octets")
+            .append(System.lineSeparator())
+            .append("  Packet:  ")
+            .append(size)
+            .append(" octets")
+            .append(System.lineSeparator())
+            .toString());
+      }
+
+      if (LOG.isTraceEnabled()) {
+        LOG.trace(
+          "send: {}: {} octets",
+          remote_address,
+          Integer.valueOf(data.remaining()));
+      }
+
+      try {
+        this.channel.send(data, remote_address);
+      } catch (final IOException e) {
+        throw new CoNetworkIOException(e);
+      }
     }
 
     @Override

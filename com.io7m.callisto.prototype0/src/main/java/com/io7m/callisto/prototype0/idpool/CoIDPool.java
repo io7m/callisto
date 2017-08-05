@@ -21,8 +21,8 @@ import it.unimi.dsi.fastutil.ints.IntRBTreeSet;
 public final class CoIDPool implements CoIDPoolType
 {
   private final IntRBTreeSet entities_ids_free;
-  private int entities_id_next;
   private final Object lock;
+  private int entities_id_next;
 
   public CoIDPool()
   {

@@ -18,9 +18,9 @@ package com.io7m.callisto.prototype0.stringconstants;
 
 public interface CoStringConstantPoolUpdateType
 {
-  void set(
+  CoStringConstantPoolUpdateType set(
     int index,
     String value);
 
-  void update();
+  void execute();
 }

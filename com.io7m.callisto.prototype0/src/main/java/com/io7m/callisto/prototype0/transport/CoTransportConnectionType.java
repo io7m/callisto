@@ -14,14 +14,15 @@
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-package com.io7m.callisto.prototype0.network;
+package com.io7m.callisto.prototype0.transport;
 
-import java.io.Closeable;
-import java.net.SocketAddress;
-import java.util.Optional;
+import com.io7m.callisto.prototype0.messages.CoPacket;
 
-public interface CoNetworkPacketPeerType
-  extends Closeable, CoNetworkPacketSendableType, CoNetworkPacketReceivableType
+public interface CoTransportConnectionType
+  extends CoTransportConnectionUsableType
 {
-  Optional<SocketAddress> remote();
+  void receive(
+    CoPacket p);
+
+  void tick();
 }

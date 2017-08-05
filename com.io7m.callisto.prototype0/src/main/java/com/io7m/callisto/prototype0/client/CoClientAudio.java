@@ -53,24 +53,24 @@ public final class CoClientAudio extends CoProcessAbstract
   @Override
   protected void doInitialize()
   {
-    LOG.debug("initialize");
+    LOG.trace("starting");
   }
 
   @Override
   protected void doStart()
   {
-    LOG.debug("start");
+    LOG.trace("start");
   }
 
   @Override
   protected void doStop()
   {
-    LOG.debug("stop");
+    LOG.trace("stop");
   }
 
   @Override
   protected void doDestroy()
   {
-    LOG.debug("destroy");
+    LOG.trace("destroy");
   }
 }

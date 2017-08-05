@@ -22,11 +22,11 @@ import com.io7m.callisto.prototype0.events.CoEventType;
 @CoImmutableStyleType
 public interface CoStringConstantPoolEventType extends CoEventType
 {
+  Type type();
+
   enum Type
   {
     STRING_CONSTANT_POOL_UPDATED,
     STRING_CONSTANT_POOL_UPDATE_RECEIVED
   }
-
-  Type type();
 }

@@ -17,13 +17,9 @@
 package com.io7m.callisto.prototype0.stringconstants;
 
 import com.io7m.callisto.prototype0.services.CoServiceType;
-import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 
-public interface CoStringConstantPoolServiceType extends CoServiceType
+public interface CoStringConstantPoolServiceType
+  extends CoServiceType, CoStringConstantPoolType
 {
-  String lookup(CoStringConstantReference r);
 
-  Int2ReferenceMap<String> view();
-
-  CoStringConstantPoolUpdateType update();
 }

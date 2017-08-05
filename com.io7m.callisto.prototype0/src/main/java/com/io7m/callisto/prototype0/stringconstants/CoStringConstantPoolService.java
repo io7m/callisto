@@ -19,90 +19,61 @@ package com.io7m.callisto.prototype0.stringconstants;
 import com.io7m.callisto.prototype0.events.CoEventServiceType;
 import com.io7m.jnull.NullCheck;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
-import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
-
-import java.util.NoSuchElementException;
 
 public final class CoStringConstantPoolService
   implements CoStringConstantPoolServiceType
 {
-  private final Int2ReferenceOpenHashMap<String> constants;
-  private final CoEventServiceType events;
-
   private static final CoStringConstantPoolEventUpdated UPDATED =
     CoStringConstantPoolEventUpdated.builder().build();
+  private final CoEventServiceType events;
+  private final CoStringConstantPool pool;
 
   public CoStringConstantPoolService(
     final CoEventServiceType in_events)
   {
     this.events = NullCheck.notNull(in_events, "Events");
-    this.constants = new Int2ReferenceOpenHashMap<>();
+    this.pool = new CoStringConstantPool(() -> this.events.post(UPDATED));
+    this.pool.newUpdate()
+      .set(0, CoStringConstantPoolMessages.eventCompressedUpdateTypeName())
+      .execute();
   }
 
   @Override
-  public String lookup(
+  public String lookupString(
     final CoStringConstantReference r)
   {
-    NullCheck.notNull(r, "Reference");
+    return this.pool.lookupString(r);
+  }
 
-    synchronized (this.constants) {
-      final int k = r.value();
-      if (this.constants.containsKey(k)) {
-        return this.constants.get(k);
-      }
-
-      throw new NoSuchElementException(
-        "No such string constant: " + Integer.toUnsignedString(k));
-    }
+  @Override
+  public CoStringConstantReference lookupReference(
+    final String text)
+  {
+    return this.pool.lookupReference(text);
   }
 
   @Override
   public Int2ReferenceMap<String> view()
   {
-    synchronized (this.constants) {
-      return new Int2ReferenceOpenHashMap<>(this.constants);
-    }
+    return this.pool.view();
   }
 
   @Override
-  public CoStringConstantPoolUpdateType update()
+  public CoStringConstantPoolUpdateType newUpdate()
   {
-    return new Update();
+    return this.pool.newUpdate();
+  }
+
+  @Override
+  public CoStringConstantReference add(
+    final String text)
+  {
+    return this.pool.add(text);
   }
 
   @Override
   public void shutDown()
   {
 
-  }
-
-  private final class Update implements CoStringConstantPoolUpdateType
-  {
-    private final Int2ReferenceOpenHashMap<String> update =
-      new Int2ReferenceOpenHashMap<>();
-
-    Update()
-    {
-
-    }
-
-    @Override
-    public void set(
-      final int index,
-      final String value)
-    {
-      this.update.put(index, NullCheck.notNull(value, "Value"));
-    }
-
-    @Override
-    public void update()
-    {
-      synchronized (CoStringConstantPoolService.this.constants) {
-        CoStringConstantPoolService.this.constants.putAll(this.update);
-        this.update.clear();
-      }
-
-      CoStringConstantPoolService.this.events.post(UPDATED);
-    }
   }
 }

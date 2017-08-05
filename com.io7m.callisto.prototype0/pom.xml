@@ -33,6 +33,10 @@
     </dependency>
 
     <dependency>
+      <groupId>com.io7m.jaffirm</groupId>
+      <artifactId>com.io7m.jaffirm.core</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.io7m.jproperties</groupId>
       <artifactId>com.io7m.jproperties.core</artifactId>
     </dependency>
@@ -59,6 +63,10 @@
     <dependency>
       <groupId>com.io7m.jfsm</groupId>
       <artifactId>com.io7m.jfsm.core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.io7m.jranges</groupId>
+      <artifactId>com.io7m.jranges.core</artifactId>
     </dependency>
 
     <dependency>

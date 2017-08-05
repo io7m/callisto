@@ -20,7 +20,7 @@ import java.util.Properties;
 
 public interface CoNetworkProviderType
 {
-  CoNetworkPacketPeerType createPeer(
+  CoNetworkPacketSocketType createSocket(
     Properties p)
     throws CoNetworkException;
 }

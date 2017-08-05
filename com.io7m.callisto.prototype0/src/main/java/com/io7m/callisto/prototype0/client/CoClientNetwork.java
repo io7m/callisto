@@ -17,9 +17,9 @@
 package com.io7m.callisto.prototype0.client;
 
 import com.io7m.callisto.prototype0.events.CoEventServiceType;
-import com.io7m.callisto.prototype0.network.CoNetworkPacketPeerType;
 import com.io7m.callisto.prototype0.network.CoNetworkProviderType;
 import com.io7m.callisto.prototype0.process.CoProcessAbstract;
+import com.io7m.callisto.prototype0.stringconstants.CoStringConstantPoolReadableType;
 import com.io7m.callisto.prototype0.ticks.CoTickDivisor;
 import com.io7m.jnull.NullCheck;
 import com.io7m.jproperties.JProperties;
@@ -40,10 +40,12 @@ public final class CoClientNetwork extends CoProcessAbstract
   private final CoNetworkProviderType network;
   private final Disposable sub_tick;
   private final CoTickDivisor tick_divisor;
-  private CoClientServerHandler handler;
+  private final CoStringConstantPoolReadableType strings;
+  private CoClientNetworkHandler handler;
 
   public CoClientNetwork(
     final CoEventServiceType in_events,
+    final CoStringConstantPoolReadableType in_strings,
     final CoNetworkProviderType in_network)
   {
     super(
@@ -54,6 +56,8 @@ public final class CoClientNetwork extends CoProcessAbstract
         return th;
       });
 
+    this.strings =
+      NullCheck.notNull(in_strings, "Strings");
     this.network =
       NullCheck.notNull(in_network, "Network");
 
@@ -70,14 +74,10 @@ public final class CoClientNetwork extends CoProcessAbstract
   private void onTickEvent(
     final CoClientTickEvent e)
   {
-    final CoClientServerHandler h = this.handler;
+    final CoClientNetworkHandler h = this.handler;
     if (h != null) {
       if (this.tick_divisor.tickNow()) {
-        try {
-          h.onTick();
-        } catch (final IOException ex) {
-          LOG.error("i/o error: ", ex);
-        }
+        h.tick();
       }
     }
   }
@@ -97,22 +97,22 @@ public final class CoClientNetwork extends CoProcessAbstract
   @Override
   protected void doInitialize()
   {
-    LOG.debug("initialize");
+    LOG.trace("initialize");
   }
 
   @Override
   protected void doStart()
   {
-    LOG.debug("start");
+    LOG.trace("start");
   }
 
   @Override
   protected void doStop()
   {
-    LOG.debug("stop");
+    LOG.trace("stop");
     this.sub_tick.dispose();
 
-    final CoClientServerHandler h = this.handler;
+    final CoClientNetworkHandler h = this.handler;
     if (h != null) {
       try {
         h.close();
@@ -125,7 +125,7 @@ public final class CoClientNetwork extends CoProcessAbstract
   @Override
   protected void doDestroy()
   {
-    LOG.debug("destroy");
+    LOG.trace("destroy");
   }
 
   public Future<Void> connect(
@@ -138,23 +138,20 @@ public final class CoClientNetwork extends CoProcessAbstract
     final Properties props)
     throws IOException, JPropertyNonexistent
   {
-    LOG.debug("trying to connect to server");
+    LOG.debug("opening connection to server");
 
-    final String user =
-      JProperties.getString(props, "user");
     final String pass =
       JProperties.getStringOptional(props, "password", "");
 
-    final CoNetworkPacketPeerType peer =
-      this.network.createPeer(props);
-
     this.handler =
-      new CoClientServerHandler(
+      new CoClientNetworkHandler(
         this.events(),
-        peer,
-        peer.remote().get());
-
-    this.handler.onStart(user, pass);
+        this.network,
+        this.strings,
+        pass.getBytes(),
+        props);
+    this.handler.start();
     return null;
   }
+
 }

@@ -16,15 +16,12 @@
 
 package com.io7m.callisto.prototype0.network;
 
+import java.io.Closeable;
 import java.net.SocketAddress;
-import java.nio.ByteBuffer;
+import java.util.Optional;
 
-public interface CoNetworkPacketSendableType
+public interface CoNetworkPacketSocketType
+  extends Closeable, CoNetworkPacketSendableType, CoNetworkPacketReceivableType
 {
-  int maximumTransferUnit();
-
-  void send(
-    SocketAddress remote_address,
-    ByteBuffer data)
-    throws CoNetworkException;
+  Optional<SocketAddress> remote();
 }

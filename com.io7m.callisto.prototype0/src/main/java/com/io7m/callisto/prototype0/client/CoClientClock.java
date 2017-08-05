@@ -17,7 +17,6 @@
 package com.io7m.callisto.prototype0.client;
 
 import com.io7m.callisto.prototype0.events.CoEventServiceType;
-import com.io7m.callisto.prototype0.events.CoEventType;
 import com.io7m.callisto.prototype0.process.CoProcessAbstract;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,7 +24,6 @@ import org.slf4j.LoggerFactory;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public final class CoClientClock extends CoProcessAbstract
 {
@@ -76,13 +74,13 @@ public final class CoClientClock extends CoProcessAbstract
   @Override
   protected void doInitialize()
   {
-    LOG.debug("initialize");
+    LOG.trace("initialize");
   }
 
   @Override
   protected void doStart()
   {
-    LOG.debug("start");
+    LOG.trace("start");
     this.sched_exec.scheduleAtFixedRate(
       this::doTick, 0L, 1000L / 60L, TimeUnit.MILLISECONDS);
   }
@@ -90,13 +88,13 @@ public final class CoClientClock extends CoProcessAbstract
   @Override
   protected void doStop()
   {
-    LOG.debug("stop");
+    LOG.trace("stop");
     this.sched_exec.shutdown();
   }
 
   @Override
   protected void doDestroy()
   {
-    LOG.debug("destroy");
+    LOG.trace("destroy");
   }
 }

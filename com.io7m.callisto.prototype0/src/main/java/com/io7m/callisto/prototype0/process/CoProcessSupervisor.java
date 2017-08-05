@@ -134,13 +134,13 @@ public final class CoProcessSupervisor extends CoProcessAbstract
   @Override
   protected void doInitialize()
   {
-    LOG.debug("initialize");
+    LOG.trace("initialize");
   }
 
   @Override
   protected void doStart()
   {
-    LOG.debug("start");
+    LOG.trace("start");
 
     synchronized (this.watched) {
       this.unresponsive.clear();
@@ -152,13 +152,13 @@ public final class CoProcessSupervisor extends CoProcessAbstract
   @Override
   protected void doDestroy()
   {
-    LOG.debug("destroy");
+    LOG.trace("destroy");
   }
 
   @Override
   protected void doStop()
   {
-    LOG.debug("stop");
+    LOG.trace("stop");
     this.supervise_sub.dispose();
 
     final Future<?> s = this.send;
@@ -194,7 +194,9 @@ public final class CoProcessSupervisor extends CoProcessAbstract
   private void scheduleNextCheck()
   {
     this.check = this.sched_exec.schedule(
-      () -> this.executor().execute(this::doCheckResponses), 10L, TimeUnit.SECONDS);
+      () -> this.executor().execute(this::doCheckResponses),
+      10L,
+      TimeUnit.SECONDS);
   }
 
   private void doCheckResponses()

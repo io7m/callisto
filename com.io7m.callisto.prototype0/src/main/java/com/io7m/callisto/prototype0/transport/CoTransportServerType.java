@@ -16,34 +16,35 @@
 
 package com.io7m.callisto.prototype0.transport;
 
-import com.io7m.callisto.prototype0.events.CoEventType;
-import com.io7m.jnull.NullCheck;
-import com.io7m.junreachable.UnimplementedCodeException;
+import com.io7m.callisto.prototype0.messages.CoPacket;
 
-public final class CoTransport implements CoTransportType
+import java.io.Closeable;
+import java.net.SocketAddress;
+import java.nio.ByteBuffer;
+
+public interface CoTransportServerType extends Closeable
 {
-  private final int id;
+  void tick();
 
-  private CoTransport(
-    final int in_id)
+  interface ListenerType
   {
-    this.id = in_id;
-  }
+    void onReceivePacketUnparseable(
+      final SocketAddress address,
+      final ByteBuffer data,
+      final Exception e);
 
-  @Override
-  public void enqueue(
-    final CoEventType e)
-  {
-    NullCheck.notNull(e, "Event");
+    void onReceivePacketUnrecognized(
+      SocketAddress address,
+      CoPacket packet);
 
-    // TODO: Generated method stub
-    throw new UnimplementedCodeException();
-  }
+    void onReceivePacketUnexpected(
+      SocketAddress address,
+      CoPacket packet);
 
-  @Override
-  public void poll()
-  {
-    // TODO: Generated method stub
-    throw new UnimplementedCodeException();
+    void onConnectionCreated(
+      CoTransportConnectionUsableType connection);
+
+    void onConnectionClosed(
+      CoTransportConnectionUsableType connection);
   }
 }

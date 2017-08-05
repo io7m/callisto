@@ -23,5 +23,6 @@ public interface CoNetworkPacketReceiverType
 {
   void receive(
     SocketAddress address,
-    ByteBuffer buffer);
+    ByteBuffer buffer)
+    throws CoNetworkException;
 }

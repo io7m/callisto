@@ -16,11 +16,9 @@
 
 package com.io7m.callisto.prototype0.network;
 
-import java.io.IOException;
-
 public interface CoNetworkPacketReceivableType
 {
   void poll(
     CoNetworkPacketReceiverType receiver)
-    throws IOException;
+    throws CoNetworkException;
 }

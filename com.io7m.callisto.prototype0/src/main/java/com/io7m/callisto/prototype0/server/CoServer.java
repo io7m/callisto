@@ -16,10 +16,6 @@
 
 package com.io7m.callisto.prototype0.server;
 
-import com.io7m.callisto.prototype0.client.CoClientAudio;
-import com.io7m.callisto.prototype0.client.CoClientRendering;
-import com.io7m.callisto.prototype0.client.CoClientType;
-import com.io7m.callisto.prototype0.events.CoEventService;
 import com.io7m.callisto.prototype0.events.CoEventServiceType;
 import com.io7m.callisto.prototype0.network.CoNetworkProviderType;
 import com.io7m.callisto.prototype0.process.CoProcessSupervisor;
@@ -59,7 +55,10 @@ public final class CoServer implements CoServerType
     this.processes = new ReferenceArrayList<>();
     this.processes.add(new CoServerClock(this.events));
     this.processes.add(new CoServerLogic(this.events));
-    this.processes.add(new CoServerNetwork(this.events, in_strings, in_network));
+    this.processes.add(new CoServerNetwork(
+      this.events,
+      in_strings,
+      in_network));
     this.processes.add(new CoProcessSupervisor(this.events, this.processes));
   }
 
@@ -84,24 +83,24 @@ public final class CoServer implements CoServerType
     final TimeUnit unit)
     throws TimeoutException, ExecutionException
   {
-    LOG.debug("initializing processes");
+    LOG.trace("initializing processes");
 
     final List<Future<Void>> futures0 =
       this.processes.stream()
         .map(CoProcessType::initialize)
         .collect(Collectors.toList());
 
-    LOG.debug("waiting for processes to initialize");
+    LOG.trace("waiting for processes to initialize");
     waitForFutures(futures0, time, unit);
 
-    LOG.debug("starting processes");
+    LOG.trace("starting processes");
 
     final List<Future<Void>> futures1 =
       this.processes.stream()
         .map(CoProcessType::start)
         .collect(Collectors.toList());
 
-    LOG.debug("waiting for processes to start");
+    LOG.trace("waiting for processes to start");
     waitForFutures(futures1, time, unit);
   }
 
@@ -110,24 +109,24 @@ public final class CoServer implements CoServerType
     final TimeUnit unit)
     throws TimeoutException, ExecutionException
   {
-    LOG.debug("stopping processes");
+    LOG.trace("stopping processes");
 
     final List<Future<Void>> futures0 =
       this.processes.stream()
         .map(CoProcessType::stop)
         .collect(Collectors.toList());
 
-    LOG.debug("waiting for processes to be stopped");
+    LOG.trace("waiting for processes to be stopped");
     waitForFutures(futures0, time, unit);
 
-    LOG.debug("destroying processes");
+    LOG.trace("destroying processes");
 
     final List<Future<Void>> futures1 =
       this.processes.stream()
         .map(CoProcessType::destroy)
         .collect(Collectors.toList());
 
-    LOG.debug("waiting for processes to be destroyed");
+    LOG.trace("waiting for processes to be destroyed");
     waitForFutures(futures1, time, unit);
   }
 }

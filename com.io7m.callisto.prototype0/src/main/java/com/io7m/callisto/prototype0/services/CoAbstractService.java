@@ -16,7 +16,6 @@
 
 package com.io7m.callisto.prototype0.services;
 
-import com.io7m.callisto.prototype0.services.CoServiceType;
 import org.slf4j.Logger;
 
 public abstract class CoAbstractService implements CoServiceType
@@ -27,7 +26,7 @@ public abstract class CoAbstractService implements CoServiceType
 
   protected final void onActivateActual()
   {
-    this.log().debug("onActivate");
+    this.log().trace("onActivate");
     this.activated = true;
   }
 

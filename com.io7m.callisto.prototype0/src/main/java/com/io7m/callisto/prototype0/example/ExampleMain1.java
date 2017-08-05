@@ -24,6 +24,7 @@ import com.io7m.callisto.prototype0.client.CoClientTickEvent;
 import com.io7m.callisto.prototype0.events.CoEventService;
 import com.io7m.callisto.prototype0.network.CoNetworkProviderLocal;
 import com.io7m.callisto.prototype0.network.CoNetworkProviderType;
+import com.io7m.callisto.prototype0.network.CoNetworkProviderUDP;
 import com.io7m.callisto.prototype0.server.CoServer;
 import com.io7m.callisto.prototype0.server.CoServerTickEvent;
 import com.io7m.callisto.prototype0.stringconstants.CoStringConstantPoolService;
@@ -83,16 +84,21 @@ public final class ExampleMain1
       .filter(e -> !(e instanceof CoServerTickEvent))
       .subscribe(e -> LOG.trace("server event: {}", e));
 
-    final Slf4jReporter reporter = Slf4jReporter.forRegistry(metrics)
-      .outputTo(LOG)
-      .convertRatesTo(TimeUnit.SECONDS)
-      .convertDurationsTo(TimeUnit.MILLISECONDS)
-      .build();
+    final Slf4jReporter reporter =
+      Slf4jReporter.forRegistry(metrics)
+        .outputTo(LOG)
+        .convertRatesTo(TimeUnit.SECONDS)
+        .convertDurationsTo(TimeUnit.MILLISECONDS)
+        .build();
     reporter.start(5L, TimeUnit.SECONDS);
 
-    final CoNetworkProviderType network = new CoNetworkProviderLocal();
+    final CoNetworkProviderType network = new CoNetworkProviderUDP();
 
-    final CoClient client = new CoClient(network, client_events);
+    final CoStringConstantPoolServiceType client_strings =
+      new CoStringConstantPoolService(client_events);
+
+    final CoClient client =
+      new CoClient(network, client_strings, client_events);
     client.startSynchronously(3L, TimeUnit.SECONDS);
 
     final CoStringConstantPoolServiceType server_strings =

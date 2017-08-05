@@ -14,17 +14,21 @@
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-package com.io7m.callisto.prototype0.network;
+package com.io7m.callisto.tests.rules;
 
-import java.net.SocketAddress;
-import java.nio.ByteBuffer;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-public interface CoNetworkPacketSendableType
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.METHOD})
+public @interface PercentagePassing
 {
-  int maximumTransferUnit();
+  /**
+   * @return The minimum percentage of iterations that must pass for a given
+   * test
+   */
 
-  void send(
-    SocketAddress remote_address,
-    ByteBuffer data)
-    throws CoNetworkException;
+  double passPercent() default 98.0;
 }

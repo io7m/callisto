@@ -99,7 +99,7 @@ public final class CoClientRendering extends CoProcessAbstract
   @Override
   protected void doInitialize()
   {
-    LOG.debug("initialize");
+    LOG.trace("initialize");
 
     GLFWErrorCallback.create(
       (error, description) ->
@@ -157,13 +157,13 @@ public final class CoClientRendering extends CoProcessAbstract
   @Override
   protected void doStart()
   {
-    LOG.debug("start");
+    LOG.trace("start");
   }
 
   @Override
   protected void doStop()
   {
-    LOG.debug("stop");
+    LOG.trace("stop");
     this.tick_sub.dispose();
     this.stopMain();
     this.exec_back.submit(this::stopBackground);
@@ -172,13 +172,13 @@ public final class CoClientRendering extends CoProcessAbstract
   @Override
   protected void doDestroy()
   {
-    LOG.debug("destroy");
+    LOG.trace("destroy");
     this.exec_back.shutdown();
   }
 
   private void clearBackWindow()
   {
-    LOG.debug("clearing back");
+    LOG.trace("clearing back");
     GLFW.glfwMakeContextCurrent(this.context_background);
     GL.createCapabilities();
     GL11.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -188,7 +188,7 @@ public final class CoClientRendering extends CoProcessAbstract
 
   private void clearMainWindow()
   {
-    LOG.debug("clearing main");
+    LOG.trace("clearing main");
     GLFW.glfwMakeContextCurrent(this.context_rendering);
     GL.createCapabilities();
     GL11.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);

@@ -14,14 +14,24 @@
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-package com.io7m.callisto.prototype0.transport;
+package com.io7m.callisto.tests.rules;
 
-import com.io7m.callisto.prototype0.events.CoEventType;
+import org.junit.Assert;
+import org.junit.Rule;
+import org.junit.Test;
 
-public interface CoTransportType
+public final class PercentagePassTest
 {
-  void enqueue(
-    CoEventType e);
+  @Rule public PercentagePassRule percent = new PercentagePassRule(1000);
 
-  void poll();
+  @Test
+  @PercentagePassing(passPercent = 50.0)
+  public void testOne()
+  {
+    System.out.println("Testing");
+
+    if (Math.random() > 0.8) {
+      Assert.fail();
+    }
+  }
 }

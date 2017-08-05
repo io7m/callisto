@@ -26,7 +26,6 @@ import io.reactivex.disposables.Disposable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.Properties;
 
 public final class CoServerNetwork extends CoProcessAbstract
@@ -38,7 +37,7 @@ public final class CoServerNetwork extends CoProcessAbstract
   private final CoTickDivisor tick_divisor;
   private final Disposable sub_tick;
   private final CoStringConstantPoolServiceType strings;
-  private CoServerClientHandler handler;
+  private CoServerNetworkHandler handler;
 
   public CoServerNetwork(
     final CoEventServiceType in_events,
@@ -58,7 +57,7 @@ public final class CoServerNetwork extends CoProcessAbstract
     this.strings =
       NullCheck.notNull(in_strings, "Strings");
     this.tick_divisor =
-      new CoTickDivisor(60, 30);
+      new CoTickDivisor(60.0, 30.0);
 
     this.sub_tick =
       in_events.events()
@@ -70,14 +69,10 @@ public final class CoServerNetwork extends CoProcessAbstract
   private void onTickEvent(
     final CoServerTickEvent e)
   {
-    final CoServerClientHandler h = this.handler;
+    final CoServerNetworkHandler h = this.handler;
     if (h != null) {
       if (this.tick_divisor.tickNow()) {
-        try {
-          h.onTick();
-        } catch (final IOException ex) {
-          LOG.error("i/o error: ", ex);
-        }
+        h.tick();
       }
     }
   }
@@ -97,36 +92,37 @@ public final class CoServerNetwork extends CoProcessAbstract
   @Override
   protected void doInitialize()
   {
-    LOG.debug("initialize");
+    LOG.trace("initialize");
 
     final Properties props = new Properties();
     props.setProperty("local_address", "::1");
     props.setProperty("local_port", "9999");
 
-    this.handler =
-      new CoServerClientHandler(
-        this.events(),
-        this.strings,
-        this.network.createPeer(props));
+    final byte[] password = new byte[0];
+    this.handler = new CoServerNetworkHandler(
+      this.network,
+      this.strings,
+      password,
+      props);
   }
 
   @Override
   protected void doStart()
   {
-    LOG.debug("start");
+    LOG.trace("start");
   }
 
   @Override
   protected void doStop()
   {
-    LOG.debug("stop");
+    LOG.trace("stop");
 
-    final CoServerClientHandler h = this.handler;
+    final CoServerNetworkHandler h = this.handler;
     if (h != null) {
       try {
         h.close();
-      } catch (final IOException e) {
-        LOG.error("i/o error: ", e);
+      } catch (final Exception e) {
+        LOG.error("error shutting down server handler: ", e);
       }
     }
 
@@ -136,6 +132,7 @@ public final class CoServerNetwork extends CoProcessAbstract
   @Override
   protected void doDestroy()
   {
-    LOG.debug("destroy");
+    LOG.trace("destroy");
   }
+
 }

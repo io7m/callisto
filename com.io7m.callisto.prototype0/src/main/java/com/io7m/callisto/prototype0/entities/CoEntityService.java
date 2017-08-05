@@ -52,8 +52,8 @@ public final class CoEntityService
     LoggerFactory.getLogger(CoEntityService.class);
 
   private final Int2ReferenceOpenHashMap<Entity> entities;
-  private volatile CoEventServiceType events;
   private final CoIDPool ids;
+  private volatile CoEventServiceType events;
 
   private CoEntityService()
   {

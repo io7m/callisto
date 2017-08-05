@@ -14,17 +14,12 @@
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-package com.io7m.callisto.prototype0.network;
+package com.io7m.callisto.prototype0.stringconstants;
 
-import java.net.SocketAddress;
-import java.nio.ByteBuffer;
-
-public interface CoNetworkPacketSendableType
+public interface CoStringConstantPoolType
+  extends CoStringConstantPoolReadableType
 {
-  int maximumTransferUnit();
+  CoStringConstantPoolUpdateType newUpdate();
 
-  void send(
-    SocketAddress remote_address,
-    ByteBuffer data)
-    throws CoNetworkException;
+  CoStringConstantReference add(String text);
 }

@@ -14,17 +14,9 @@
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-package com.io7m.callisto.prototype0.network;
+/**
+ * JUnit rules.
+ */
 
-import java.net.SocketAddress;
-import java.nio.ByteBuffer;
+package com.io7m.callisto.tests.rules;
 
-public interface CoNetworkPacketSendableType
-{
-  int maximumTransferUnit();
-
-  void send(
-    SocketAddress remote_address,
-    ByteBuffer data)
-    throws CoNetworkException;
-}

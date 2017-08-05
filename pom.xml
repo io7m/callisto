@@ -136,6 +136,11 @@
         <artifactId>com.io7m.jserial.core</artifactId>
         <version>0.3.0</version>
       </dependency>
+      <dependency>
+        <groupId>com.io7m.jranges</groupId>
+        <artifactId>com.io7m.jranges.core</artifactId>
+        <version>[2.0.4, 3.0.0)</version>
+      </dependency>
 
       <dependency>
         <groupId>org.immutables</groupId>

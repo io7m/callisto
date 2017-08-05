@@ -16,8 +16,8 @@
 
 package com.io7m.callisto.prototype0.events;
 
-import com.io7m.callisto.prototype0.services.CoAbstractService;
 import com.io7m.callisto.prototype0.entities.CoEntityLifecycleEvent;
+import com.io7m.callisto.prototype0.services.CoAbstractService;
 import com.io7m.jnull.NullCheck;
 import com.io7m.junreachable.UnreachableCodeException;
 import io.reactivex.Observable;

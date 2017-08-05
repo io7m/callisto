@@ -74,13 +74,13 @@ public final class CoServerClock extends CoProcessAbstract
   @Override
   protected void doInitialize()
   {
-    LOG.debug("initialize");
+    LOG.trace("initialize");
   }
 
   @Override
   protected void doStart()
   {
-    LOG.debug("start");
+    LOG.trace("start");
     this.sched_exec.scheduleAtFixedRate(
       this::doTick, 0L, 1000L / 60L, TimeUnit.MILLISECONDS);
   }
@@ -88,13 +88,13 @@ public final class CoServerClock extends CoProcessAbstract
   @Override
   protected void doStop()
   {
-    LOG.debug("stop");
+    LOG.trace("stop");
     this.sched_exec.shutdown();
   }
 
   @Override
   protected void doDestroy()
   {
-    LOG.debug("destroy");
+    LOG.trace("destroy");
   }
 }

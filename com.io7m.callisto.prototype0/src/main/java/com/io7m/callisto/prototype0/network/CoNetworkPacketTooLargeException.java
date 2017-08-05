@@ -16,15 +16,24 @@
 
 package com.io7m.callisto.prototype0.network;
 
-import java.net.SocketAddress;
-import java.nio.ByteBuffer;
-
-public interface CoNetworkPacketSendableType
+public final class CoNetworkPacketTooLargeException extends CoNetworkException
 {
-  int maximumTransferUnit();
+  public CoNetworkPacketTooLargeException(
+    final Throwable cause)
+  {
+    super(cause);
+  }
 
-  void send(
-    SocketAddress remote_address,
-    ByteBuffer data)
-    throws CoNetworkException;
+  public CoNetworkPacketTooLargeException(
+    final String message)
+  {
+    super(message);
+  }
+
+  public CoNetworkPacketTooLargeException(
+    final String message,
+    final Throwable cause)
+  {
+    super(message, cause);
+  }
 }

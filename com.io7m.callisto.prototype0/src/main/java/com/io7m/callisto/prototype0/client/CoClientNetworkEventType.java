@@ -22,6 +22,8 @@ import com.io7m.callisto.prototype0.events.CoEventType;
 @CoImmutableStyleType
 public interface CoClientNetworkEventType extends CoEventType
 {
+  Type type();
+
   enum Type
   {
     CLIENT_CONNECTED,
@@ -29,6 +31,4 @@ public interface CoClientNetworkEventType extends CoEventType
     CLIENT_CONNECTION_TIMED_OUT,
     CLIENT_DISCONNECTED
   }
-
-  Type type();
 }
