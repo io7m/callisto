@@ -134,7 +134,7 @@
       <dependency>
         <groupId>com.io7m.jserial</groupId>
         <artifactId>com.io7m.jserial.core</artifactId>
-        <version>0.3.0</version>
+        <version>0.4.0-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>com.io7m.jranges</groupId>

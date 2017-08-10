@@ -17,22 +17,25 @@
 package com.io7m.callisto.prototype0.transport;
 
 import com.google.protobuf.ByteString;
+import com.io7m.callisto.prototype0.messages.CoDataReceipt;
 import com.io7m.callisto.prototype0.messages.CoDataReliable;
 import com.io7m.callisto.prototype0.messages.CoDataReliableFragment;
 import com.io7m.callisto.prototype0.messages.CoDataUnreliable;
 import com.io7m.callisto.prototype0.messages.CoMessage;
 import com.io7m.callisto.prototype0.messages.CoPacket;
-import com.io7m.callisto.prototype0.messages.CoPacketIdentifier;
+import com.io7m.callisto.prototype0.messages.CoPacketID;
 import com.io7m.callisto.prototype0.messages.CoStringConstant;
 import com.io7m.callisto.prototype0.stringconstants.CoStringConstantReference;
 import com.io7m.jaffirm.core.Invariants;
 import com.io7m.jaffirm.core.Postconditions;
 import com.io7m.jaffirm.core.Preconditions;
 import com.io7m.jnull.NullCheck;
-import com.io7m.jserial.core.SerialNumber24;
-import com.io7m.jserial.core.SerialNumberIntType;
+import it.unimi.dsi.fastutil.ints.IntIterator;
+import it.unimi.dsi.fastutil.ints.IntSet;
 
 import java.nio.ByteBuffer;
+
+import static java.nio.charset.StandardCharsets.US_ASCII;
 
 public final class CoTransportPacketBuilder
 {
@@ -42,10 +45,11 @@ public final class CoTransportPacketBuilder
 
   private static final int PER_MESSAGE_OVERHEAD = 2;
 
-  private final SerialNumberIntType serial;
   private final int channel;
   private final int id;
   private final int packet_size_limit;
+  private final CoDataReceipt.Builder packet_receipt;
+  private final int packet_receipt_size_base;
   private final CoDataReliable.Builder packet_reliable;
   private final int packet_reliable_size_base;
   private final CoDataUnreliable.Builder packet_unreliable;
@@ -53,23 +57,26 @@ public final class CoTransportPacketBuilder
   private final CoDataReliableFragment.Builder packet_reliable_fragment;
   private final int packet_reliable_fragment_size_base;
   private final int packet_reliable_fragment_body_size_limit;
+  private final CoTransportSequenceNumberTracker sequences;
   private int packet_reliable_size;
   private int packet_unreliable_size;
-  private int sequence_packet_sent_reliable;
-  private int sequence_packet_sent_unreliable;
-  private int sequence_packet_received_reliable;
-  private int sequence_packet_received_ack;
-  private int sequence_message_sent;
+  private int packet_receipt_size;
 
   public CoTransportPacketBuilder(
+    final CoTransportSequenceNumberTracker in_sequences,
     final int in_packet_size_limit,
     final int in_channel,
     final int in_id)
   {
+    this.sequences = NullCheck.notNull(in_sequences, "Sequences");
+
     this.packet_size_limit = in_packet_size_limit;
     this.channel = in_channel;
     this.id = in_id;
-    this.serial = SerialNumber24.get();
+
+    this.packet_receipt = CoDataReceipt.newBuilder();
+    this.packet_receipt_size_base = receiptBaseSize();
+    this.packet_receipt_size = this.packet_receipt_size_base;
 
     this.packet_reliable = CoDataReliable.newBuilder();
     this.packet_reliable_size_base = reliableBaseSize();
@@ -85,6 +92,17 @@ public final class CoTransportPacketBuilder
       this.packet_size_limit - this.packet_reliable_fragment_size_base;
   }
 
+  private static int receiptBaseSize()
+  {
+    return CoPacket.newBuilder()
+      .setDataReceipt(
+        CoDataReceipt.newBuilder()
+          .setId(packetIDLargest())
+          .setSequenceReliableReceived(0xffffffff))
+      .build()
+      .getSerializedSize();
+  }
+
   /**
    * @return The base size of a reliable packet with the largest possible packet
    * identifier.
@@ -94,7 +112,14 @@ public final class CoTransportPacketBuilder
   {
     return CoPacket.newBuilder()
       .setDataReliable(
-        CoDataReliable.newBuilder().setId(packetIDLargest()))
+        CoDataReliable.newBuilder()
+          .addMessages(
+            CoMessage.newBuilder()
+              .setMessageData(ByteString.copyFrom("01234567", US_ASCII))
+              .setMessageId(0xffffffff)
+              .setMessageType(CoStringConstant.newBuilder().setValue(0xffffffff))
+              .build())
+          .setId(packetIDLargest()))
       .build()
       .getSerializedSize();
   }
@@ -112,7 +137,8 @@ public final class CoTransportPacketBuilder
         .setFragmentCount(0xffffffff)
         .setFragmentIndex(0xffffffff)
         .setMessageId(0xffffffff)
-        .setMessageType(CoStringConstant.newBuilder().setValue(0xffffffff))
+        .setMessageData(ByteString.copyFrom("01234567", US_ASCII))
+        .setMessageType(CoStringConstant.newBuilder().setValue(0xffffffff).build())
         .build();
 
     return CoPacket.newBuilder()
@@ -125,14 +151,12 @@ public final class CoTransportPacketBuilder
    * @return The largest possible packet identifier
    */
 
-  private static CoPacketIdentifier packetIDLargest()
+  private static CoPacketID packetIDLargest()
   {
-    return CoPacketIdentifier.newBuilder()
-      .setSequenceReceivedReliable(0xffffffff)
-      .setSequence(0xffffffff)
-      .setSequenceReceivedAck(0b11111111_11111111_11111111_11111111)
+    return CoPacketID.newBuilder()
       .setConnectionId(0xffffffff)
       .setChannel(0xffffffff)
+      .setSequence(0xffffffff)
       .build();
   }
 
@@ -144,7 +168,15 @@ public final class CoTransportPacketBuilder
   private static int unreliableBaseSize()
   {
     return CoPacket.newBuilder()
-      .setDataUnreliable(CoDataUnreliable.newBuilder().setId(packetIDLargest()))
+      .setDataUnreliable(
+        CoDataUnreliable.newBuilder()
+          .addMessages(
+            CoMessage.newBuilder()
+              .setMessageData(ByteString.copyFrom("01234567", US_ASCII))
+              .setMessageId(0xffffffff)
+              .setMessageType(CoStringConstant.newBuilder().setValue(0xffffffff))
+              .build())
+          .setId(packetIDLargest()))
       .build()
       .getSerializedSize();
   }
@@ -177,14 +209,14 @@ public final class CoTransportPacketBuilder
 
     final CoMessage message =
       CoMessage.newBuilder()
-        .setMessageId(this.sequence_message_sent)
+        .setMessageId(this.sequences.messageToSendNext())
         .setMessageType(p_type)
         .setMessageData(p_data)
         .build();
 
     this.packet_unreliable.addMessages(message);
     this.packet_unreliable_size += message.getSerializedSize() + PER_MESSAGE_OVERHEAD;
-    this.sequence_message_sent = this.serial.add(this.sequence_message_sent, 1);
+    this.sequences.messageSend();
   }
 
   private void reliableMessageAppend(
@@ -201,14 +233,14 @@ public final class CoTransportPacketBuilder
 
     final CoMessage message =
       CoMessage.newBuilder()
-        .setMessageId(this.sequence_message_sent)
+        .setMessageId(this.sequences.messageToSendNext())
         .setMessageType(p_type)
         .setMessageData(p_data)
         .build();
 
     this.packet_reliable.addMessages(message);
     this.packet_reliable_size += message.getSerializedSize() + PER_MESSAGE_OVERHEAD;
-    this.sequence_message_sent = this.serial.add(this.sequence_message_sent, 1);
+    this.sequences.messageSend();
   }
 
   private CoPacket unreliableFinish()
@@ -218,9 +250,7 @@ public final class CoTransportPacketBuilder
     final CoPacket p =
       CoPacket.newBuilder().setDataUnreliable(pd).build();
 
-    this.sequence_packet_sent_unreliable =
-      this.serial.add(this.sequence_packet_sent_unreliable, 1);
-
+    this.sequences.unreliableSend();
     this.packet_unreliable.clear();
     this.packet_unreliable_size = this.packet_unreliable_size_base;
     return p;
@@ -228,13 +258,12 @@ public final class CoTransportPacketBuilder
 
   private void unreliableStart()
   {
+    this.packet_unreliable.clear();
     this.packet_unreliable.setId(
-      CoPacketIdentifier.newBuilder()
-        .setChannel(this.channel)
+      CoPacketID.newBuilder()
         .setConnectionId(this.id)
-        .setSequence(this.sequence_packet_sent_unreliable)
-        .setSequenceReceivedAck(this.sequence_packet_received_ack)
-        .setSequenceReceivedReliable(this.sequence_packet_received_reliable)
+        .setChannel(this.channel)
+        .setSequence(this.sequences.unreliableToSendNext())
         .build());
   }
 
@@ -312,9 +341,7 @@ public final class CoTransportPacketBuilder
     final CoPacket p =
       CoPacket.newBuilder().setDataReliable(pd).build();
 
-    this.sequence_packet_sent_reliable =
-      this.serial.add(this.sequence_packet_sent_reliable, 1);
-
+    this.sequences.reliableSend();
     this.packet_reliable.clear();
     this.packet_reliable_size = this.packet_reliable_size_base;
     return p;
@@ -322,13 +349,12 @@ public final class CoTransportPacketBuilder
 
   private void reliableStart()
   {
+    this.packet_reliable.clear();
     this.packet_reliable.setId(
-      CoPacketIdentifier.newBuilder()
-        .setChannel(this.channel)
+      CoPacketID.newBuilder()
         .setConnectionId(this.id)
-        .setSequence(this.sequence_packet_sent_reliable)
-        .setSequenceReceivedAck(this.sequence_packet_received_ack)
-        .setSequenceReceivedReliable(this.sequence_packet_received_reliable)
+        .setChannel(this.channel)
+        .setSequence(this.sequences.reliableToSendNext())
         .build());
   }
 
@@ -398,13 +424,12 @@ public final class CoTransportPacketBuilder
 
   private void reliableFragmentStart()
   {
+    this.packet_reliable_fragment.clear();
     this.packet_reliable_fragment.setId(
-      CoPacketIdentifier.newBuilder()
-        .setChannel(this.channel)
+      CoPacketID.newBuilder()
         .setConnectionId(this.id)
-        .setSequence(this.sequence_packet_sent_reliable)
-        .setSequenceReceivedAck(this.sequence_packet_received_ack)
-        .setSequenceReceivedReliable(this.sequence_packet_received_reliable)
+        .setChannel(this.channel)
+        .setSequence(this.sequences.reliableToSendNext())
         .build());
   }
 
@@ -412,12 +437,11 @@ public final class CoTransportPacketBuilder
   {
     final CoDataReliableFragment pd =
       this.packet_reliable_fragment.build();
+
     final CoPacket p =
       CoPacket.newBuilder().setDataReliableFragment(pd).build();
 
-    this.sequence_packet_sent_reliable =
-      this.serial.add(this.sequence_packet_sent_reliable, 1);
-
+    this.sequences.reliableSend();
     this.packet_reliable_fragment.clear();
     return p;
   }
@@ -438,8 +462,7 @@ public final class CoTransportPacketBuilder
       (message.limit() / frag_size_limit) + 1;
 
     for (int frag_index = 1; frag_index <= frag_count; ++frag_index) {
-      final int size =
-        Math.min(message.remaining(), frag_size_limit);
+      final int size = Math.min(message.remaining(), frag_size_limit);
 
       this.reliableFragmentStart();
       this.packet_reliable_fragment.setFragmentCount(frag_count);
@@ -447,7 +470,7 @@ public final class CoTransportPacketBuilder
       this.packet_reliable_fragment.setMessageType(
         CoStringConstant.newBuilder().setValue(type.value()).build());
       this.packet_reliable_fragment.setMessageId(
-        this.sequence_message_sent);
+        this.sequences.messageToSendNext());
       this.packet_reliable_fragment.setMessageData(
         ByteString.copyFrom(message, size));
 
@@ -460,6 +483,63 @@ public final class CoTransportPacketBuilder
       value -> "No message data must remain.");
   }
 
+  /**
+   * Create any receipt packets that are needed.
+   *
+   * @param output A listener that will receive any completed packets
+   */
+
+  public void receipts(
+    final ListenerType output)
+  {
+    NullCheck.notNull(output, "Output");
+
+    final IntSet missing = this.sequences.reliableReceiverWindow().missed();
+    this.receiptStart();
+
+    final IntIterator iter = missing.iterator();
+    while (iter.hasNext()) {
+      final int r = iter.nextInt();
+      if (this.receiptCanFit()) {
+        this.packet_receipt.addSequenceReliableNotReceived(r);
+      } else {
+        output.onCreatedPacketReceipt(this.receiptFinish());
+        this.receiptStart();
+      }
+    }
+
+    output.onCreatedPacketReceipt(this.receiptFinish());
+  }
+
+  private CoPacket receiptFinish()
+  {
+    final CoDataReceipt pd =
+      this.packet_receipt.build();
+    final CoPacket p =
+      CoPacket.newBuilder().setDataReceipt(pd).build();
+
+    this.sequences.receiptSend();
+    this.packet_receipt.clear();
+    this.packet_receipt_size = this.packet_receipt_size_base;
+    return p;
+  }
+
+  private boolean receiptCanFit()
+  {
+    return this.packet_reliable_size + 6 < this.packet_size_limit;
+  }
+
+  private void receiptStart()
+  {
+    this.packet_receipt.clear();
+    this.packet_receipt.setId(
+      CoPacketID.newBuilder()
+        .setConnectionId(this.id)
+        .setChannel(this.channel)
+        .setSequence(this.sequences.receiptToSendNext())
+        .build());
+  }
+
   public interface ListenerType
   {
     void onCreatedPacketReliable(CoPacket p);
@@ -467,5 +547,7 @@ public final class CoTransportPacketBuilder
     void onCreatedPacketUnreliable(CoPacket p);
 
     void onCreatedPacketReliableFragment(CoPacket p);
+
+    void onCreatedPacketReceipt(CoPacket p);
   }
 }

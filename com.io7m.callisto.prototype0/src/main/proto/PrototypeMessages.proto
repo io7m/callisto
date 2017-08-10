@@ -46,13 +46,11 @@ message CoHelloResponse
   }
 }
 
-message CoPacketIdentifier
+message CoPacketID
 {
-  fixed32 connection_id              = 1;
-  uint32  channel                    = 2;
-  uint32  sequence                   = 3;
-  uint32  sequence_received_reliable = 4;
-  fixed32 sequence_received_ack      = 5;
+  fixed32 connection_id = 1;
+  uint32  channel       = 2;
+  uint32  sequence      = 3;
 }
 
 message CoMessage
@@ -64,24 +62,31 @@ message CoMessage
 
 message CoDataReliable
 {
-  CoPacketIdentifier id       = 1;
+  CoPacketID         id       = 1;
   repeated CoMessage messages = 2;
 }
 
 message CoDataUnreliable
 {
-  CoPacketIdentifier id       = 1;
+  CoPacketID         id       = 1;
   repeated CoMessage messages = 2;
 }
 
 message CoDataReliableFragment
 {
-  CoPacketIdentifier id             = 1;
-  uint32             fragment_index = 2;
-  uint32             fragment_count = 3;
-  uint32             message_id     = 4;
-  CoStringConstant   message_type   = 5;
-  bytes              message_data   = 6;
+  CoPacketID       id             = 1;
+  uint32           fragment_index = 2;
+  uint32           fragment_count = 3;
+  uint32           message_id     = 4;
+  CoStringConstant message_type   = 5;
+  bytes            message_data   = 6;
+}
+
+message CoDataReceipt
+{
+  CoPacketID      id                             = 1;
+  uint32          sequence_reliable_received     = 2;
+  repeated uint32 sequence_reliable_not_received = 3;
 }
 
 message CoPacket
@@ -92,5 +97,6 @@ message CoPacket
     CoDataReliable         data_reliable          = 3;
     CoDataUnreliable       data_unreliable        = 4;
     CoDataReliableFragment data_reliable_fragment = 5;
+    CoDataReceipt          data_receipt           = 6;
   }
 }

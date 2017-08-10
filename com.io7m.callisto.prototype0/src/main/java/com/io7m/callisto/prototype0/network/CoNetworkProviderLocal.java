@@ -52,9 +52,9 @@ public final class CoNetworkProviderLocal implements CoNetworkProviderType
   private final CoIDPoolType ports;
   private final ExecutorService exec;
   private final SecureRandom random;
-  private final double loss;
-  private final long latency_min;
-  private final long latency_max;
+  private volatile double loss;
+  private volatile long latency_min;
+  private volatile long latency_max;
 
   public CoNetworkProviderLocal()
   {
@@ -62,8 +62,8 @@ public final class CoNetworkProviderLocal implements CoNetworkProviderType
     this.ports = new CoIDPool();
     this.random = new SecureRandom();
     this.loss = 0.0;
-    this.latency_min = 10L;
-    this.latency_max = 100L;
+    this.latency_min = 0L;
+    this.latency_max = 0L;
 
     this.exec = Executors.newSingleThreadExecutor(r -> {
       final Thread th = new Thread(r);
@@ -173,8 +173,13 @@ public final class CoNetworkProviderLocal implements CoNetworkProviderType
         return;
       }
 
-      final long delay =
-        c.latency_min + (long) c.random.nextInt((int) (c.latency_max - c.latency_min));
+      if (c.latency_max == 0L) {
+        this.incoming.add(datagram);
+        return;
+      }
+
+      final long bound = c.latency_max - c.latency_min;
+      final long delay = c.latency_min + (long) c.random.nextInt((int) bound);
 
       LOG.trace(
         "[{} -> {}]: delaying delivery {}ms",

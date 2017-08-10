@@ -20,9 +20,11 @@ import com.google.protobuf.ByteString;
 import com.io7m.callisto.prototype0.messages.CoHello;
 import com.io7m.callisto.prototype0.messages.CoHelloResponse;
 import com.io7m.callisto.prototype0.messages.CoHelloResponseOK;
+import com.io7m.callisto.prototype0.messages.CoMessage;
 import com.io7m.callisto.prototype0.messages.CoPacket;
 import com.io7m.callisto.prototype0.network.CoNetworkPacketSocketType;
 import com.io7m.callisto.prototype0.stringconstants.CoStringConstantPoolReadableType;
+import com.io7m.callisto.prototype0.stringconstants.CoStringConstantReference;
 import com.io7m.jfsm.core.FSMEnumMutable;
 import com.io7m.jnull.NullCheck;
 import com.io7m.jranges.RangeCheck;
@@ -154,6 +156,7 @@ public final class CoTransportClient implements CoTransportClientType
 
       case STATE_INITIAL:
       case STATE_CONNECTED: {
+        this.connection.tick();
         break;
       }
     }
@@ -173,10 +176,12 @@ public final class CoTransportClient implements CoTransportClientType
     NullCheck.notNull(address, "Address");
     NullCheck.notNull(data, "Data");
 
-    LOG.trace(
-      "{}: received {} octets",
-      address,
-      Integer.valueOf(data.remaining()));
+    if (LOG.isTraceEnabled()) {
+      LOG.trace(
+        "{}: received {} octets",
+        address,
+        Integer.valueOf(data.remaining()));
+    }
 
     final CoPacket p;
     try {
@@ -184,6 +189,13 @@ public final class CoTransportClient implements CoTransportClientType
     } catch (final Exception e) {
       this.listener.onReceivePacketUnparseable(address, data, e);
       return;
+    }
+
+    if (LOG.isTraceEnabled()) {
+      LOG.trace(
+        "{}: received {} packet",
+        address,
+        p.getValueCase());
     }
 
     switch (p.getValueCase()) {
@@ -202,6 +214,7 @@ public final class CoTransportClient implements CoTransportClientType
         break;
       }
 
+      case DATA_RECEIPT:
       case DATA_RELIABLE:
       case DATA_UNRELIABLE:
       case DATA_RELIABLE_FRAGMENT: {
@@ -379,6 +392,23 @@ public final class CoTransportClient implements CoTransportClientType
     }
 
     @Override
+    public void onEnqueuePacketReceipt(
+      final CoTransportConnectionUsableType connection,
+      final int channel,
+      final int sequence,
+      final int size)
+    {
+      if (LOG.isTraceEnabled()) {
+        LOG.trace(
+          "onEnqueuePacketReceipt: {}:{} sequence {}: {} octets",
+          connection,
+          Integer.valueOf(channel),
+          Integer.valueOf(sequence),
+          Integer.valueOf(size));
+      }
+    }
+
+    @Override
     public void onSendPacketReliable(
       final CoTransportConnectionUsableType connection,
       final int channel,
@@ -427,6 +457,72 @@ public final class CoTransportClient implements CoTransportClientType
           Integer.valueOf(sequence),
           Integer.valueOf(size));
       }
+    }
+
+    @Override
+    public void onSendPacketReceipt(
+      final CoTransportConnectionUsableType connection,
+      final int channel,
+      final int sequence,
+      final int size)
+    {
+      if (LOG.isTraceEnabled()) {
+        LOG.trace(
+          "onSendPacketReceipt: {}:{} sequence {}: {} octets",
+          connection,
+          Integer.valueOf(channel),
+          Integer.valueOf(sequence),
+          Integer.valueOf(size));
+      }
+    }
+
+    @Override
+    public void onDropPacketUnreliable(
+      final CoTransportConnectionUsableType connection,
+      final int channel,
+      final int sequence,
+      final int size)
+    {
+      if (LOG.isTraceEnabled()) {
+        LOG.trace(
+          "onDropPacketUnreliable: {}:{} sequence {}: {} octets",
+          connection,
+          Integer.valueOf(channel),
+          Integer.valueOf(sequence),
+          Integer.valueOf(size));
+      }
+    }
+
+    @Override
+    public void onMessageReceived(
+      final CoTransportConnectionUsableType connection,
+      final int channel,
+      final CoMessage message)
+    {
+      if (LOG.isTraceEnabled()) {
+        LOG.trace(
+          "onMessageReceived: {}:{} {}",
+          connection,
+          Integer.valueOf(channel),
+          message);
+      }
+
+      final int type_index =
+        message.getMessageType().getValue();
+      final CoStringConstantReference type_ref =
+        CoStringConstantReference.of(type_index);
+      final String type_name =
+        this.client.strings.lookupString(type_ref);
+
+      if (LOG.isTraceEnabled()) {
+        LOG.trace(
+          "onMessageReceived: {}:{} message type {}",
+          connection,
+          Integer.valueOf(channel),
+          type_name);
+      }
+
+
     }
   }
 }

@@ -16,6 +16,8 @@
 
 package com.io7m.callisto.prototype0.transport;
 
+import com.io7m.callisto.prototype0.messages.CoMessage;
+
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 
@@ -63,6 +65,12 @@ public interface CoTransportConnectionUsableType
       int sequence,
       int size);
 
+    void onEnqueuePacketReceipt(
+      CoTransportConnectionUsableType connection,
+      int channel,
+      int sequence,
+      int size);
+
     void onSendPacketReliable(
       CoTransportConnectionUsableType connection,
       int channel,
@@ -80,5 +88,22 @@ public interface CoTransportConnectionUsableType
       int channel,
       int sequence,
       int size);
+
+    void onSendPacketReceipt(
+      CoTransportConnectionUsableType connection,
+      int channel,
+      int sequence,
+      int size);
+
+    void onDropPacketUnreliable(
+      CoTransportConnectionUsableType connection,
+      int channel,
+      int sequence,
+      int size);
+
+    void onMessageReceived(
+      CoTransportConnectionUsableType connection,
+      int channel,
+      CoMessage message);
   }
 }

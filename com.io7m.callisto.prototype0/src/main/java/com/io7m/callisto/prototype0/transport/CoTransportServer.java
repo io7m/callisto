@@ -22,6 +22,7 @@ import com.io7m.callisto.prototype0.messages.CoHello;
 import com.io7m.callisto.prototype0.messages.CoHelloResponse;
 import com.io7m.callisto.prototype0.messages.CoHelloResponseError;
 import com.io7m.callisto.prototype0.messages.CoHelloResponseOK;
+import com.io7m.callisto.prototype0.messages.CoMessage;
 import com.io7m.callisto.prototype0.messages.CoPacket;
 import com.io7m.callisto.prototype0.network.CoNetworkPacketSocketType;
 import com.io7m.callisto.prototype0.stringconstants.CoStringConstantPoolReadableType;
@@ -76,6 +77,10 @@ public final class CoTransportServer implements CoTransportServerType
       case HELLO_RESPONSE:
       case VALUE_NOT_SET: {
         break;
+      }
+
+      case DATA_RECEIPT: {
+        return p.getDataReceipt().getId().getConnectionId();
       }
       case DATA_RELIABLE: {
         return p.getDataReliable().getId().getConnectionId();
@@ -190,15 +195,18 @@ public final class CoTransportServer implements CoTransportServerType
         this.onReceivedHello(address, p.getHello());
         break;
       }
+
       case VALUE_NOT_SET: {
         this.listener.onReceivePacketUnrecognized(address, p);
         break;
       }
+
       case HELLO_RESPONSE: {
         this.listener.onReceivePacketUnexpected(address, p);
         break;
       }
 
+      case DATA_RECEIPT:
       case DATA_RELIABLE:
       case DATA_UNRELIABLE:
       case DATA_RELIABLE_FRAGMENT: {
@@ -343,6 +351,23 @@ public final class CoTransportServer implements CoTransportServerType
     }
 
     @Override
+    public void onEnqueuePacketReceipt(
+      final CoTransportConnectionUsableType connection,
+      final int channel,
+      final int sequence,
+      final int size)
+    {
+      if (LOG.isTraceEnabled()) {
+        LOG.trace(
+          "onEnqueuePacketReceipt: {}:{} sequence {}: {} octets",
+          connection,
+          Integer.valueOf(channel),
+          Integer.valueOf(sequence),
+          Integer.valueOf(size));
+      }
+    }
+
+    @Override
     public void onSendPacketReliable(
       final CoTransportConnectionUsableType connection,
       final int channel,
@@ -390,6 +415,55 @@ public final class CoTransportServer implements CoTransportServerType
           Integer.valueOf(channel),
           Integer.valueOf(sequence),
           Integer.valueOf(size));
+      }
+    }
+
+    @Override
+    public void onSendPacketReceipt(
+      final CoTransportConnectionUsableType connection,
+      final int channel,
+      final int sequence,
+      final int size)
+    {
+      if (LOG.isTraceEnabled()) {
+        LOG.trace(
+          "onSendPacketReceipts: {}:{} sequence {}: {} octets",
+          connection,
+          Integer.valueOf(channel),
+          Integer.valueOf(sequence),
+          Integer.valueOf(size));
+      }
+    }
+
+    @Override
+    public void onDropPacketUnreliable(
+      final CoTransportConnectionUsableType connection,
+      final int channel,
+      final int sequence,
+      final int size)
+    {
+      if (LOG.isTraceEnabled()) {
+        LOG.trace(
+          "onDropPacketUnreliable: {}:{} sequence {}: {} octets",
+          connection,
+          Integer.valueOf(channel),
+          Integer.valueOf(sequence),
+          Integer.valueOf(size));
+      }
+    }
+
+    @Override
+    public void onMessageReceived(
+      final CoTransportConnectionUsableType connection,
+      final int channel,
+      final CoMessage message)
+    {
+      if (LOG.isTraceEnabled()) {
+        LOG.trace(
+          "onMessageReceived: {}: {}",
+          connection,
+          Integer.valueOf(channel),
+          message);
       }
     }
   }

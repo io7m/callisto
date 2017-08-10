@@ -22,6 +22,7 @@ import com.io7m.callisto.prototype0.messages.CoDataUnreliable;
 import com.io7m.callisto.prototype0.messages.CoPacket;
 import com.io7m.callisto.prototype0.stringconstants.CoStringConstantReference;
 import com.io7m.callisto.prototype0.transport.CoTransportPacketBuilder;
+import com.io7m.callisto.prototype0.transport.CoTransportSequenceNumberTracker;
 import com.io7m.callisto.tests.rules.PercentagePassRule;
 import com.io7m.callisto.tests.rules.PercentagePassing;
 import com.io7m.jserial.core.SerialNumber24;
@@ -61,19 +62,29 @@ public final class CoTransportPacketBuilderTest
     }
 
     @Override
-    public void onCreatedPacketReliable(final CoPacket p)
+    public void onCreatedPacketReliable(
+      final CoPacket p)
     {
       this.queue.add(p);
     }
 
     @Override
-    public void onCreatedPacketUnreliable(final CoPacket p)
+    public void onCreatedPacketUnreliable(
+      final CoPacket p)
     {
       this.queue.add(p);
     }
 
     @Override
-    public void onCreatedPacketReliableFragment(final CoPacket p)
+    public void onCreatedPacketReliableFragment(
+      final CoPacket p)
+    {
+      this.queue.add(p);
+    }
+
+    @Override
+    public void onCreatedPacketReceipt(
+      final CoPacket p)
     {
       this.queue.add(p);
     }
@@ -88,8 +99,10 @@ public final class CoTransportPacketBuilderTest
     final int message_size,
     final int packet_size)
   {
+    final CoTransportSequenceNumberTracker sequences =
+      new CoTransportSequenceNumberTracker();
     final CoTransportPacketBuilder b =
-      new CoTransportPacketBuilder(packet_size, 0, 0x696f376d);
+      new CoTransportPacketBuilder(sequences, packet_size, 0, 0x696f376d);
 
     final Random random = new Random();
     final QueueListener listener = new QueueListener();
@@ -130,6 +143,9 @@ public final class CoTransportPacketBuilderTest
       LOG.debug(
         "message count: {}",
         Integer.valueOf(pu.getMessagesCount()));
+      LOG.debug(
+        "id:            {}",
+        Integer.valueOf(pu.getId().getSequence()));
 
       if (!first) {
         Assert.assertTrue(serial.compare(
@@ -161,8 +177,10 @@ public final class CoTransportPacketBuilderTest
     final int message_size,
     final int packet_size)
   {
+    final CoTransportSequenceNumberTracker sequences =
+      new CoTransportSequenceNumberTracker();
     final CoTransportPacketBuilder b =
-      new CoTransportPacketBuilder(packet_size, 0, 0x696f376d);
+      new CoTransportPacketBuilder(sequences, packet_size, 0, 0x696f376d);
 
     final Random random = new Random();
     final QueueListener listener = new QueueListener();
@@ -280,8 +298,10 @@ public final class CoTransportPacketBuilderTest
   public void testPacketFragmentationReliable()
     throws Exception
   {
+    final CoTransportSequenceNumberTracker sequences =
+      new CoTransportSequenceNumberTracker();
     final CoTransportPacketBuilder b =
-      new CoTransportPacketBuilder(1200, 0, 0x696f376d);
+      new CoTransportPacketBuilder(sequences, 1200, 0, 0x696f376d);
 
     final Random random = new Random();
     final QueueListener listener = new QueueListener();
@@ -318,8 +338,10 @@ public final class CoTransportPacketBuilderTest
   public void testPacketFragmentationUnreliable()
     throws Exception
   {
+    final CoTransportSequenceNumberTracker sequences =
+      new CoTransportSequenceNumberTracker();
     final CoTransportPacketBuilder b =
-      new CoTransportPacketBuilder(1200, 0, 0x696f376d);
+      new CoTransportPacketBuilder(sequences, 1200, 0, 0x696f376d);
 
     final Random random = new Random();
     final QueueListener listener = new QueueListener();
@@ -352,6 +374,24 @@ public final class CoTransportPacketBuilderTest
     }
   }
 
+  @Test
+  public void testPacketBuildReceiptMisc()
+  {
+    final CoTransportSequenceNumberTracker sequences =
+      new CoTransportSequenceNumberTracker();
+    final CoTransportPacketBuilder b =
+      new CoTransportPacketBuilder(sequences, 1200, 0, 0x696f376d);
+
+    sequences.reliableReceiverWindow().receive(1);
+    sequences.reliableReceiverWindow().receive(2);
+    sequences.reliableReceiverWindow().receive(3);
+
+    final QueueListener listener = new QueueListener();
+    b.receipts(listener);
+
+    listener.queue.forEach(p -> LOG.trace("packet: {}", p));
+  }
+
   private static final class PacketSizeIsWithinLimits
     extends TypeSafeMatcher<Integer>
   {
@@ -367,7 +407,7 @@ public final class CoTransportPacketBuilderTest
     protected boolean matchesSafely(
       final Integer x_size)
     {
-      return x_size.intValue() < this.size;
+      return x_size.intValue() <= this.size;
     }
 
     @Override
