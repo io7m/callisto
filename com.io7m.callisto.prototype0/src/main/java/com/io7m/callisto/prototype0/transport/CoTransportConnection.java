@@ -31,7 +31,6 @@ import com.io7m.junreachable.UnreachableCodeException;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceRBTreeMap;
 import it.unimi.dsi.fastutil.ints.IntBidirectionalIterator;
-import it.unimi.dsi.fastutil.ints.IntRBTreeSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,8 +38,7 @@ import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayDeque;
 import java.util.Iterator;
-import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
 public final class CoTransportConnection implements CoTransportConnectionType
 {
@@ -141,13 +139,20 @@ public final class CoTransportConnection implements CoTransportConnectionType
     NullCheck.notNull(type, "Type");
     NullCheck.notNull(message, "Message");
 
+    final Optional<CoStringConstantReference> type_ref_opt =
+      this.strings.lookupReference(type);
+
+    if (!type_ref_opt.isPresent()) {
+      throw new IllegalArgumentException(
+        "No string constant for type: " + type);
+    }
+
+    final CoStringConstantReference type_ref =
+      type_ref_opt.get();
     final CoTransportConnectionChannel transport_channel =
       this.createOrFindChannel(channel);
 
-    transport_channel.enqueue(
-      reliability,
-      this.strings.lookupReference(type),
-      message);
+    transport_channel.enqueue(reliability, type_ref, message);
   }
 
   private CoTransportConnectionChannel createOrFindChannel(
@@ -281,8 +286,8 @@ public final class CoTransportConnection implements CoTransportConnectionType
     }
 
     /**
-     * Send a receipt for any missing packets, and the sequence number of
-     * the highest received reliable packet prior to any missing packets.
+     * Send a receipt for any missing packets, and the sequence number of the
+     * highest received reliable packet prior to any missing packets.
      */
 
     private void handleReceivesEnqueueReceipt()

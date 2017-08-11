@@ -41,9 +41,13 @@ import org.slf4j.LoggerFactory;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
+
+import static com.io7m.callisto.prototype0.transport.CoTransportConnectionUsableType.ListenerType;
+import static com.io7m.callisto.prototype0.transport.CoTransportConnectionUsableType.Reliability;
 
 public final class CoTransportConnectionTest
 {
@@ -208,7 +212,17 @@ public final class CoTransportConnectionTest
 
     final byte[] data = new byte[1];
 
-    IntStream.of(0xfffffb, 0xfffffc, 0xfffffd, 0xfffffe, 0xffffff, 0, 1, 2, 3, 4).forEach(id -> {
+    IntStream.of(
+      0xfffffb,
+      0xfffffc,
+      0xfffffd,
+      0xfffffe,
+      0xffffff,
+      0,
+      1,
+      2,
+      3,
+      4).forEach(id -> {
       final CoMessage message =
         CoMessage.newBuilder()
           .setMessageType(CoStringConstant.newBuilder().setValue(1))
@@ -407,11 +421,11 @@ public final class CoTransportConnectionTest
     }};
 
     for (int index = 0; index < 100; ++index) {
+      final Optional<String> s_opt =
+        setup.strings.lookupString(CoStringConstantReference.of(index % 5));
+
       connection.send(
-        CoTransportConnectionUsableType.Reliability.MESSAGE_UNRELIABLE,
-        0,
-        setup.strings.lookupString(CoStringConstantReference.of(index % 5)),
-        message);
+        Reliability.MESSAGE_UNRELIABLE, 0, s_opt.get(), message);
       message.rewind();
     }
 
@@ -636,14 +650,14 @@ public final class CoTransportConnectionTest
 
   private static final class Setup
   {
-    private final CoTransportConnectionUsableType.ListenerType listener;
+    private final ListenerType listener;
     private final CoTransportConnection.ListenerType logging_listener;
     private final CoStringConstantPoolType strings;
     private final CoNetworkPacketSocketType peer;
     private final SocketAddress remote;
 
     Setup(
-      final CoTransportConnectionUsableType.ListenerType listener)
+      final ListenerType listener)
     {
       this.listener = listener;
 

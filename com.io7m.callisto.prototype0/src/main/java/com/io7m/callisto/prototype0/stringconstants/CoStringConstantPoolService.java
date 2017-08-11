@@ -26,6 +26,8 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Optional;
+
 public final class CoStringConstantPoolService
   implements CoStringConstantPoolServiceType
 {
@@ -75,14 +77,14 @@ public final class CoStringConstantPoolService
   }
 
   @Override
-  public String lookupString(
+  public Optional<String> lookupString(
     final CoStringConstantReference r)
   {
     return this.pool.lookupString(r);
   }
 
   @Override
-  public CoStringConstantReference lookupReference(
+  public Optional<CoStringConstantReference> lookupReference(
     final String text)
   {
     return this.pool.lookupReference(text);

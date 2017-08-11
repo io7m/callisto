@@ -36,6 +36,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
+import java.util.Optional;
 
 public final class CoTransportClient implements CoTransportClientType
 {
@@ -511,13 +512,21 @@ public final class CoTransportClient implements CoTransportClientType
           message);
       }
 
-      final int type_index =
-        message.getMessageType().getValue();
       final CoStringConstantReference type_ref =
-        CoStringConstantReference.of(type_index);
-      final String type_name =
+        CoStringConstantReference.of(message.getMessageType().getValue());
+      final Optional<String> type_name_opt =
         this.client.strings.lookupString(type_ref);
 
+      if (!type_name_opt.isPresent()) {
+        LOG.error(
+          "onMessageReceived: {}:{} unrecognized string constant {}",
+          connection,
+          Integer.valueOf(channel),
+          Integer.valueOf(type_ref.value()));
+        return;
+      }
+
+      final String type_name = type_name_opt.get();
       if (LOG.isTraceEnabled()) {
         LOG.trace(
           "onMessageReceived: {}:{} message type {}",

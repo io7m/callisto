@@ -18,13 +18,14 @@
 package com.io7m.callisto.prototype0.stringconstants;
 
 import java.util.Map;
+import java.util.Optional;
 
 public interface CoStringConstantPoolReadableType
 {
-  String lookupString(
+  Optional<String> lookupString(
     CoStringConstantReference r);
 
-  CoStringConstantReference lookupReference(
+  Optional<CoStringConstantReference> lookupReference(
     String text);
 
   Map<Integer, String> view();

@@ -23,7 +23,7 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceRBTreeMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import net.jcip.annotations.GuardedBy;
 
-import java.util.NoSuchElementException;
+import java.util.Optional;
 
 public final class CoStringConstantPool implements CoStringConstantPoolType
 {
@@ -42,7 +42,7 @@ public final class CoStringConstantPool implements CoStringConstantPoolType
   }
 
   @Override
-  public String lookupString(
+  public Optional<String> lookupString(
     final CoStringConstantReference r)
   {
     NullCheck.notNull(r, "Reference");
@@ -50,28 +50,27 @@ public final class CoStringConstantPool implements CoStringConstantPoolType
     synchronized (this.lock) {
       final int k = r.value();
       if (this.int_to_text.containsKey(k)) {
-        return this.int_to_text.get(k);
+        return Optional.of(this.int_to_text.get(k));
       }
-
-      throw new NoSuchElementException(
-        "No such string constant: " + Integer.toUnsignedString(k));
     }
+
+    return Optional.empty();
   }
 
   @Override
-  public CoStringConstantReference lookupReference(
+  public Optional<CoStringConstantReference> lookupReference(
     final String text)
   {
     NullCheck.notNull(text, "Text");
 
     synchronized (this.lock) {
       if (this.text_to_int.containsKey(text)) {
-        return CoStringConstantReference.of(this.text_to_int.getInt(text));
+        return Optional.of(CoStringConstantReference.of(
+          this.text_to_int.getInt(text)));
       }
-
-      throw new NoSuchElementException(
-        "No constant value for string: " + text);
     }
+
+    return Optional.empty();
   }
 
   @Override
