@@ -99,11 +99,9 @@ public final class CoServerNetwork extends CoProcessAbstract
     props.setProperty("local_port", "9999");
 
     final byte[] password = new byte[0];
-    this.handler = new CoServerNetworkHandler(
-      this.network,
-      this.strings,
-      password,
-      props);
+    this.handler =
+      new CoServerNetworkHandler(
+        this.network, this.events(), this.strings, password, props);
   }
 
   @Override

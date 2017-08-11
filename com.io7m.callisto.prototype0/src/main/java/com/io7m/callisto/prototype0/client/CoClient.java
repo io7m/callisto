@@ -16,6 +16,7 @@
 
 package com.io7m.callisto.prototype0.client;
 
+import com.io7m.callisto.prototype0.events.CoEventNetworkSerializerRegistryType;
 import com.io7m.callisto.prototype0.events.CoEventServiceType;
 import com.io7m.callisto.prototype0.network.CoNetworkProviderType;
 import com.io7m.callisto.prototype0.process.CoProcessSupervisor;
@@ -47,7 +48,8 @@ public final class CoClient implements CoClientType
   public CoClient(
     final CoNetworkProviderType in_network,
     final CoStringConstantPoolServiceType in_strings,
-    final CoEventServiceType in_events)
+    final CoEventServiceType in_events,
+    final CoEventNetworkSerializerRegistryType in_serializers)
   {
     this.network =
       NullCheck.notNull(in_network, "Network");
@@ -55,7 +57,11 @@ public final class CoClient implements CoClientType
       NullCheck.notNull(in_events, "Events");
 
     this.network_process =
-      new CoClientNetwork(this.events, in_strings, this.network);
+      new CoClientNetwork(
+        this.events,
+        in_serializers,
+        in_strings,
+        this.network);
 
     this.processes = new ReferenceArrayList<>();
     this.processes.add(new CoClientAudio(this.events));

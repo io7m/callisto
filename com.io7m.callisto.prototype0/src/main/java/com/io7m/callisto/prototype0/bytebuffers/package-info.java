@@ -14,32 +14,10 @@
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-package com.io7m.callisto.prototype0.stringconstants;
+/**
+ * Byte buffer utilities.
+ */
 
-import com.io7m.callisto.core.CoImmutableStyleType;
-import com.io7m.callisto.prototype0.events.CoEventNetworkType;
-import com.io7m.callisto.prototype0.transport.CoTransportConnectionUsableType;
-import org.immutables.value.Value;
+@com.io7m.jnull.NonNullByDefault
+package com.io7m.callisto.prototype0.bytebuffers;
 
-import java.util.Map;
-
-@CoImmutableStyleType
-@Value.Immutable
-public interface CoStringConstantPoolEventUpdateReceivedType
-  extends CoStringConstantPoolEventType, CoEventNetworkType
-{
-  @Value.Parameter
-  Map<Integer, String> values();
-
-  @Override
-  default Type type()
-  {
-    return Type.STRING_CONSTANT_POOL_UPDATE_RECEIVED;
-  }
-
-  @Override
-  default CoTransportConnectionUsableType.Reliability reliability()
-  {
-    return CoTransportConnectionUsableType.Reliability.MESSAGE_RELIABLE;
-  }
-}

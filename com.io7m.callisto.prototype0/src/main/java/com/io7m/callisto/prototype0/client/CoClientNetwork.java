@@ -16,6 +16,7 @@
 
 package com.io7m.callisto.prototype0.client;
 
+import com.io7m.callisto.prototype0.events.CoEventNetworkSerializerRegistryType;
 import com.io7m.callisto.prototype0.events.CoEventServiceType;
 import com.io7m.callisto.prototype0.network.CoNetworkProviderType;
 import com.io7m.callisto.prototype0.process.CoProcessAbstract;
@@ -41,10 +42,13 @@ public final class CoClientNetwork extends CoProcessAbstract
   private final Disposable sub_tick;
   private final CoTickDivisor tick_divisor;
   private final CoStringConstantPoolReadableType strings;
+  private final Disposable sub_net_events;
+  private final CoEventNetworkSerializerRegistryType event_serializers;
   private CoClientNetworkHandler handler;
 
   public CoClientNetwork(
     final CoEventServiceType in_events,
+    final CoEventNetworkSerializerRegistryType in_event_serializers,
     final CoStringConstantPoolReadableType in_strings,
     final CoNetworkProviderType in_network)
   {
@@ -56,6 +60,8 @@ public final class CoClientNetwork extends CoProcessAbstract
         return th;
       });
 
+    this.event_serializers =
+      NullCheck.notNull(in_event_serializers, "Event serializers");
     this.strings =
       NullCheck.notNull(in_strings, "Strings");
     this.network =
@@ -69,6 +75,33 @@ public final class CoClientNetwork extends CoProcessAbstract
         .ofType(CoClientTickEvent.class)
         .observeOn(this.scheduler())
         .subscribe(this::onTickEvent);
+
+    this.sub_net_events =
+      in_events.events()
+        .ofType(CoClientNetworkEventType.class)
+        .observeOn(this.scheduler())
+        .subscribe(this::onNetworkEvent);
+  }
+
+  private void onNetworkEvent(
+    final CoClientNetworkEventType e)
+  {
+    switch (e.type()) {
+      case CLIENT_CONNECTED: {
+        break;
+      }
+
+      case CLIENT_CONNECTION_REFUSED:
+      case CLIENT_CONNECTION_TIMED_OUT:
+      case CLIENT_DISCONNECTED: {
+        try {
+          this.handler.close();
+        } catch (final IOException ex) {
+          LOG.error("i/o error: ", ex);
+        }
+        break;
+      }
+    }
   }
 
   private void onTickEvent(
@@ -111,6 +144,7 @@ public final class CoClientNetwork extends CoProcessAbstract
   {
     LOG.trace("stop");
     this.sub_tick.dispose();
+    this.sub_net_events.dispose();
 
     final CoClientNetworkHandler h = this.handler;
     if (h != null) {
@@ -146,12 +180,13 @@ public final class CoClientNetwork extends CoProcessAbstract
     this.handler =
       new CoClientNetworkHandler(
         this.events(),
+        this.event_serializers,
         this.network,
         this.strings,
         pass.getBytes(),
         props);
+
     this.handler.start();
     return null;
   }
-
 }

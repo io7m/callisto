@@ -14,32 +14,28 @@
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-package com.io7m.callisto.prototype0.stringconstants;
+package com.io7m.callisto.prototype0.events;
 
-import com.io7m.callisto.core.CoImmutableStyleType;
-import com.io7m.callisto.prototype0.events.CoEventNetworkType;
-import com.io7m.callisto.prototype0.transport.CoTransportConnectionUsableType;
-import org.immutables.value.Value;
+import com.io7m.callisto.core.CoException;
 
-import java.util.Map;
-
-@CoImmutableStyleType
-@Value.Immutable
-public interface CoStringConstantPoolEventUpdateReceivedType
-  extends CoStringConstantPoolEventType, CoEventNetworkType
+public abstract class CoEventSerializationException extends CoException
 {
-  @Value.Parameter
-  Map<Integer, String> values();
-
-  @Override
-  default Type type()
+  public CoEventSerializationException(
+    final String message)
   {
-    return Type.STRING_CONSTANT_POOL_UPDATE_RECEIVED;
+    super(message);
   }
 
-  @Override
-  default CoTransportConnectionUsableType.Reliability reliability()
+  public CoEventSerializationException(
+    final String message,
+    final Throwable cause)
   {
-    return CoTransportConnectionUsableType.Reliability.MESSAGE_RELIABLE;
+    super(message, cause);
+  }
+
+  public CoEventSerializationException(
+    final Throwable cause)
+  {
+    super(cause);
   }
 }

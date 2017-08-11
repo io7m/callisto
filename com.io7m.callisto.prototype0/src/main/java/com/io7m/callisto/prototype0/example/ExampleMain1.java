@@ -21,6 +21,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Slf4jReporter;
 import com.io7m.callisto.prototype0.client.CoClient;
 import com.io7m.callisto.prototype0.client.CoClientTickEvent;
+import com.io7m.callisto.prototype0.events.CoEventNetworkSerializerRegistryServiceLoader;
 import com.io7m.callisto.prototype0.events.CoEventService;
 import com.io7m.callisto.prototype0.network.CoNetworkProviderLocal;
 import com.io7m.callisto.prototype0.network.CoNetworkProviderType;
@@ -94,12 +95,20 @@ public final class ExampleMain1
 
     final CoNetworkProviderType network = new CoNetworkProviderUDP();
 
+    final CoEventNetworkSerializerRegistryServiceLoader client_serializers =
+      new CoEventNetworkSerializerRegistryServiceLoader(client_events);
+    client_serializers.onActivate();
+
     final CoStringConstantPoolServiceType client_strings =
       new CoStringConstantPoolService(client_events);
 
     final CoClient client =
-      new CoClient(network, client_strings, client_events);
+      new CoClient(network, client_strings, client_events, client_serializers);
     client.startSynchronously(3L, TimeUnit.SECONDS);
+
+    final CoEventNetworkSerializerRegistryServiceLoader server_serializers =
+      new CoEventNetworkSerializerRegistryServiceLoader(server_events);
+    server_serializers.onActivate();
 
     final CoStringConstantPoolServiceType server_strings =
       new CoStringConstantPoolService(server_events);

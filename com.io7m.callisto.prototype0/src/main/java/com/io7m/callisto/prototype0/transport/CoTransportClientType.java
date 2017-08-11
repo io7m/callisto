@@ -43,19 +43,25 @@ public interface CoTransportClientType extends Closeable
       SocketAddress address,
       CoPacket packet);
 
-    void onConnectionCreated(
-      CoTransportConnectionUsableType connection);
-
-    void onConnectionDisconnected(
-      CoTransportConnectionUsableType connection,
-      String message);
-
     void onConnectionTimedOut(
       SocketAddress address,
       String message);
 
     void onConnectionRefused(
       SocketAddress address,
+      String message);
+
+    void onConnectionCreated(
+      CoTransportConnectionUsableType connection);
+
+    void onMessageReceived(
+      CoTransportConnectionUsableType connection,
+      int channel,
+      String type_name,
+      ByteBuffer data);
+
+    void onConnectionDisconnected(
+      CoTransportConnectionUsableType connection,
       String message);
   }
 }

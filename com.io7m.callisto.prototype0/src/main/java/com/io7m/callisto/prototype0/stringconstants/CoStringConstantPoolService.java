@@ -16,17 +16,28 @@
 
 package com.io7m.callisto.prototype0.stringconstants;
 
+import com.io7m.callisto.prototype0.events.CoEventNetworkSerializerEventType;
+import com.io7m.callisto.prototype0.events.CoEventNetworkSerializerRegistered;
 import com.io7m.callisto.prototype0.events.CoEventServiceType;
 import com.io7m.jnull.NullCheck;
+import com.io7m.junreachable.UnimplementedCodeException;
+import io.reactivex.disposables.Disposable;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class CoStringConstantPoolService
   implements CoStringConstantPoolServiceType
 {
+  private static final Logger LOG =
+    LoggerFactory.getLogger(CoStringConstantPoolService.class);
+
   private static final CoStringConstantPoolEventUpdated UPDATED =
     CoStringConstantPoolEventUpdated.builder().build();
+
   private final CoEventServiceType events;
   private final CoStringConstantPool pool;
+  private final Disposable sub_serializers;
 
   public CoStringConstantPoolService(
     final CoEventServiceType in_events)
@@ -36,6 +47,31 @@ public final class CoStringConstantPoolService
     this.pool.newUpdate()
       .set(0, CoStringConstantPoolMessages.eventCompressedUpdateTypeName())
       .execute();
+
+    this.sub_serializers =
+      this.events.events()
+        .ofType(CoEventNetworkSerializerEventType.class)
+        .subscribe(this::onSerializerRegistered);
+  }
+
+  private void onSerializerRegistered(
+    final CoEventNetworkSerializerEventType e)
+  {
+    switch (e.type()) {
+      case SERIALIZER_REGISTERED: {
+        final CoEventNetworkSerializerRegistered er =
+          (CoEventNetworkSerializerRegistered) e;
+        this.pool.add(er.name());
+        break;
+      }
+      case SERIALIZER_UNREGISTERED: {
+        // XXX: What are the consequences of removing a string constant?
+        LOG.error(
+          "onSerializerUnregistered: ",
+          new UnimplementedCodeException());
+        break;
+      }
+    }
   }
 
   @Override
@@ -74,6 +110,6 @@ public final class CoStringConstantPoolService
   @Override
   public void shutDown()
   {
-
+    this.sub_serializers.dispose();
   }
 }

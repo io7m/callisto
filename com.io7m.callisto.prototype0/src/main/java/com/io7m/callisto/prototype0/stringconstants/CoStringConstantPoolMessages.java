@@ -17,9 +17,14 @@
 package com.io7m.callisto.prototype0.stringconstants;
 
 import com.google.protobuf.ByteString;
+import com.google.protobuf.InvalidProtocolBufferException;
+import com.io7m.callisto.prototype0.bytebuffers.ByteBufferInputStream;
+import com.io7m.callisto.prototype0.events.CoEventSerializationIOException;
+import com.io7m.callisto.prototype0.events.CoEventSerializationMalformedException;
 import com.io7m.callisto.prototype0.messages.CoStringConstantCompression;
 import com.io7m.callisto.prototype0.messages.CoStringConstantPoolUpdate;
 import com.io7m.callisto.prototype0.messages.CoStringConstantPoolUpdateCompressed;
+import com.io7m.jnull.NullCheck;
 import com.io7m.junreachable.UnreachableCodeException;
 
 import java.io.ByteArrayOutputStream;
@@ -28,12 +33,14 @@ import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
+import java.util.zip.Inflater;
+import java.util.zip.InflaterInputStream;
 
 public final class CoStringConstantPoolMessages
 {
   private CoStringConstantPoolMessages()
   {
-
+    throw new UnreachableCodeException();
   }
 
   public static String eventCompressedUpdateTypeName()
@@ -41,47 +48,95 @@ public final class CoStringConstantPoolMessages
     return "event:com.io7m.callisto.stringconstants.compressed_update";
   }
 
-  public static CoStringConstantPoolUpdate eventUpdate(
-    final Map<Integer, String> view)
+  public static CoStringConstantPoolUpdate createEventUpdate(
+    final Map<Integer, String> strings)
   {
+    NullCheck.notNull(strings, "Strings");
+
     return CoStringConstantPoolUpdate.newBuilder()
-      .putAllStrings(view)
+      .putAllStrings(strings)
       .build();
   }
 
-  public static ByteBuffer eventUpdateSerialized(
-    final Map<Integer, String> view)
+  public static CoStringConstantPoolUpdateCompressed createEventUpdateCompressed(
+    final CoStringConstantPoolUpdate update)
   {
-    return ByteBuffer.wrap(eventUpdate(view).toByteArray());
-  }
+    NullCheck.notNull(update, "Update");
 
-  public static CoStringConstantPoolUpdateCompressed eventCompressedUpdate(
-    final Map<Integer, String> view)
-  {
-    final CoStringConstantPoolUpdate update = eventUpdate(view);
     final Deflater def = new Deflater(9);
     try (final ByteArrayOutputStream b_out =
            new ByteArrayOutputStream(1024)) {
       try (final DeflaterOutputStream out =
              new DeflaterOutputStream(b_out, def)) {
         update.writeTo(out);
-
-        final CoStringConstantPoolUpdateCompressed outer =
-          CoStringConstantPoolUpdateCompressed.newBuilder()
-            .setAlgorithm(CoStringConstantCompression.COMPRESSION_DEFLATE)
-            .setData(ByteString.copyFrom(b_out.toByteArray()))
-            .build();
-
-        return outer;
+        out.finish();
+        out.flush();
       }
+
+      final byte[] bytes = b_out.toByteArray();
+      return CoStringConstantPoolUpdateCompressed.newBuilder()
+        .setAlgorithm(CoStringConstantCompression.COMPRESSION_DEFLATE)
+        .setData(ByteString.copyFrom(bytes))
+        .build();
     } catch (final IOException e) {
       throw new UnreachableCodeException(e);
     }
   }
 
-  public static ByteBuffer eventCompressedUpdateSerialized(
-    final Map<Integer, String> view)
+  public static CoStringConstantPoolUpdateCompressed createEventUpdateCompressedDirectly(
+    final Map<Integer, String> xs)
   {
-    return ByteBuffer.wrap(eventCompressedUpdate(view).toByteArray());
+    return createEventUpdateCompressed(createEventUpdate(xs));
+  }
+
+  public static ByteBuffer createEventUpdateCompressedSerialized(
+    final Map<Integer, String> xs)
+  {
+    return createEventUpdateCompressed(createEventUpdate(xs)).toByteString().asReadOnlyByteBuffer();
+  }
+
+  public static CoStringConstantPoolUpdateCompressed parseEventUpdateCompressed(
+    final ByteBuffer data)
+  {
+    try {
+      return CoStringConstantPoolUpdateCompressed.parseFrom(data);
+    } catch (final InvalidProtocolBufferException ex) {
+      throw new CoEventSerializationMalformedException(ex);
+    }
+  }
+
+  public static CoStringConstantPoolUpdate parseEventUpdateCompressedDecompress(
+    final CoStringConstantPoolUpdateCompressed update)
+  {
+    switch (update.getAlgorithm()) {
+      case COMPRESSION_DEFLATE: {
+        final ByteBuffer compressed = update.getData().asReadOnlyByteBuffer();
+        return parseEventUpdateCompressedDecompressDeflate(compressed);
+      }
+      case UNRECOGNIZED: {
+        throw new CoEventSerializationMalformedException(
+          "Unrecognized compression algorithm: " + update.getAlgorithmValue());
+      }
+    }
+    throw new UnreachableCodeException();
+  }
+
+  private static CoStringConstantPoolUpdate parseEventUpdateCompressedDecompressDeflate(
+    final ByteBuffer data)
+  {
+    final Inflater def = new Inflater();
+    try (final ByteBufferInputStream b_in = new ByteBufferInputStream(data)) {
+      try (final InflaterInputStream in = new InflaterInputStream(b_in, def)) {
+        return CoStringConstantPoolUpdate.parseFrom(in);
+      }
+    } catch (final IOException e) {
+      throw new CoEventSerializationIOException(e);
+    }
+  }
+
+  public static CoStringConstantPoolUpdate parseEventUpdateCompressedDecompressDirectly(
+    final ByteBuffer data)
+  {
+    return parseEventUpdateCompressedDecompress(parseEventUpdateCompressed(data));
   }
 }

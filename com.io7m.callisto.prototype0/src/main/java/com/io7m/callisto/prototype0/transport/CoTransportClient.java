@@ -146,6 +146,7 @@ public final class CoTransportClient implements CoTransportClientType
             String.format(
               "Could not establish a connection to the server after %d attempts",
               Integer.valueOf(this.hello_attempts)));
+          return;
         }
 
         if (this.timeToRetryHello()) {
@@ -338,6 +339,9 @@ public final class CoTransportClient implements CoTransportClientType
       if (LOG.isTraceEnabled()) {
         LOG.trace("onConnectionTimedOut: {}", connection);
       }
+
+      this.client.listener.onConnectionTimedOut(
+        connection.remote(), "Timed out");
     }
 
     @Override
@@ -522,7 +526,11 @@ public final class CoTransportClient implements CoTransportClientType
           type_name);
       }
 
-
+      this.client.listener.onMessageReceived(
+        connection,
+        channel,
+        type_name,
+        message.getMessageData().asReadOnlyByteBuffer());
     }
   }
 }

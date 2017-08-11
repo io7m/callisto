@@ -16,6 +16,10 @@
 
 package com.io7m.callisto.prototype0.client;
 
+import com.io7m.callisto.prototype0.events.CoEventNetworkSerializerRegistryType;
+import com.io7m.callisto.prototype0.events.CoEventNetworkSerializerType;
+import com.io7m.callisto.prototype0.events.CoEventNetworkType;
+import com.io7m.callisto.prototype0.events.CoEventSerializationException;
 import com.io7m.callisto.prototype0.events.CoEventServiceType;
 import com.io7m.callisto.prototype0.messages.CoPacket;
 import com.io7m.callisto.prototype0.network.CoNetworkPacketSocketType;
@@ -42,9 +46,11 @@ public final class CoClientNetworkHandler
   private final CoNetworkPacketSocketType peer;
   private final CoTransportClient client;
   private final CoEventServiceType events;
+  private final CoEventNetworkSerializerRegistryType event_serializers;
 
   public CoClientNetworkHandler(
     final CoEventServiceType in_events,
+    final CoEventNetworkSerializerRegistryType in_event_serializers,
     final CoNetworkProviderType in_network,
     final CoStringConstantPoolReadableType in_strings,
     final byte[] in_password,
@@ -52,6 +58,8 @@ public final class CoClientNetworkHandler
   {
     this.events =
       NullCheck.notNull(in_events, "Events");
+    this.event_serializers =
+      NullCheck.notNull(in_event_serializers, "Event serializers");
     this.peer =
       NullCheck.notNull(in_network, "Network").createSocket(props);
     this.client =
@@ -94,6 +102,27 @@ public final class CoClientNetworkHandler
   {
     LOG.info("onConnectionCreated: {}", connection);
     this.events.post(CoClientNetworkEventConnected.of(connection.id()));
+  }
+
+  @Override
+  public void onMessageReceived(
+    final CoTransportConnectionUsableType connection,
+    final int channel,
+    final String type_name,
+    final ByteBuffer data)
+  {
+    try {
+      final CoEventNetworkSerializerType serializer =
+        this.event_serializers.lookupSerializer(type_name);
+      final CoEventNetworkType event =
+        serializer.eventDeserialize(data);
+      this.events.post(event);
+    } catch (final CoEventSerializationException e) {
+      LOG.error(
+        "could not deserialize event: type {} size {}: ",
+        type_name,
+        Integer.valueOf(data.remaining()), e);
+    }
   }
 
   @Override

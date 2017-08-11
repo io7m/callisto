@@ -30,9 +30,6 @@ public interface CoServerNetworkEventConnectedType
   int id();
 
   @Value.Parameter
-  String name();
-
-  @Value.Parameter
   SocketAddress address();
 
   @Override

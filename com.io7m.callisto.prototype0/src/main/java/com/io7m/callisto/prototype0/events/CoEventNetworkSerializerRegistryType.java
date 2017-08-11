@@ -14,32 +14,32 @@
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-package com.io7m.callisto.prototype0.stringconstants;
+package com.io7m.callisto.prototype0.events;
 
-import com.io7m.callisto.core.CoImmutableStyleType;
-import com.io7m.callisto.prototype0.events.CoEventNetworkType;
-import com.io7m.callisto.prototype0.transport.CoTransportConnectionUsableType;
-import org.immutables.value.Value;
+import com.io7m.callisto.prototype0.services.CoServiceType;
+import com.io7m.jnull.NullCheck;
 
 import java.util.Map;
+import java.util.SortedMap;
 
-@CoImmutableStyleType
-@Value.Immutable
-public interface CoStringConstantPoolEventUpdateReceivedType
-  extends CoStringConstantPoolEventType, CoEventNetworkType
+public interface CoEventNetworkSerializerRegistryType extends CoServiceType
 {
-  @Value.Parameter
-  Map<Integer, String> values();
+  void onActivate();
 
-  @Override
-  default Type type()
+  default CoEventNetworkSerializerType lookupSerializer(
+    final String type)
+    throws CoEventSerializationUnknownTypeException
   {
-    return Type.STRING_CONSTANT_POOL_UPDATE_RECEIVED;
+    NullCheck.notNull(type, "Type");
+
+    final Map<String, CoEventNetworkSerializerType> s = this.serializers();
+    if (s.containsKey(type)) {
+      return s.get(type);
+    }
+
+    throw new CoEventSerializationUnknownTypeException(
+      "No serializer for event type: " + type);
   }
 
-  @Override
-  default CoTransportConnectionUsableType.Reliability reliability()
-  {
-    return CoTransportConnectionUsableType.Reliability.MESSAGE_RELIABLE;
-  }
+  SortedMap<String, CoEventNetworkSerializerType> serializers();
 }

@@ -16,6 +16,7 @@
 
 package com.io7m.callisto.prototype0.server;
 
+import com.io7m.callisto.prototype0.events.CoEventServiceType;
 import com.io7m.callisto.prototype0.messages.CoPacket;
 import com.io7m.callisto.prototype0.network.CoNetworkPacketSocketType;
 import com.io7m.callisto.prototype0.network.CoNetworkProviderType;
@@ -46,15 +47,18 @@ public final class CoServerNetworkHandler
   private final CoNetworkPacketSocketType peer;
   private final CoTransportServer server;
   private final CoStringConstantPoolReadableType strings;
+  private final CoEventServiceType events;
 
   public CoServerNetworkHandler(
     final CoNetworkProviderType in_network,
+    final CoEventServiceType in_events,
     final CoStringConstantPoolReadableType in_strings,
     final byte[] in_password,
     final Properties props)
   {
     NullCheck.notNull(in_network, "Network");
     this.strings = NullCheck.notNull(in_strings, "Strings");
+    this.events = NullCheck.notNull(in_events, "Events");
     this.peer = in_network.createSocket(props);
     this.server =
       new CoTransportServer(in_strings, in_password, this, this.peer);
@@ -104,6 +108,7 @@ public final class CoServerNetworkHandler
   {
     LOG.info("onConnectionCreated: {}", connection);
     this.sendInitialStringTable(connection);
+    this.events.post(CoServerNetworkEventConnected.of(connection.id(), connection.remote()));
   }
 
   private void sendInitialStringTable(
@@ -120,7 +125,7 @@ public final class CoServerNetworkHandler
       Reliability.MESSAGE_RELIABLE,
       0,
       CoStringConstantPoolMessages.eventCompressedUpdateTypeName(),
-      CoStringConstantPoolMessages.eventCompressedUpdateSerialized(xs));
+      CoStringConstantPoolMessages.createEventUpdateCompressedSerialized(xs));
   }
 
   @Override
