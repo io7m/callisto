@@ -22,6 +22,7 @@ import com.io7m.callisto.prototype0.messages.CoDataUnreliable;
 import com.io7m.callisto.prototype0.messages.CoPacket;
 import com.io7m.callisto.prototype0.stringconstants.CoStringConstantReference;
 import com.io7m.callisto.prototype0.transport.CoTransportPacketBuilder;
+import com.io7m.callisto.prototype0.transport.CoTransportPacketBuilderListenerType;
 import com.io7m.callisto.prototype0.transport.CoTransportSequenceNumberTracker;
 import com.io7m.callisto.tests.rules.PercentagePassRule;
 import com.io7m.callisto.tests.rules.PercentagePassing;
@@ -52,7 +53,7 @@ public final class CoTransportPacketBuilderTest
     new PercentagePassRule(1000);
 
   private static final class QueueListener
-    implements CoTransportPacketBuilder.ListenerType
+    implements CoTransportPacketBuilderListenerType
   {
     private final Queue<CoPacket> queue = new ArrayDeque<>();
 

@@ -16,6 +16,8 @@
 
 package com.io7m.callisto.prototype0.server;
 
+import com.codahale.metrics.MetricRegistry;
+import com.io7m.callisto.prototype0.events.CoEventNetworkSerializerRegistryType;
 import com.io7m.callisto.prototype0.events.CoEventServiceType;
 import com.io7m.callisto.prototype0.network.CoNetworkProviderType;
 import com.io7m.callisto.prototype0.process.CoProcessSupervisor;
@@ -43,9 +45,11 @@ public final class CoServer implements CoServerType
   private final CoNetworkProviderType network;
 
   public CoServer(
+    final MetricRegistry in_metrics,
     final CoNetworkProviderType in_network,
     final CoStringConstantPoolServiceType in_strings,
-    final CoEventServiceType in_events)
+    final CoEventServiceType in_events,
+    final CoEventNetworkSerializerRegistryType in_events_serializers)
   {
     this.network =
       NullCheck.notNull(in_network, "Network");
@@ -53,13 +57,19 @@ public final class CoServer implements CoServerType
       NullCheck.notNull(in_events, "Events");
 
     this.processes = new ReferenceArrayList<>();
-    this.processes.add(new CoServerClock(this.events));
-    this.processes.add(new CoServerLogic(this.events));
-    this.processes.add(new CoServerNetwork(
-      this.events,
-      in_strings,
-      in_network));
-    this.processes.add(new CoProcessSupervisor(this.events, this.processes));
+    this.processes.add(
+      new CoServerClock(this.events));
+    this.processes.add(
+      new CoServerLogic(this.events));
+    this.processes.add(
+      new CoServerNetwork(
+        in_metrics,
+        this.events,
+        in_events_serializers,
+        in_strings,
+        in_network));
+    this.processes.add(
+      new CoProcessSupervisor(this.events, this.processes));
   }
 
   private static void waitForFutures(

@@ -16,9 +16,34 @@
 
 package com.io7m.callisto.prototype0.transport;
 
-import java.io.Closeable;
+import com.io7m.callisto.core.CoImmutableStyleType;
+import com.io7m.jranges.RangeCheck;
+import com.io7m.jranges.RangeInclusiveI;
+import org.immutables.value.Value;
 
-public interface CoTransportServerType extends Closeable
+@CoImmutableStyleType
+@Value.Immutable
+public interface CoTransportConnectionConfigurationType
 {
-  void tick();
+  @Value.Parameter
+  int ticksPerSecond();
+
+  @Value.Parameter
+  int timeoutTicks();
+
+  @Value.Check
+  default void checkPreconditions()
+  {
+    RangeCheck.checkIncludedInInteger(
+      this.ticksPerSecond(),
+      "Ticks per second",
+      new RangeInclusiveI(1, 60),
+      "Valid ticks per second");
+
+    RangeCheck.checkIncludedInInteger(
+      this.timeoutTicks(),
+      "Timeout in ticks",
+      new RangeInclusiveI(1, this.ticksPerSecond() * 60),
+      "Valid timeout values");
+  }
 }

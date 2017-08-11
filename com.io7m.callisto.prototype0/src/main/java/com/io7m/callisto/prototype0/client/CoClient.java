@@ -16,6 +16,7 @@
 
 package com.io7m.callisto.prototype0.client;
 
+import com.codahale.metrics.MetricRegistry;
 import com.io7m.callisto.prototype0.events.CoEventNetworkSerializerRegistryType;
 import com.io7m.callisto.prototype0.events.CoEventServiceType;
 import com.io7m.callisto.prototype0.network.CoNetworkProviderType;
@@ -46,6 +47,7 @@ public final class CoClient implements CoClientType
   private final CoClientNetwork network_process;
 
   public CoClient(
+    final MetricRegistry in_metrics,
     final CoNetworkProviderType in_network,
     final CoStringConstantPoolServiceType in_strings,
     final CoEventServiceType in_events,
@@ -58,6 +60,7 @@ public final class CoClient implements CoClientType
 
     this.network_process =
       new CoClientNetwork(
+        in_metrics,
         this.events,
         in_serializers,
         in_strings,

@@ -289,7 +289,7 @@ public final class CoTransportPacketBuilder
    */
 
   public void unreliableAppend(
-    final ListenerType output,
+    final CoTransportPacketBuilderListenerType output,
     final CoStringConstantReference message_type,
     final ByteBuffer message_data)
   {
@@ -322,7 +322,7 @@ public final class CoTransportPacketBuilder
    */
 
   public void unreliableFinishRemaining(
-    final ListenerType output)
+    final CoTransportPacketBuilderListenerType output)
   {
     NullCheck.notNull(output, "Output");
 
@@ -367,7 +367,7 @@ public final class CoTransportPacketBuilder
    */
 
   public void reliableAppend(
-    final ListenerType output,
+    final CoTransportPacketBuilderListenerType output,
     final CoStringConstantReference message_type,
     final ByteBuffer message_data)
   {
@@ -400,7 +400,7 @@ public final class CoTransportPacketBuilder
    */
 
   public void reliableFinishRemaining(
-    final ListenerType output)
+    final CoTransportPacketBuilderListenerType output)
   {
     NullCheck.notNull(output, "Output");
 
@@ -447,7 +447,7 @@ public final class CoTransportPacketBuilder
   }
 
   private void makeFragments(
-    final ListenerType output,
+    final CoTransportPacketBuilderListenerType output,
     final CoStringConstantReference type,
     final ByteBuffer message)
   {
@@ -490,7 +490,7 @@ public final class CoTransportPacketBuilder
    */
 
   public void receipts(
-    final ListenerType output)
+    final CoTransportPacketBuilderListenerType output)
   {
     NullCheck.notNull(output, "Output");
 
@@ -540,14 +540,4 @@ public final class CoTransportPacketBuilder
         .build());
   }
 
-  public interface ListenerType
-  {
-    void onCreatedPacketReliable(CoPacket p);
-
-    void onCreatedPacketUnreliable(CoPacket p);
-
-    void onCreatedPacketReliableFragment(CoPacket p);
-
-    void onCreatedPacketReceipt(CoPacket p);
-  }
 }

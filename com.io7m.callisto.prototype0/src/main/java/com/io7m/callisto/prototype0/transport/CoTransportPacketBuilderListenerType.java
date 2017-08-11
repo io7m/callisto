@@ -16,9 +16,15 @@
 
 package com.io7m.callisto.prototype0.transport;
 
-import java.io.Closeable;
+import com.io7m.callisto.prototype0.messages.CoPacket;
 
-public interface CoTransportServerType extends Closeable
+public interface CoTransportPacketBuilderListenerType
 {
-  void tick();
+  void onCreatedPacketReliable(CoPacket p);
+
+  void onCreatedPacketUnreliable(CoPacket p);
+
+  void onCreatedPacketReliableFragment(CoPacket p);
+
+  void onCreatedPacketReceipt(CoPacket p);
 }

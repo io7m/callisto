@@ -16,8 +16,6 @@
 
 package com.io7m.callisto.prototype0.transport;
 
-import com.io7m.callisto.prototype0.messages.CoMessage;
-
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 
@@ -37,73 +35,5 @@ public interface CoTransportConnectionUsableType
   {
     MESSAGE_RELIABLE,
     MESSAGE_UNRELIABLE
-  }
-
-  interface ListenerType
-  {
-    void onConnectionClosed(
-      CoTransportConnectionUsableType connection);
-
-    void onConnectionTimedOut(
-      CoTransportConnectionUsableType connection);
-
-    void onEnqueuePacketReliable(
-      CoTransportConnectionUsableType connection,
-      int channel,
-      int sequence,
-      int size);
-
-    void onEnqueuePacketUnreliable(
-      CoTransportConnectionUsableType connection,
-      int channel,
-      int sequence,
-      int size);
-
-    void onEnqueuePacketReliableFragment(
-      CoTransportConnectionUsableType connection,
-      int channel,
-      int sequence,
-      int size);
-
-    void onEnqueuePacketReceipt(
-      CoTransportConnectionUsableType connection,
-      int channel,
-      int sequence,
-      int size);
-
-    void onSendPacketReliable(
-      CoTransportConnectionUsableType connection,
-      int channel,
-      int sequence,
-      int size);
-
-    void onSendPacketUnreliable(
-      CoTransportConnectionUsableType connection,
-      int channel,
-      int sequence,
-      int size);
-
-    void onSendPacketReliableFragment(
-      CoTransportConnectionUsableType connection,
-      int channel,
-      int sequence,
-      int size);
-
-    void onSendPacketReceipt(
-      CoTransportConnectionUsableType connection,
-      int channel,
-      int sequence,
-      int size);
-
-    void onDropPacketUnreliable(
-      CoTransportConnectionUsableType connection,
-      int channel,
-      int sequence,
-      int size);
-
-    void onMessageReceived(
-      CoTransportConnectionUsableType connection,
-      int channel,
-      CoMessage message);
   }
 }

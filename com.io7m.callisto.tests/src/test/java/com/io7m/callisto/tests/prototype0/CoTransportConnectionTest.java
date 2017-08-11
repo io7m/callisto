@@ -28,6 +28,7 @@ import com.io7m.callisto.prototype0.stringconstants.CoStringConstantPool;
 import com.io7m.callisto.prototype0.stringconstants.CoStringConstantPoolType;
 import com.io7m.callisto.prototype0.stringconstants.CoStringConstantReference;
 import com.io7m.callisto.prototype0.transport.CoTransportConnection;
+import com.io7m.callisto.prototype0.transport.CoTransportConnectionConfiguration;
 import com.io7m.callisto.prototype0.transport.CoTransportConnectionType;
 import com.io7m.callisto.prototype0.transport.CoTransportConnectionUsableType;
 import com.io7m.jnull.NullCheck;
@@ -46,7 +47,7 @@ import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 
-import static com.io7m.callisto.prototype0.transport.CoTransportConnectionUsableType.ListenerType;
+import com.io7m.callisto.prototype0.transport.CoTransportConnectionListenerType;
 import static com.io7m.callisto.prototype0.transport.CoTransportConnectionUsableType.Reliability;
 
 public final class CoTransportConnectionTest
@@ -56,7 +57,7 @@ public final class CoTransportConnectionTest
 
   @Test
   public void testTransportReceiveUnreliableReordered(
-    final @Mocked CoTransportConnection.ListenerType listener)
+    final @Mocked CoTransportConnectionListenerType listener)
   {
     final Setup setup = new Setup(listener);
 
@@ -65,6 +66,7 @@ public final class CoTransportConnectionTest
         setup.logging_listener,
         setup.strings,
         setup.peer,
+        CoTransportConnectionConfiguration.of(30, 30 * 30),
         setup.remote,
         0x4543b73e);
 
@@ -128,7 +130,7 @@ public final class CoTransportConnectionTest
 
   @Test
   public void testTransportReceiveUnreliableDiscontinuous(
-    final @Mocked CoTransportConnection.ListenerType listener)
+    final @Mocked CoTransportConnectionListenerType listener)
   {
     final Setup setup = new Setup(listener);
 
@@ -137,6 +139,7 @@ public final class CoTransportConnectionTest
         setup.logging_listener,
         setup.strings,
         setup.peer,
+        CoTransportConnectionConfiguration.of(30, 30 * 30),
         setup.remote,
         0x4543b73e);
 
@@ -198,7 +201,7 @@ public final class CoTransportConnectionTest
 
   @Test
   public void testTransportReceiveUnreliableDiscontinuousUpperRange(
-    final @Mocked CoTransportConnection.ListenerType listener)
+    final @Mocked CoTransportConnectionListenerType listener)
   {
     final Setup setup = new Setup(listener);
 
@@ -207,6 +210,7 @@ public final class CoTransportConnectionTest
         setup.logging_listener,
         setup.strings,
         setup.peer,
+        CoTransportConnectionConfiguration.of(30, 30 * 30),
         setup.remote,
         0x4543b73e);
 
@@ -290,7 +294,7 @@ public final class CoTransportConnectionTest
 
   @Test
   public void testTransportReceiveUnreliableDuplicates(
-    final @Mocked CoTransportConnection.ListenerType listener)
+    final @Mocked CoTransportConnectionListenerType listener)
   {
     final Setup setup = new Setup(listener);
 
@@ -299,6 +303,7 @@ public final class CoTransportConnectionTest
         setup.logging_listener,
         setup.strings,
         setup.peer,
+        CoTransportConnectionConfiguration.of(30, 30 * 30),
         setup.remote,
         0x4543b73e);
 
@@ -366,7 +371,7 @@ public final class CoTransportConnectionTest
 
   @Test
   public void testTransportSendUnreliable(
-    final @Mocked CoTransportConnection.ListenerType listener)
+    final @Mocked CoTransportConnectionListenerType listener)
   {
     final Setup setup = new Setup(listener);
 
@@ -375,6 +380,7 @@ public final class CoTransportConnectionTest
         setup.logging_listener,
         setup.strings,
         setup.peer,
+        CoTransportConnectionConfiguration.of(30, 30 * 30),
         setup.remote,
         0x4543b73e);
 
@@ -433,30 +439,31 @@ public final class CoTransportConnectionTest
   }
 
   private static final class LoggingListener
-    implements CoTransportConnection.ListenerType
+    implements CoTransportConnectionListenerType
   {
-    private final CoTransportConnection.ListenerType listener;
+    private final CoTransportConnectionListenerType listener;
 
     public LoggingListener(
-      final CoTransportConnection.ListenerType in_listener)
+      final CoTransportConnectionListenerType in_listener)
     {
       this.listener = NullCheck.notNull(in_listener, "Listener");
     }
 
     @Override
-    public void onConnectionClosed(
-      final CoTransportConnectionUsableType connection)
+    public void onClosed(
+      final CoTransportConnectionUsableType connection,
+      final String message)
     {
-      LOG.debug("onConnectionClosed: {}", connection);
-      this.listener.onConnectionClosed(connection);
+      LOG.debug("onClosed: {}: {}", connection, message);
+      this.listener.onClosed(connection, message);
     }
 
     @Override
-    public void onConnectionTimedOut(
+    public void onTimedOut(
       final CoTransportConnectionUsableType connection)
     {
       LOG.debug("onConnectionTimedOut: {}", connection);
-      this.listener.onConnectionTimedOut(connection);
+      this.listener.onTimedOut(connection);
     }
 
     @Override
@@ -588,7 +595,7 @@ public final class CoTransportConnectionTest
     }
 
     @Override
-    public void onDropPacketUnreliable(
+    public void onReceiveDropPacketUnreliable(
       final CoTransportConnectionUsableType connection,
       final int channel,
       final int sequence,
@@ -599,7 +606,7 @@ public final class CoTransportConnectionTest
         Integer.valueOf(channel),
         Integer.valueOf(sequence),
         Integer.valueOf(size));
-      this.listener.onDropPacketUnreliable(
+      this.listener.onReceiveDropPacketUnreliable(
         connection, channel, sequence, size);
     }
 
@@ -614,6 +621,102 @@ public final class CoTransportConnectionTest
         Integer.valueOf(channel),
         message);
       this.listener.onMessageReceived(connection, channel, message);
+    }
+
+    @Override
+    public void onReceivePacketDeliverReliable(
+      final CoTransportConnectionUsableType connection,
+      final int channel,
+      final int sequence,
+      final int size)
+    {
+      LOG.debug(
+        "onReceivePacketDeliverReliable: {} {} {}",
+        Integer.valueOf(channel),
+        Integer.valueOf(sequence),
+        Integer.valueOf(size));
+      this.listener.onReceivePacketDeliverReliable(
+        connection, channel, sequence, size);
+    }
+
+    @Override
+    public void onReceivePacketDeliverUnreliable(
+      final CoTransportConnectionUsableType connection,
+      final int channel,
+      final int sequence,
+      final int size)
+    {
+      LOG.debug(
+        "onReceivePacketDeliverUnreliable: {} {} {}",
+        Integer.valueOf(channel),
+        Integer.valueOf(sequence),
+        Integer.valueOf(size));
+      this.listener.onReceivePacketDeliverUnreliable(
+        connection, channel, sequence, size);
+    }
+
+    @Override
+    public void onReceivePacketReliable(
+      final CoTransportConnectionUsableType connection,
+      final int channel,
+      final int sequence,
+      final int size)
+    {
+      LOG.debug(
+        "onReceivePacketReliable: {} {} {}",
+        Integer.valueOf(channel),
+        Integer.valueOf(sequence),
+        Integer.valueOf(size));
+      this.listener.onReceivePacketReliable(
+        connection, channel, sequence, size);
+    }
+
+    @Override
+    public void onReceivePacketUnreliable(
+      final CoTransportConnectionUsableType connection,
+      final int channel,
+      final int sequence,
+      final int size)
+    {
+      LOG.debug(
+        "onReceivePacketUnreliable: {} {} {}",
+        Integer.valueOf(channel),
+        Integer.valueOf(sequence),
+        Integer.valueOf(size));
+      this.listener.onReceivePacketUnreliable(
+        connection, channel, sequence, size);
+    }
+
+    @Override
+    public void onReceivePacketReliableFragment(
+      final CoTransportConnectionUsableType connection,
+      final int channel,
+      final int sequence,
+      final int size)
+    {
+      LOG.debug(
+        "onReceivePacketReliableFragment: {} {} {}",
+        Integer.valueOf(channel),
+        Integer.valueOf(sequence),
+        Integer.valueOf(size));
+      this.listener.onReceivePacketReliableFragment(
+        connection, channel, sequence, size);
+    }
+
+    @Override
+    public void onReceivePacketReceipt(
+      final CoTransportConnectionUsableType connection,
+      final int channel,
+      final int sequence,
+      final int size)
+    {
+      LOG.debug(
+        "onReceivePacketReceipt: {} {} {}",
+        Integer.valueOf(channel),
+        Integer.valueOf(sequence),
+        Integer.valueOf(size));
+      this.listener.onReceivePacketReceipt(
+        connection, channel, sequence, size);
     }
   }
 
@@ -650,14 +753,14 @@ public final class CoTransportConnectionTest
 
   private static final class Setup
   {
-    private final ListenerType listener;
-    private final CoTransportConnection.ListenerType logging_listener;
+    private final CoTransportConnectionListenerType listener;
+    private final CoTransportConnectionListenerType logging_listener;
     private final CoStringConstantPoolType strings;
     private final CoNetworkPacketSocketType peer;
     private final SocketAddress remote;
 
     Setup(
-      final ListenerType listener)
+      final CoTransportConnectionListenerType listener)
     {
       this.listener = listener;
 

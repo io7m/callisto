@@ -32,6 +32,10 @@
     name="com.io7m.callisto.prototype0.process.CoProcessSupervisor"
     level="DEBUG"/>
 
+  <logger
+    name="com.io7m.callisto.prototype0.network.CoNetworkProviderLocal"
+    level="DEBUG"/>
+
   <root level="TRACE">
     <appender-ref ref="STDERR"/>
   </root>

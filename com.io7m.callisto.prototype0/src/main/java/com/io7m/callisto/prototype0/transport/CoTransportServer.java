@@ -26,6 +26,7 @@ import com.io7m.callisto.prototype0.messages.CoMessage;
 import com.io7m.callisto.prototype0.messages.CoPacket;
 import com.io7m.callisto.prototype0.network.CoNetworkPacketSocketType;
 import com.io7m.callisto.prototype0.stringconstants.CoStringConstantPoolReadableType;
+import com.io7m.callisto.prototype0.stringconstants.CoStringConstantReference;
 import com.io7m.jnull.NullCheck;
 import com.io7m.junreachable.UnreachableCodeException;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
@@ -35,6 +36,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
+import java.util.Optional;
 
 public final class CoTransportServer implements CoTransportServerType
 {
@@ -42,26 +44,26 @@ public final class CoTransportServer implements CoTransportServerType
     LoggerFactory.getLogger(CoTransportServer.class);
 
   private final CoNetworkPacketSocketType socket;
-  private final ListenerType listener;
-  private final byte[] password;
+  private final CoTransportServerListenerType listener;
   private final CoIDPoolUnpredictable connection_id_pool;
   private final CoStringConstantPoolReadableType strings;
   private final Int2ReferenceOpenHashMap<CoTransportConnection> connections;
+  private final CoTransportServerConfiguration config;
 
   public CoTransportServer(
     final CoStringConstantPoolReadableType in_strings,
-    final byte[] in_password,
-    final ListenerType in_listener,
-    final CoNetworkPacketSocketType in_socket)
+    final CoTransportServerListenerType in_listener,
+    final CoNetworkPacketSocketType in_socket,
+    final CoTransportServerConfiguration in_config)
   {
     this.strings =
       NullCheck.notNull(in_strings, "Strings");
-    this.password =
-      NullCheck.notNull(in_password, "Password");
     this.listener =
       NullCheck.notNull(in_listener, "Listener");
     this.socket =
       NullCheck.notNull(in_socket, "Socket");
+    this.config =
+      NullCheck.notNull(in_config, "Config");
 
     this.connection_id_pool =
       new CoIDPoolUnpredictable();
@@ -233,9 +235,10 @@ public final class CoTransportServer implements CoTransportServerType
   {
     LOG.trace("{}: received hello packet", address);
 
-    if (this.password.length > 0) {
+    final byte[] password = this.config.password();
+    if (password.length > 0) {
       final ByteString received_password = hello.getPassword();
-      if (!comparePasswords(this.password, received_password.toByteArray())) {
+      if (!comparePasswords(password, received_password.toByteArray())) {
         LOG.trace("{}: received bad password", address);
         this.socket.send(address, helloBadPassword());
         return;
@@ -245,31 +248,46 @@ public final class CoTransportServer implements CoTransportServerType
     LOG.trace("{}: received good password", address);
 
     final int connection_id = this.connection_id_pool.fresh();
-    final CoTransportConnection.ListenerType connection_listener =
+    final CoTransportConnectionListenerType connection_listener =
       new ConnectionListener(this, address, connection_id);
+
+    final CoTransportConnectionConfiguration config =
+      CoTransportConnectionConfiguration.builder()
+        .setTicksPerSecond(this.config.ticksPerSecond())
+        .setTimeoutTicks(this.config.timeoutTicks())
+        .build();
 
     final CoTransportConnection connection =
       new CoTransportConnection(
         connection_listener,
         this.strings,
         this.socket,
+        config,
         address,
         connection_id);
 
     this.connections.put(connection_id, connection);
     this.socket.send(address, helloOK(connection_id));
-    this.listener.onConnectionCreated(connection);
+    this.listener.onClientConnectionCreated(connection);
   }
 
   private void onConnectionClosed(
+    final CoTransportConnectionUsableType connection,
+    final String message)
+  {
+    this.connections.remove(connection.id());
+    this.listener.onClientConnectionClosed(connection, message);
+  }
+
+  private void onConnectionTimedOut(
     final CoTransportConnectionUsableType connection)
   {
     this.connections.remove(connection.id());
-    this.listener.onConnectionClosed(connection);
+    this.listener.onClientConnectionTimedOut(connection);
   }
 
   private static final class ConnectionListener
-    implements CoTransportConnection.ListenerType
+    implements CoTransportConnectionListenerType
   {
     private final int connection_id;
     private final CoTransportServer server;
@@ -286,17 +304,18 @@ public final class CoTransportServer implements CoTransportServerType
     }
 
     @Override
-    public void onConnectionClosed(
-      final CoTransportConnectionUsableType connection)
+    public void onClosed(
+      final CoTransportConnectionUsableType connection,
+      final String message)
     {
-      this.server.onConnectionClosed(connection);
+      this.server.onConnectionClosed(connection, message);
     }
 
     @Override
-    public void onConnectionTimedOut(
+    public void onTimedOut(
       final CoTransportConnectionUsableType connection)
     {
-      this.server.onConnectionClosed(connection);
+      this.server.onConnectionTimedOut(connection);
     }
 
     @Override
@@ -382,6 +401,9 @@ public final class CoTransportServer implements CoTransportServerType
           Integer.valueOf(sequence),
           Integer.valueOf(size));
       }
+
+      this.server.listener.onClientConnectionPacketSendReliable(
+        connection, channel, sequence, size);
     }
 
     @Override
@@ -399,6 +421,9 @@ public final class CoTransportServer implements CoTransportServerType
           Integer.valueOf(sequence),
           Integer.valueOf(size));
       }
+
+      this.server.listener.onClientConnectionPacketSendUnreliable(
+        connection, channel, sequence, size);
     }
 
     @Override
@@ -416,6 +441,9 @@ public final class CoTransportServer implements CoTransportServerType
           Integer.valueOf(sequence),
           Integer.valueOf(size));
       }
+
+      this.server.listener.onClientConnectionPacketSendReliableFragment(
+        connection, channel, sequence, size);
     }
 
     @Override
@@ -433,10 +461,13 @@ public final class CoTransportServer implements CoTransportServerType
           Integer.valueOf(sequence),
           Integer.valueOf(size));
       }
+
+      this.server.listener.onClientConnectionPacketSendReceipt(
+        connection, channel, sequence, size);
     }
 
     @Override
-    public void onDropPacketUnreliable(
+    public void onReceiveDropPacketUnreliable(
       final CoTransportConnectionUsableType connection,
       final int channel,
       final int sequence,
@@ -450,6 +481,9 @@ public final class CoTransportServer implements CoTransportServerType
           Integer.valueOf(sequence),
           Integer.valueOf(size));
       }
+
+      this.server.listener.onClientConnectionPacketDropUnreliable(
+        connection, channel, sequence, size);
     }
 
     @Override
@@ -465,6 +499,175 @@ public final class CoTransportServer implements CoTransportServerType
           Integer.valueOf(channel),
           message);
       }
+
+      final CoStringConstantReference type_ref =
+        CoStringConstantReference.of(message.getMessageType().getValue());
+      final Optional<String> type_name_opt =
+        this.server.strings.lookupString(type_ref);
+
+      if (!type_name_opt.isPresent()) {
+        LOG.error(
+          "onMessageReceived: {}:{} unrecognized string constant {}",
+          connection,
+          Integer.valueOf(channel),
+          Integer.valueOf(type_ref.value()));
+        return;
+      }
+
+      final String type_name = type_name_opt.get();
+      if (LOG.isTraceEnabled()) {
+        LOG.trace(
+          "onMessageReceived: {}:{} message type {}",
+          connection,
+          Integer.valueOf(channel),
+          type_name);
+      }
+
+      this.server.listener.onClientConnectionMessageReceived(
+        connection,
+        channel,
+        type_name,
+        message.getMessageData().asReadOnlyByteBuffer());
+    }
+
+    @Override
+    public void onReceivePacketDeliverReliable(
+      final CoTransportConnectionUsableType connection,
+      final int channel,
+      final int sequence,
+      final int size)
+    {
+      if (LOG.isTraceEnabled()) {
+        LOG.trace(
+          "onReceivePacketDeliverReliable: {}:{} sequence {}: {} octets",
+          connection,
+          Integer.valueOf(channel),
+          Integer.valueOf(sequence),
+          Integer.valueOf(size));
+      }
+
+      this.server.listener.onClientConnectionPacketReceiveDeliverReliable(
+        connection, channel, sequence, size);
+    }
+
+    @Override
+    public void onReceivePacketDeliverUnreliable(
+      final CoTransportConnectionUsableType connection,
+      final int channel,
+      final int sequence,
+      final int size)
+    {
+      if (LOG.isTraceEnabled()) {
+        LOG.trace(
+          "onReceivePacketDeliverUnreliable: {}:{} sequence {}: {} octets",
+          connection,
+          Integer.valueOf(channel),
+          Integer.valueOf(sequence),
+          Integer.valueOf(size));
+      }
+
+      this.server.listener.onClientConnectionPacketReceiveDeliverUnreliable(
+        connection, channel, sequence, size);
+    }
+
+    @Override
+    public void onReceivePacketReliable(
+      final CoTransportConnectionUsableType connection,
+      final int channel,
+      final int sequence,
+      final int size)
+    {
+      if (LOG.isTraceEnabled()) {
+        LOG.trace(
+          "onReceivePacketReliable: {}:{} sequence {}: {} octets",
+          connection,
+          Integer.valueOf(channel),
+          Integer.valueOf(sequence),
+          Integer.valueOf(size));
+      }
+
+      this.server.listener.onClientConnectionPacketReceiveReliable(
+        connection, channel, sequence, size);
+    }
+
+    @Override
+    public void onReceivePacketUnreliable(
+      final CoTransportConnectionUsableType connection,
+      final int channel,
+      final int sequence,
+      final int size)
+    {
+      if (LOG.isTraceEnabled()) {
+        LOG.trace(
+          "onReceivePacketUnreliable: {}:{} sequence {}: {} octets",
+          connection,
+          Integer.valueOf(channel),
+          Integer.valueOf(sequence),
+          Integer.valueOf(size));
+      }
+
+      this.server.listener.onClientConnectionPacketReceiveUnreliable(
+        connection, channel, sequence, size);
+    }
+
+    @Override
+    public void onReceivePacketReliableFragment(
+      final CoTransportConnectionUsableType connection,
+      final int channel,
+      final int sequence,
+      final int size)
+    {
+      if (LOG.isTraceEnabled()) {
+        LOG.trace(
+          "onReceivePacketReliableFragment: {}:{} sequence {}: {} octets",
+          connection,
+          Integer.valueOf(channel),
+          Integer.valueOf(sequence),
+          Integer.valueOf(size));
+      }
+
+      this.server.listener.onClientConnectionPacketReceiveReliableFragment(
+        connection, channel, sequence, size);
+    }
+
+    @Override
+    public void onReceivePacketReceipt(
+      final CoTransportConnectionUsableType connection,
+      final int channel,
+      final int sequence,
+      final int size)
+    {
+      if (LOG.isTraceEnabled()) {
+        LOG.trace(
+          "onReceivePacketReceipt: {}:{} sequence {}: {} octets",
+          connection,
+          Integer.valueOf(channel),
+          Integer.valueOf(sequence),
+          Integer.valueOf(size));
+      }
+
+      this.server.listener.onClientConnectionPacketReceiveReceipt(
+        connection, channel, sequence, size);
+    }
+
+    @Override
+    public void onSendPacketPurgeReliable(
+      final CoTransportConnection connection,
+      final int channel,
+      final int sequence,
+      final int size)
+    {
+      if (LOG.isTraceEnabled()) {
+        LOG.trace(
+          "onSendPacketPurgeReliable: {}:{} sequence {}: {} octets",
+          connection,
+          Integer.valueOf(channel),
+          Integer.valueOf(sequence),
+          Integer.valueOf(size));
+      }
+
+      this.server.listener.onClientConnectionPacketSendPurgeReliable(
+        connection, channel, sequence, size);
     }
   }
 }

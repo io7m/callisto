@@ -27,8 +27,6 @@ import com.io7m.callisto.prototype0.stringconstants.CoStringConstantPoolReadable
 import com.io7m.callisto.prototype0.stringconstants.CoStringConstantReference;
 import com.io7m.jfsm.core.FSMEnumMutable;
 import com.io7m.jnull.NullCheck;
-import com.io7m.jranges.RangeCheck;
-import com.io7m.jranges.RangeInclusiveI;
 import com.io7m.junreachable.UnimplementedCodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,41 +42,33 @@ public final class CoTransportClient implements CoTransportClientType
     LoggerFactory.getLogger(CoTransportClient.class);
 
   private final CoStringConstantPoolReadableType strings;
-  private final byte[] password;
-  private final ListenerType listener;
+  private final CoTransportClientListenerType listener;
   private final CoNetworkPacketSocketType socket;
   private final FSMEnumMutable<State> state;
   private final SocketAddress remote;
-  private final int ticks_per_second;
   private final ConnectionListener connection_listener;
+  private final CoTransportClientConfiguration config;
   private int hello_attempts;
   private long time;
   private CoTransportConnection connection;
 
   public CoTransportClient(
     final CoStringConstantPoolReadableType in_strings,
-    final byte[] in_password,
-    final ListenerType in_listener,
+    final CoTransportClientListenerType in_listener,
     final CoNetworkPacketSocketType in_socket,
-    final int in_ticks_per_second)
+    final CoTransportClientConfiguration in_config)
   {
     this.strings =
       NullCheck.notNull(in_strings, "Strings");
-    this.password =
-      NullCheck.notNull(in_password, "Password");
     this.listener =
       NullCheck.notNull(in_listener, "Listener");
     this.socket =
       NullCheck.notNull(in_socket, "Socket");
+    this.config =
+      NullCheck.notNull(in_config, "Configuration");
+
     this.remote =
       this.socket.remote().get();
-
-    this.ticks_per_second =
-      RangeCheck.checkIncludedInInteger(
-        in_ticks_per_second,
-        "Ticks per second",
-        new RangeInclusiveI(1, 60),
-        "Valid ticks per second");
 
     this.state =
       FSMEnumMutable.builder(State.STATE_INITIAL)
@@ -125,8 +115,12 @@ public final class CoTransportClient implements CoTransportClientType
       LOG.trace("{}: sending hello packet", this.remote);
     }
 
-    this.socket.send(this.remote, hello(this.password));
+    this.socket.send(this.remote, hello(this.config.password()));
     ++this.hello_attempts;
+    this.listener.onHelloSend(
+      this.remote,
+      this.hello_attempts,
+      this.config.helloRetryCount());
   }
 
   @Override
@@ -140,9 +134,9 @@ public final class CoTransportClient implements CoTransportClientType
       }
 
       case STATE_WAITING_FOR_HELLO: {
-        if (this.hello_attempts == 10) {
+        if (this.hello_attempts == this.config.helloRetryCount()) {
           this.state.transition(State.STATE_DISCONNECTED);
-          this.listener.onConnectionTimedOut(
+          this.listener.onHelloTimedOut(
             this.remote,
             String.format(
               "Could not establish a connection to the server after %d attempts",
@@ -168,7 +162,7 @@ public final class CoTransportClient implements CoTransportClientType
 
   private boolean timeToRetryHello()
   {
-    return this.time % (3L * (long) this.ticks_per_second) == 0L;
+    return (this.time % (long) this.config.helloRetryDelayInTicks()) == 0L;
   }
 
   private void onReceivePacket(
@@ -189,7 +183,7 @@ public final class CoTransportClient implements CoTransportClientType
     try {
       p = CoPacket.parseFrom(data);
     } catch (final Exception e) {
-      this.listener.onReceivePacketUnparseable(address, data, e);
+      this.listener.onPacketReceiveUnparseable(address, data, e);
       return;
     }
 
@@ -202,12 +196,12 @@ public final class CoTransportClient implements CoTransportClientType
 
     switch (p.getValueCase()) {
       case HELLO: {
-        this.listener.onReceivePacketUnexpected(address, p);
+        this.listener.onPacketReceiveUnexpected(address, p);
         break;
       }
 
       case VALUE_NOT_SET: {
-        this.listener.onReceivePacketUnrecognized(address, p);
+        this.listener.onPacketReceiveUnrecognized(address, p);
         break;
       }
 
@@ -234,7 +228,7 @@ public final class CoTransportClient implements CoTransportClientType
       case STATE_INITIAL:
       case STATE_WAITING_FOR_HELLO:
       case STATE_DISCONNECTED: {
-        this.listener.onReceivePacketUnexpected(address, p);
+        this.listener.onPacketReceiveUnexpected(address, p);
         break;
       }
 
@@ -254,11 +248,19 @@ public final class CoTransportClient implements CoTransportClientType
 
       case OK: {
         final CoHelloResponseOK ok = pr.getOk();
+
+        final CoTransportConnectionConfiguration connection_config =
+          CoTransportConnectionConfiguration.builder()
+            .setTicksPerSecond(this.config.ticksPerSecond())
+            .setTimeoutTicks(this.config.timeoutTicks())
+            .build();
+
         this.connection =
           new CoTransportConnection(
             this.connection_listener,
             this.strings,
             this.socket,
+            connection_config,
             address,
             ok.getConnectionId());
         this.state.transition(State.STATE_CONNECTED);
@@ -268,7 +270,7 @@ public final class CoTransportClient implements CoTransportClientType
 
       case ERROR: {
         this.state.transition(State.STATE_DISCONNECTED);
-        this.listener.onConnectionRefused(
+        this.listener.onHelloRefused(
           address,
           new StringBuilder(128)
             .append("Connection refused.")
@@ -282,8 +284,8 @@ public final class CoTransportClient implements CoTransportClientType
 
       case VALUE_NOT_SET: {
         this.state.transition(State.STATE_DISCONNECTED);
-        this.listener.onReceivePacketUnrecognized(address, p);
-        this.listener.onConnectionRefused(
+        this.listener.onPacketReceiveUnrecognized(address, p);
+        this.listener.onHelloRefused(
           address,
           new StringBuilder(128)
             .append("Connection refused.")
@@ -314,7 +316,7 @@ public final class CoTransportClient implements CoTransportClientType
   }
 
   private static final class ConnectionListener
-    implements CoTransportConnection.ListenerType
+    implements CoTransportConnectionListenerType
   {
     private final CoTransportClient client;
 
@@ -325,24 +327,26 @@ public final class CoTransportClient implements CoTransportClientType
     }
 
     @Override
-    public void onConnectionClosed(
-      final CoTransportConnectionUsableType connection)
+    public void onClosed(
+      final CoTransportConnectionUsableType connection,
+      final String message)
     {
       if (LOG.isTraceEnabled()) {
-        LOG.trace("onConnectionClosed: {}", connection);
+        LOG.trace("onClosed: {}: {}", connection, message);
       }
+
+      this.client.listener.onConnectionClosed(connection, message);
     }
 
     @Override
-    public void onConnectionTimedOut(
+    public void onTimedOut(
       final CoTransportConnectionUsableType connection)
     {
       if (LOG.isTraceEnabled()) {
-        LOG.trace("onConnectionTimedOut: {}", connection);
+        LOG.trace("onTimedOut: {}", connection);
       }
 
-      this.client.listener.onConnectionTimedOut(
-        connection.remote(), "Timed out");
+      this.client.listener.onConnectionTimedOut(connection);
     }
 
     @Override
@@ -428,6 +432,9 @@ public final class CoTransportClient implements CoTransportClientType
           Integer.valueOf(sequence),
           Integer.valueOf(size));
       }
+
+      this.client.listener.onConnectionSendReliable(
+        connection, channel, sequence, size);
     }
 
     @Override
@@ -445,6 +452,9 @@ public final class CoTransportClient implements CoTransportClientType
           Integer.valueOf(sequence),
           Integer.valueOf(size));
       }
+
+      this.client.listener.onConnectionSendUnreliable(
+        connection, channel, sequence, size);
     }
 
     @Override
@@ -462,6 +472,9 @@ public final class CoTransportClient implements CoTransportClientType
           Integer.valueOf(sequence),
           Integer.valueOf(size));
       }
+
+      this.client.listener.onConnectionSendReliableFragment(
+        connection, channel, sequence, size);
     }
 
     @Override
@@ -479,10 +492,13 @@ public final class CoTransportClient implements CoTransportClientType
           Integer.valueOf(sequence),
           Integer.valueOf(size));
       }
+
+      this.client.listener.onConnectionSendReceipt(
+        connection, channel, sequence, size);
     }
 
     @Override
-    public void onDropPacketUnreliable(
+    public void onReceiveDropPacketUnreliable(
       final CoTransportConnectionUsableType connection,
       final int channel,
       final int sequence,
@@ -490,12 +506,15 @@ public final class CoTransportClient implements CoTransportClientType
     {
       if (LOG.isTraceEnabled()) {
         LOG.trace(
-          "onDropPacketUnreliable: {}:{} sequence {}: {} octets",
+          "onReceiveDropPacketUnreliable: {}:{} sequence {}: {} octets",
           connection,
           Integer.valueOf(channel),
           Integer.valueOf(sequence),
           Integer.valueOf(size));
       }
+
+      this.client.listener.onConnectionReceiveDropUnreliable(
+        connection, channel, sequence, size);
     }
 
     @Override
@@ -535,11 +554,151 @@ public final class CoTransportClient implements CoTransportClientType
           type_name);
       }
 
-      this.client.listener.onMessageReceived(
+      this.client.listener.onConnectionMessageReceived(
         connection,
         channel,
         type_name,
         message.getMessageData().asReadOnlyByteBuffer());
+    }
+
+    @Override
+    public void onReceivePacketDeliverReliable(
+      final CoTransportConnectionUsableType connection,
+      final int channel,
+      final int sequence,
+      final int size)
+    {
+      if (LOG.isTraceEnabled()) {
+        LOG.trace(
+          "onReceivePacketDeliverReliable: {}:{} sequence {}: {} octets",
+          connection,
+          Integer.valueOf(channel),
+          Integer.valueOf(sequence),
+          Integer.valueOf(size));
+      }
+
+      this.client.listener.onConnectionReceiveDeliverReliable(
+        connection, channel, sequence, size);
+    }
+
+    @Override
+    public void onReceivePacketDeliverUnreliable(
+      final CoTransportConnectionUsableType connection,
+      final int channel,
+      final int sequence,
+      final int size)
+    {
+      if (LOG.isTraceEnabled()) {
+        LOG.trace(
+          "onReceivePacketDeliverUnreliable: {}:{} sequence {}: {} octets",
+          connection,
+          Integer.valueOf(channel),
+          Integer.valueOf(sequence),
+          Integer.valueOf(size));
+      }
+
+      this.client.listener.onConnectionReceiveDeliverUnreliable(
+        connection, channel, sequence, size);
+    }
+
+    @Override
+    public void onReceivePacketReliable(
+      final CoTransportConnectionUsableType connection,
+      final int channel,
+      final int sequence,
+      final int size)
+    {
+      if (LOG.isTraceEnabled()) {
+        LOG.trace(
+          "onReceivePacketReliable: {}:{} sequence {}: {} octets",
+          connection,
+          Integer.valueOf(channel),
+          Integer.valueOf(sequence),
+          Integer.valueOf(size));
+      }
+
+      this.client.listener.onConnectionReceiveReliable(
+        connection, channel, sequence, size);
+    }
+
+    @Override
+    public void onReceivePacketUnreliable(
+      final CoTransportConnectionUsableType connection,
+      final int channel,
+      final int sequence,
+      final int size)
+    {
+      if (LOG.isTraceEnabled()) {
+        LOG.trace(
+          "onReceivePacketUnreliable: {}:{} sequence {}: {} octets",
+          connection,
+          Integer.valueOf(channel),
+          Integer.valueOf(sequence),
+          Integer.valueOf(size));
+      }
+
+      this.client.listener.onConnectionReceiveUnreliable(
+        connection, channel, sequence, size);
+    }
+
+    @Override
+    public void onReceivePacketReliableFragment(
+      final CoTransportConnectionUsableType connection,
+      final int channel,
+      final int sequence,
+      final int size)
+    {
+      if (LOG.isTraceEnabled()) {
+        LOG.trace(
+          "onReceivePacketReliableFragment: {}:{} sequence {}: {} octets",
+          connection,
+          Integer.valueOf(channel),
+          Integer.valueOf(sequence),
+          Integer.valueOf(size));
+      }
+
+      this.client.listener.onConnectionReceiveReliableFragment(
+        connection, channel, sequence, size);
+    }
+
+    @Override
+    public void onReceivePacketReceipt(
+      final CoTransportConnectionUsableType connection,
+      final int channel,
+      final int sequence,
+      final int size)
+    {
+      if (LOG.isTraceEnabled()) {
+        LOG.trace(
+          "onReceivePacketReceipt: {}:{} sequence {}: {} octets",
+          connection,
+          Integer.valueOf(channel),
+          Integer.valueOf(sequence),
+          Integer.valueOf(size));
+      }
+
+      this.client.listener.onConnectionReceiveReceipt(
+        connection, channel, sequence, size);
+    }
+
+    @Override
+    public void onSendPacketPurgeReliable(
+      final CoTransportConnection connection,
+      final int channel,
+      final int sequence,
+      final int size)
+    {
+      if (LOG.isTraceEnabled()) {
+        LOG.trace(
+          "onSendPacketPurgeReliable: {}:{} sequence {}: {} octets",
+          connection,
+          Integer.valueOf(channel),
+          Integer.valueOf(sequence),
+          Integer.valueOf(size));
+      }
+
+      this.client.listener.onConnectionSendPurgeReliable(
+        connection, channel, sequence, size);
     }
   }
 }

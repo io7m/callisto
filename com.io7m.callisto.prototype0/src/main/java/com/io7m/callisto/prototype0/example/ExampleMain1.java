@@ -16,6 +16,7 @@
 
 package com.io7m.callisto.prototype0.example;
 
+import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Slf4jReporter;
@@ -24,8 +25,6 @@ import com.io7m.callisto.prototype0.client.CoClientTickEvent;
 import com.io7m.callisto.prototype0.events.CoEventNetworkSerializerRegistryServiceLoader;
 import com.io7m.callisto.prototype0.events.CoEventService;
 import com.io7m.callisto.prototype0.network.CoNetworkProviderLocal;
-import com.io7m.callisto.prototype0.network.CoNetworkProviderType;
-import com.io7m.callisto.prototype0.network.CoNetworkProviderUDP;
 import com.io7m.callisto.prototype0.server.CoServer;
 import com.io7m.callisto.prototype0.server.CoServerTickEvent;
 import com.io7m.callisto.prototype0.stringconstants.CoStringConstantPoolService;
@@ -93,7 +92,10 @@ public final class ExampleMain1
         .build();
     reporter.start(5L, TimeUnit.SECONDS);
 
-    final CoNetworkProviderType network = new CoNetworkProviderUDP();
+    final JmxReporter jmx_reporter = JmxReporter.forRegistry(metrics).build();
+    jmx_reporter.start();
+
+    final CoNetworkProviderLocal network = new CoNetworkProviderLocal();
 
     final CoEventNetworkSerializerRegistryServiceLoader client_serializers =
       new CoEventNetworkSerializerRegistryServiceLoader(client_events);
@@ -103,7 +105,12 @@ public final class ExampleMain1
       new CoStringConstantPoolService(client_events);
 
     final CoClient client =
-      new CoClient(network, client_strings, client_events, client_serializers);
+      new CoClient(
+        metrics,
+        network,
+        client_strings,
+        client_events,
+        client_serializers);
     client.startSynchronously(3L, TimeUnit.SECONDS);
 
     final CoEventNetworkSerializerRegistryServiceLoader server_serializers =
@@ -114,15 +121,22 @@ public final class ExampleMain1
       new CoStringConstantPoolService(server_events);
 
     final CoServer server =
-      new CoServer(network, server_strings, server_events);
+      new CoServer(
+        metrics, network, server_strings, server_events, server_serializers);
     server.startSynchronously(3L, TimeUnit.SECONDS);
 
     final Properties props = new Properties();
-    props.setProperty("user", "user0");
-    props.setProperty("password", "Lt47LwMYbGQx");
     props.setProperty("remote_address", "::1");
     props.setProperty("remote_port", "9999");
     client.connect(props).get(10L, TimeUnit.SECONDS);
+
+//    Thread.sleep(TimeUnit.MILLISECONDS.convert(3L, TimeUnit.SECONDS));
+//    LOG.debug("enabling full packet loss");
+//    network.setPacketLoss(1.0);
+
+//    LOG.debug("waiting 5S");
+//    Thread.sleep(TimeUnit.MILLISECONDS.convert(5L, TimeUnit.SECONDS));
+//    LOG.debug("waited");
 
     final Thread th = new Thread(() -> {
       try {

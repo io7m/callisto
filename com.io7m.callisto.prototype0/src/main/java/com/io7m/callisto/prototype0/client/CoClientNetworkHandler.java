@@ -16,6 +16,8 @@
 
 package com.io7m.callisto.prototype0.client;
 
+import com.codahale.metrics.Meter;
+import com.codahale.metrics.MetricRegistry;
 import com.io7m.callisto.prototype0.events.CoEventNetworkSerializerRegistryType;
 import com.io7m.callisto.prototype0.events.CoEventNetworkSerializerType;
 import com.io7m.callisto.prototype0.events.CoEventNetworkType;
@@ -26,6 +28,9 @@ import com.io7m.callisto.prototype0.network.CoNetworkPacketSocketType;
 import com.io7m.callisto.prototype0.network.CoNetworkProviderType;
 import com.io7m.callisto.prototype0.stringconstants.CoStringConstantPoolReadableType;
 import com.io7m.callisto.prototype0.transport.CoTransportClient;
+import com.io7m.callisto.prototype0.transport.CoTransportClientConfiguration;
+import com.io7m.callisto.prototype0.transport.CoTransportClientListenerType;
+import com.io7m.callisto.prototype0.transport.CoTransportConnection;
 import com.io7m.callisto.prototype0.transport.CoTransportConnectionUsableType;
 import com.io7m.jnull.NullCheck;
 import org.slf4j.Logger;
@@ -38,7 +43,7 @@ import java.nio.ByteBuffer;
 import java.util.Properties;
 
 public final class CoClientNetworkHandler
-  implements Closeable, CoTransportClient.ListenerType
+  implements Closeable, CoTransportClientListenerType
 {
   private static final Logger LOG =
     LoggerFactory.getLogger(CoClientNetworkHandler.class);
@@ -47,15 +52,19 @@ public final class CoClientNetworkHandler
   private final CoTransportClient client;
   private final CoEventServiceType events;
   private final CoEventNetworkSerializerRegistryType event_serializers;
+  private final Metrics metrics;
 
   public CoClientNetworkHandler(
+    final MetricRegistry in_metrics,
     final CoEventServiceType in_events,
     final CoEventNetworkSerializerRegistryType in_event_serializers,
     final CoNetworkProviderType in_network,
     final CoStringConstantPoolReadableType in_strings,
-    final byte[] in_password,
-    final Properties props)
+    final Properties props,
+    final CoTransportClientConfiguration config)
   {
+    this.metrics =
+      new Metrics(NullCheck.notNull(in_metrics, "Metrics"));
     this.events =
       NullCheck.notNull(in_events, "Events");
     this.event_serializers =
@@ -63,12 +72,11 @@ public final class CoClientNetworkHandler
     this.peer =
       NullCheck.notNull(in_network, "Network").createSocket(props);
     this.client =
-      new CoTransportClient(
-        in_strings, in_password, this, this.peer, 30);
+      new CoTransportClient(in_strings, this, this.peer, config);
   }
 
   @Override
-  public void onReceivePacketUnparseable(
+  public void onPacketReceiveUnparseable(
     final SocketAddress address,
     final ByteBuffer data,
     final Exception e)
@@ -81,7 +89,7 @@ public final class CoClientNetworkHandler
   }
 
   @Override
-  public void onReceivePacketUnrecognized(
+  public void onPacketReceiveUnrecognized(
     final SocketAddress address,
     final CoPacket packet)
   {
@@ -89,7 +97,7 @@ public final class CoClientNetworkHandler
   }
 
   @Override
-  public void onReceivePacketUnexpected(
+  public void onPacketReceiveUnexpected(
     final SocketAddress address,
     final CoPacket packet)
   {
@@ -105,7 +113,7 @@ public final class CoClientNetworkHandler
   }
 
   @Override
-  public void onMessageReceived(
+  public void onConnectionMessageReceived(
     final CoTransportConnectionUsableType connection,
     final int channel,
     final String type_name,
@@ -126,29 +134,179 @@ public final class CoClientNetworkHandler
   }
 
   @Override
-  public void onConnectionDisconnected(
+  public void onConnectionReceiveDropUnreliable(
+    final CoTransportConnectionUsableType connection,
+    final int channel,
+    final int sequence,
+    final int size)
+  {
+    this.metrics.received_dropped_unreliable_packets.mark();
+  }
+
+  @Override
+  public void onConnectionSendReceipt(
+    final CoTransportConnectionUsableType connection,
+    final int channel,
+    final int sequence,
+    final int size)
+  {
+    this.metrics.sent_receipt_packets.mark();
+    this.metrics.sent_receipt_octets.mark(Integer.toUnsignedLong(size));
+  }
+
+  @Override
+  public void onConnectionSendReliableFragment(
+    final CoTransportConnectionUsableType connection,
+    final int channel,
+    final int sequence,
+    final int size)
+  {
+
+  }
+
+  @Override
+  public void onConnectionSendUnreliable(
+    final CoTransportConnectionUsableType connection,
+    final int channel,
+    final int sequence,
+    final int size)
+  {
+    this.metrics.sent_unreliable_packets.mark();
+    this.metrics.sent_unreliable_octets.mark(Integer.toUnsignedLong(size));
+  }
+
+  @Override
+  public void onConnectionSendReliable(
+    final CoTransportConnectionUsableType connection,
+    final int channel,
+    final int sequence,
+    final int size)
+  {
+    this.metrics.sent_reliable_packets.mark();
+    this.metrics.sent_reliable_octets.mark(Integer.toUnsignedLong(size));
+  }
+
+  @Override
+  public void onConnectionClosed(
     final CoTransportConnectionUsableType connection,
     final String message)
   {
-    LOG.info("onConnectionCreated: {}: {}", connection, message);
+    LOG.info("onConnectionClosed: {}: {}", connection, message);
     this.events.post(CoClientNetworkEventDisconnected.of(connection.id()));
   }
 
   @Override
   public void onConnectionTimedOut(
+    final CoTransportConnectionUsableType connection)
+  {
+    LOG.error("onConnectionTimedOut: {}", connection);
+    this.events.post(CoClientNetworkEventConnectionTimedOut.of(
+      "Connection timed out"));
+  }
+
+  @Override
+  public void onConnectionReceiveDeliverReliable(
+    final CoTransportConnectionUsableType connection,
+    final int channel,
+    final int sequence,
+    final int size)
+  {
+
+  }
+
+  @Override
+  public void onConnectionReceiveDeliverUnreliable(
+    final CoTransportConnectionUsableType connection,
+    final int channel,
+    final int sequence,
+    final int size)
+  {
+
+  }
+
+  @Override
+  public void onConnectionReceiveReliable(
+    final CoTransportConnectionUsableType connection,
+    final int channel,
+    final int sequence,
+    final int size)
+  {
+    this.metrics.received_reliable_packets.mark();
+    this.metrics.received_reliable_octets.mark(Integer.toUnsignedLong(size));
+  }
+
+  @Override
+  public void onConnectionReceiveUnreliable(
+    final CoTransportConnectionUsableType connection,
+    final int channel,
+    final int sequence,
+    final int size)
+  {
+    this.metrics.received_unreliable_packets.mark();
+    this.metrics.received_unreliable_octets.mark(Integer.toUnsignedLong(size));
+  }
+
+  @Override
+  public void onConnectionReceiveReliableFragment(
+    final CoTransportConnectionUsableType connection,
+    final int channel,
+    final int sequence,
+    final int size)
+  {
+
+  }
+
+  @Override
+  public void onConnectionReceiveReceipt(
+    final CoTransportConnectionUsableType connection,
+    final int channel,
+    final int sequence,
+    final int size)
+  {
+    this.metrics.received_receipt_packets.mark();
+    this.metrics.received_receipt_octets.mark(Integer.toUnsignedLong(size));
+  }
+
+  @Override
+  public void onConnectionSendPurgeReliable(
+    final CoTransportConnection connection,
+    final int channel,
+    final int sequence,
+    final int size)
+  {
+
+  }
+
+  @Override
+  public void onHelloTimedOut(
     final SocketAddress address,
     final String message)
   {
-    LOG.error("onConnectionTimedOut: {}: {}", address, message);
+    LOG.error("onHelloTimedOut: {}: {}", address, message);
     this.events.post(CoClientNetworkEventConnectionTimedOut.of(message));
   }
 
   @Override
-  public void onConnectionRefused(
+  public void onHelloSend(
+    final SocketAddress address,
+    final int attempt,
+    final int max_attempts)
+  {
+    if (LOG.isDebugEnabled()) {
+      LOG.debug(
+        "onHelloSend: {}: {}/{}",
+        address,
+        Integer.valueOf(attempt),
+        Integer.valueOf(max_attempts));
+    }
+  }
+
+  @Override
+  public void onHelloRefused(
     final SocketAddress address,
     final String message)
   {
-    LOG.error("onConnectionRefused: {}: {}", address, message);
+    LOG.error("onHelloRefused: {}: {}", address, message);
     this.events.post(CoClientNetworkEventConnectionRefused.of(message));
   }
 
@@ -167,5 +325,72 @@ public final class CoClientNetworkHandler
   public void tick()
   {
     this.client.tick();
+  }
+
+  private static final class Metrics
+  {
+    private final Meter sent_reliable_packets;
+    private final Meter sent_reliable_octets;
+    private final Meter sent_receipt_packets;
+    private final Meter sent_receipt_octets;
+    private final Meter received_reliable_packets;
+    private final Meter received_reliable_octets;
+    private final Meter received_receipt_packets;
+    private final Meter received_receipt_octets;
+    private final Meter received_unreliable_packets;
+    private final Meter received_unreliable_octets;
+    private final Meter sent_unreliable_packets;
+    private final Meter sent_unreliable_octets;
+    private final Meter received_dropped_unreliable_packets;
+
+    Metrics(
+      final MetricRegistry metrics)
+    {
+      this.sent_reliable_packets =
+        metrics.meter(MetricRegistry.name(
+          CoClientNetworkHandler.class, "sent_reliable"));
+      this.sent_reliable_octets =
+        metrics.meter(MetricRegistry.name(
+          CoClientNetworkHandler.class, "sent_reliable_octets"));
+
+      this.sent_unreliable_packets =
+        metrics.meter(MetricRegistry.name(
+          CoClientNetworkHandler.class, "sent_unreliable"));
+      this.sent_unreliable_octets =
+        metrics.meter(MetricRegistry.name(
+          CoClientNetworkHandler.class, "sent_unreliable_octets"));
+
+      this.sent_receipt_packets =
+        metrics.meter(MetricRegistry.name(
+          CoClientNetworkHandler.class, "sent_receipt"));
+      this.sent_receipt_octets =
+        metrics.meter(MetricRegistry.name(
+          CoClientNetworkHandler.class, "sent_receipt_octets"));
+
+      this.received_reliable_packets =
+        metrics.meter(MetricRegistry.name(
+          CoClientNetworkHandler.class, "received_reliable"));
+      this.received_reliable_octets =
+        metrics.meter(MetricRegistry.name(
+          CoClientNetworkHandler.class, "received_reliable_octets"));
+
+      this.received_unreliable_packets =
+        metrics.meter(MetricRegistry.name(
+          CoClientNetworkHandler.class, "received_unreliable"));
+      this.received_unreliable_octets =
+        metrics.meter(MetricRegistry.name(
+          CoClientNetworkHandler.class, "received_unreliable_octets"));
+
+      this.received_receipt_packets =
+        metrics.meter(MetricRegistry.name(
+          CoClientNetworkHandler.class, "received_receipt"));
+      this.received_receipt_octets =
+        metrics.meter(MetricRegistry.name(
+          CoClientNetworkHandler.class, "received_receipt_octets"));
+
+      this.received_dropped_unreliable_packets =
+        metrics.meter(MetricRegistry.name(
+          CoClientNetworkHandler.class, "received_dropped_unreliable"));
+    }
   }
 }

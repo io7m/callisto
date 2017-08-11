@@ -16,11 +16,14 @@
 
 package com.io7m.callisto.prototype0.server;
 
+import com.codahale.metrics.MetricRegistry;
+import com.io7m.callisto.prototype0.events.CoEventNetworkSerializerRegistryType;
 import com.io7m.callisto.prototype0.events.CoEventServiceType;
 import com.io7m.callisto.prototype0.network.CoNetworkProviderType;
 import com.io7m.callisto.prototype0.process.CoProcessAbstract;
 import com.io7m.callisto.prototype0.stringconstants.CoStringConstantPoolServiceType;
 import com.io7m.callisto.prototype0.ticks.CoTickDivisor;
+import com.io7m.callisto.prototype0.transport.CoTransportServerConfiguration;
 import com.io7m.jnull.NullCheck;
 import io.reactivex.disposables.Disposable;
 import org.slf4j.Logger;
@@ -37,10 +40,14 @@ public final class CoServerNetwork extends CoProcessAbstract
   private final CoTickDivisor tick_divisor;
   private final Disposable sub_tick;
   private final CoStringConstantPoolServiceType strings;
+  private final MetricRegistry metrics;
+  private final CoEventNetworkSerializerRegistryType events_serializers;
   private CoServerNetworkHandler handler;
 
   public CoServerNetwork(
+    final MetricRegistry in_metrics,
     final CoEventServiceType in_events,
+    final CoEventNetworkSerializerRegistryType in_event_serializers,
     final CoStringConstantPoolServiceType in_strings,
     final CoNetworkProviderType in_network)
   {
@@ -52,6 +59,10 @@ public final class CoServerNetwork extends CoProcessAbstract
         return th;
       });
 
+    this.events_serializers =
+      NullCheck.notNull(in_event_serializers, "Event serializers");
+    this.metrics =
+      NullCheck.notNull(in_metrics, "Metrics");
     this.network =
       NullCheck.notNull(in_network, "Network");
     this.strings =
@@ -69,9 +80,9 @@ public final class CoServerNetwork extends CoProcessAbstract
   private void onTickEvent(
     final CoServerTickEvent e)
   {
-    final CoServerNetworkHandler h = this.handler;
-    if (h != null) {
-      if (this.tick_divisor.tickNow()) {
+    if (this.tick_divisor.tickNow()) {
+      final CoServerNetworkHandler h = this.handler;
+      if (h != null) {
         h.tick();
       }
     }
@@ -98,10 +109,20 @@ public final class CoServerNetwork extends CoProcessAbstract
     props.setProperty("local_address", "::1");
     props.setProperty("local_port", "9999");
 
-    final byte[] password = new byte[0];
+    final CoTransportServerConfiguration config =
+      CoTransportServerConfiguration.builder()
+        .setPassword(new byte[0])
+        .setTicksPerSecond(30)
+        .setTimeoutTicks(30 * 10)
+        .build();
+
     this.handler =
       new CoServerNetworkHandler(
-        this.network, this.events(), this.strings, password, props);
+        this.network,
+        this.events_serializers,
+        this.events(),
+        this.strings,
+        props, config);
   }
 
   @Override

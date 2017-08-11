@@ -16,14 +16,15 @@
 
 package com.io7m.callisto.prototype0.client;
 
+import com.codahale.metrics.MetricRegistry;
 import com.io7m.callisto.prototype0.events.CoEventNetworkSerializerRegistryType;
 import com.io7m.callisto.prototype0.events.CoEventServiceType;
 import com.io7m.callisto.prototype0.network.CoNetworkProviderType;
 import com.io7m.callisto.prototype0.process.CoProcessAbstract;
 import com.io7m.callisto.prototype0.stringconstants.CoStringConstantPoolReadableType;
 import com.io7m.callisto.prototype0.ticks.CoTickDivisor;
+import com.io7m.callisto.prototype0.transport.CoTransportClientConfiguration;
 import com.io7m.jnull.NullCheck;
-import com.io7m.jproperties.JProperties;
 import com.io7m.jproperties.JPropertyNonexistent;
 import io.reactivex.disposables.Disposable;
 import org.slf4j.Logger;
@@ -44,9 +45,11 @@ public final class CoClientNetwork extends CoProcessAbstract
   private final CoStringConstantPoolReadableType strings;
   private final Disposable sub_net_events;
   private final CoEventNetworkSerializerRegistryType event_serializers;
+  private final MetricRegistry metrics;
   private CoClientNetworkHandler handler;
 
   public CoClientNetwork(
+    final MetricRegistry in_metrics,
     final CoEventServiceType in_events,
     final CoEventNetworkSerializerRegistryType in_event_serializers,
     final CoStringConstantPoolReadableType in_strings,
@@ -60,6 +63,8 @@ public final class CoClientNetwork extends CoProcessAbstract
         return th;
       });
 
+    this.metrics =
+      NullCheck.notNull(in_metrics, "Metrics");
     this.event_serializers =
       NullCheck.notNull(in_event_serializers, "Event serializers");
     this.strings =
@@ -95,7 +100,9 @@ public final class CoClientNetwork extends CoProcessAbstract
       case CLIENT_CONNECTION_TIMED_OUT:
       case CLIENT_DISCONNECTED: {
         try {
+          LOG.debug("closing handler");
           this.handler.close();
+          this.handler = null;
         } catch (final IOException ex) {
           LOG.error("i/o error: ", ex);
         }
@@ -107,9 +114,9 @@ public final class CoClientNetwork extends CoProcessAbstract
   private void onTickEvent(
     final CoClientTickEvent e)
   {
-    final CoClientNetworkHandler h = this.handler;
-    if (h != null) {
-      if (this.tick_divisor.tickNow()) {
+    if (this.tick_divisor.tickNow()) {
+      final CoClientNetworkHandler h = this.handler;
+      if (h != null) {
         h.tick();
       }
     }
@@ -174,17 +181,23 @@ public final class CoClientNetwork extends CoProcessAbstract
   {
     LOG.debug("opening connection to server");
 
-    final String pass =
-      JProperties.getStringOptional(props, "password", "");
+    final CoTransportClientConfiguration config =
+      CoTransportClientConfiguration.builder()
+        .setHelloRetryCount(10)
+        .setHelloRetryDelayInTicks(60)
+        .setPassword(new byte[0])
+        .setTicksPerSecond(30)
+        .setTimeoutTicks(30 * 10)
+        .build();
 
     this.handler =
       new CoClientNetworkHandler(
+        this.metrics,
         this.events(),
         this.event_serializers,
         this.network,
         this.strings,
-        pass.getBytes(),
-        props);
+        props, config);
 
     this.handler.start();
     return null;

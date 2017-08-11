@@ -28,40 +28,4 @@ public interface CoTransportClientType extends Closeable
 
   void tick();
 
-  interface ListenerType
-  {
-    void onReceivePacketUnparseable(
-      final SocketAddress address,
-      final ByteBuffer data,
-      final Exception e);
-
-    void onReceivePacketUnrecognized(
-      SocketAddress address,
-      CoPacket packet);
-
-    void onReceivePacketUnexpected(
-      SocketAddress address,
-      CoPacket packet);
-
-    void onConnectionTimedOut(
-      SocketAddress address,
-      String message);
-
-    void onConnectionRefused(
-      SocketAddress address,
-      String message);
-
-    void onConnectionCreated(
-      CoTransportConnectionUsableType connection);
-
-    void onMessageReceived(
-      CoTransportConnectionUsableType connection,
-      int channel,
-      String type_name,
-      ByteBuffer data);
-
-    void onConnectionDisconnected(
-      CoTransportConnectionUsableType connection,
-      String message);
-  }
 }

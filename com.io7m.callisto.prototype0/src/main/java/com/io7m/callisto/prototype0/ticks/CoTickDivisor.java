@@ -36,9 +36,9 @@ public final class CoTickDivisor
   public boolean tickNow()
   {
     if (this.first) {
+      this.first = false;
       return true;
     }
-    this.first = false;
     this.accum += this.rate_desired / this.rate_main;
     if (this.accum >= 1.0) {
       this.accum = 0.0;

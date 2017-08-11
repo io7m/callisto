@@ -30,6 +30,7 @@ import com.io7m.junreachable.UnimplementedCodeException;
 import com.io7m.junreachable.UnreachableCodeException;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceRBTreeMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import it.unimi.dsi.fastutil.ints.IntBidirectionalIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,32 +51,37 @@ public final class CoTransportConnection implements CoTransportConnectionType
   private final SocketAddress remote;
   private final Int2ReferenceOpenHashMap<CoTransportConnectionChannel> channels;
   private final CoStringConstantPoolReadableType strings;
-  private final ListenerType listener;
+  private final CoTransportConnectionListenerType listener;
+  private final CoTransportConnectionConfiguration config;
+  private int ticks_since_receive;
 
   CoTransportConnection(
-    final ListenerType in_listener,
+    final CoTransportConnectionListenerType in_listener,
     final CoStringConstantPoolReadableType in_strings,
     final CoNetworkPacketSendableType in_socket,
+    final CoTransportConnectionConfiguration in_configuration,
     final SocketAddress in_remote,
     final int in_id)
   {
     this.listener = NullCheck.notNull(in_listener, "Listener");
     this.strings = NullCheck.notNull(in_strings, "Strings");
     this.socket = NullCheck.notNull(in_socket, "Socket");
+    this.config = NullCheck.notNull(in_configuration, "Configuration");
     this.remote = NullCheck.notNull(in_remote, "Remote");
     this.id = in_id;
     this.channels = new Int2ReferenceOpenHashMap<>();
   }
 
   public static CoTransportConnectionType create(
-    final ListenerType in_listener,
+    final CoTransportConnectionListenerType in_listener,
     final CoStringConstantPoolReadableType in_strings,
     final CoNetworkPacketSendableType in_socket,
+    final CoTransportConnectionConfiguration in_configuration,
     final SocketAddress in_remote,
     final int in_id)
   {
     return new CoTransportConnection(
-      in_listener, in_strings, in_socket, in_remote, in_id);
+      in_listener, in_strings, in_socket, in_configuration, in_remote, in_id);
   }
 
   private static int packetChannelID(
@@ -162,7 +168,8 @@ public final class CoTransportConnection implements CoTransportConnectionType
     if (this.channels.containsKey(channel)) {
       transport_channel = this.channels.get(channel);
     } else {
-      transport_channel = new CoTransportConnectionChannel(this, channel);
+      transport_channel =
+        new CoTransportConnectionChannel(this, channel);
       this.channels.put(channel, transport_channel);
     }
     return transport_channel;
@@ -174,11 +181,14 @@ public final class CoTransportConnection implements CoTransportConnectionType
   {
     NullCheck.notNull(p, "Packet");
 
+    this.ticks_since_receive = 0;
+
     switch (p.getValueCase()) {
       case HELLO:
       case HELLO_RESPONSE:
-      case VALUE_NOT_SET:
+      case VALUE_NOT_SET: {
         throw new UnimplementedCodeException();
+      }
 
       case DATA_RECEIPT:
       case DATA_RELIABLE:
@@ -197,6 +207,16 @@ public final class CoTransportConnection implements CoTransportConnectionType
   @Override
   public void tick()
   {
+    final int timeout =
+      this.config.timeoutTicks();
+    this.ticks_since_receive =
+      Math.max(0, Math.min(this.ticks_since_receive + 1, timeout));
+
+    if (this.ticks_since_receive >= timeout) {
+      this.listener.onTimedOut(this);
+      return;
+    }
+
     for (final int key : this.channels.keySet()) {
       final CoTransportConnectionChannel ch = this.channels.get(key);
       ch.handleReceives();
@@ -205,7 +225,7 @@ public final class CoTransportConnection implements CoTransportConnectionType
   }
 
   private static final class CoTransportConnectionChannel
-    implements CoTransportPacketBuilder.ListenerType
+    implements CoTransportPacketBuilderListenerType
   {
     private final int channel;
     private final ArrayDeque<CoPacket> q_sending;
@@ -214,6 +234,7 @@ public final class CoTransportConnection implements CoTransportConnectionType
     private final CoTransportPacketBuilder packets;
     private final CoTransportConnection connection;
     private final CoTransportSequenceNumberTracker sequences;
+    private final Int2ReferenceRBTreeMap<CoPacket> q_sent_reliable;
 
     CoTransportConnectionChannel(
       final CoTransportConnection in_connection,
@@ -229,6 +250,8 @@ public final class CoTransportConnection implements CoTransportConnectionType
       this.q_receive =
         new ArrayDeque<>(16);
       this.q_receive_messages =
+        new Int2ReferenceRBTreeMap<>(this::compareSequenceNumbers);
+      this.q_sent_reliable =
         new Int2ReferenceRBTreeMap<>(this::compareSequenceNumbers);
 
       this.packets =
@@ -256,7 +279,7 @@ public final class CoTransportConnection implements CoTransportConnectionType
       }
     }
 
-    public void handleReceives()
+    void handleReceives()
     {
       this.handleReceivesScanQueue();
 
@@ -311,6 +334,13 @@ public final class CoTransportConnection implements CoTransportConnectionType
 
             case DATA_RELIABLE: {
               final CoDataReliable d = p.getDataReliable();
+
+              this.connection.listener.onReceivePacketDeliverReliable(
+                this.connection,
+                this.channel,
+                d.getId().getSequence(),
+                p.getSerializedSize());
+
               for (int index = 0; index < d.getMessagesCount(); ++index) {
                 final CoMessage m = d.getMessages(index);
                 final int id = m.getMessageId();
@@ -327,6 +357,13 @@ public final class CoTransportConnection implements CoTransportConnectionType
 
             case DATA_UNRELIABLE: {
               final CoDataUnreliable d = p.getDataUnreliable();
+
+              this.connection.listener.onReceivePacketDeliverUnreliable(
+                this.connection,
+                this.channel,
+                d.getId().getSequence(),
+                p.getSerializedSize());
+
               for (int index = 0; index < d.getMessagesCount(); ++index) {
                 final CoMessage m = d.getMessages(index);
                 final int id = m.getMessageId();
@@ -388,7 +425,7 @@ public final class CoTransportConnection implements CoTransportConnectionType
 
           case DATA_UNRELIABLE: {
             iter.remove();
-            this.connection.listener.onDropPacketUnreliable(
+            this.connection.listener.onReceiveDropPacketUnreliable(
               this.connection,
               this.channel,
               p.getDataUnreliable().getId().getSequence(),
@@ -475,20 +512,40 @@ public final class CoTransportConnection implements CoTransportConnectionType
         "discarding acknowledged packets up to {}",
         Integer.valueOf(received));
 
-      LOG.trace("purgeOldSentPackets: ", new UnimplementedCodeException());
+      if (!this.q_sent_reliable.isEmpty()) {
+        final Int2ReferenceSortedMap<CoPacket> purged =
+          this.q_sent_reliable.subMap(
+            this.q_sent_reliable.firstIntKey(), received);
+
+        final IntBidirectionalIterator iter = purged.keySet().iterator();
+        while (iter.hasNext()) {
+          final int id = iter.nextInt();
+          final CoPacket p = this.q_sent_reliable.get(id);
+          iter.remove();
+          this.connection.listener.onSendPacketPurgeReliable(
+            this.connection, this.channel, id, p.getSerializedSize());
+        }
+      }
     }
 
     private void enqueueOldSavedPacket(
       final int not_received)
     {
-      LOG.trace(
-        "resending old packet {}: ",
-        Integer.valueOf(not_received));
+      if (this.q_sent_reliable.containsKey(not_received)) {
+        LOG.trace(
+          "resending old packet {}: ",
+          Integer.valueOf(not_received));
 
-      LOG.trace("enqueueOldSavedPacket: ", new UnimplementedCodeException());
+        this.q_sending.add(this.q_sent_reliable.get(not_received));
+        return;
+      }
+
+      LOG.error(
+        "requested to re-queue missing packet {}",
+        Integer.valueOf(not_received));
     }
 
-    public void handleSends()
+    void handleSends()
     {
       /*
        * Finish any packets that are currently being built.
@@ -526,6 +583,9 @@ public final class CoTransportConnection implements CoTransportConnectionType
           case DATA_RELIABLE: {
             final int sequence =
               p.getDataReliable().getId().getSequence();
+
+            this.q_sent_reliable.put(sequence, p);
+
             this.connection.listener.onSendPacketReliable(
               this.connection, this.channel, sequence, size);
             break;
@@ -534,6 +594,7 @@ public final class CoTransportConnection implements CoTransportConnectionType
           case DATA_UNRELIABLE: {
             final int sequence =
               p.getDataUnreliable().getId().getSequence();
+
             this.connection.listener.onSendPacketUnreliable(
               this.connection, this.channel, sequence, size);
             break;
@@ -542,6 +603,7 @@ public final class CoTransportConnection implements CoTransportConnectionType
           case DATA_RELIABLE_FRAGMENT: {
             final int sequence =
               p.getDataReliableFragment().getId().getSequence();
+
             this.connection.listener.onSendPacketReliableFragment(
               this.connection, this.channel, sequence, size);
             break;
@@ -598,7 +660,7 @@ public final class CoTransportConnection implements CoTransportConnectionType
         p.getSerializedSize());
     }
 
-    public void receive(
+    void receive(
       final CoPacket p)
     {
       switch (p.getValueCase()) {
@@ -608,14 +670,44 @@ public final class CoTransportConnection implements CoTransportConnectionType
           throw new UnreachableCodeException();
         }
 
-        case DATA_RELIABLE:
-        case DATA_UNRELIABLE:
-        case DATA_RELIABLE_FRAGMENT:
+        case DATA_RELIABLE: {
+          this.connection.listener.onReceivePacketReliable(
+            this.connection,
+            this.channel,
+            p.getDataReliable().getId().getSequence(),
+            p.getSerializedSize());
+          break;
+        }
+
+        case DATA_UNRELIABLE: {
+          this.connection.listener.onReceivePacketUnreliable(
+            this.connection,
+            this.channel,
+            p.getDataUnreliable().getId().getSequence(),
+            p.getSerializedSize());
+          break;
+        }
+
+        case DATA_RELIABLE_FRAGMENT: {
+          this.connection.listener.onReceivePacketReliableFragment(
+            this.connection,
+            this.channel,
+            p.getDataReliableFragment().getId().getSequence(),
+            p.getSerializedSize());
+          break;
+        }
+
         case DATA_RECEIPT: {
-          this.q_receive.add(p);
+          this.connection.listener.onReceivePacketReceipt(
+            this.connection,
+            this.channel,
+            p.getDataReceipt().getId().getSequence(),
+            p.getSerializedSize());
           break;
         }
       }
+
+      this.q_receive.add(p);
     }
 
     private int compareSequenceNumbers(
