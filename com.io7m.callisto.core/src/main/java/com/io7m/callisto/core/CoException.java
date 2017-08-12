@@ -16,12 +16,75 @@
 
 package com.io7m.callisto.core;
 
+import com.io7m.jnull.NullCheck;
+import com.io7m.jnull.Nullable;
+
+import java.util.Optional;
+
 /**
  * The type of exceptions raised by the engine.
  */
 
 public abstract class CoException extends RuntimeException
 {
+  private @Nullable CoException next;
+
+  /**
+   * @return The next exception, if any
+   */
+
+  public final Optional<CoException> next()
+  {
+    return Optional.ofNullable(this.next);
+  }
+
+  /**
+   * Set the next exception.
+   *
+   * @param new_next The next exception, or {@code null} if there isn't one
+   *
+   * @return {@code new_next}
+   */
+
+  public final CoException setNext(
+    final CoException new_next)
+  {
+    this.next = new_next;
+    return this.next;
+  }
+
+  /**
+   * Start or continue an exception chain. If {@code ex == null}, then the
+   * exception {@code next} will be the start of the chain.
+   * Otherwise, the exception {@code next} will be added to the end
+   * of the chain.
+   *
+   * @param ex   The current exception
+   * @param next The next exception
+   *
+   * @return The exception chain
+   */
+
+  public static CoException chain(
+    final @Nullable CoException ex,
+    final CoException next)
+  {
+    NullCheck.notNull(next, "next");
+
+    if (ex == null) {
+      return next;
+    }
+
+    CoException e_last = ex;
+    while (e_last.next != null) {
+      e_last = e_last.next;
+    }
+
+    NullCheck.notNull(e_last, "Last");
+    e_last.setNext(next);
+    return ex;
+  }
+
   /**
    * Construct an exception.
    *
