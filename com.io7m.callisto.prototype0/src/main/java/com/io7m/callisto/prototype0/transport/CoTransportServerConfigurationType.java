@@ -26,13 +26,27 @@ import org.immutables.value.Value;
 public interface CoTransportServerConfigurationType
 {
   @Value.Parameter
-  byte[] password();
+  @Value.Default
+  default byte[] password()
+  {
+    return new byte[0];
+  }
 
   @Value.Parameter
   int ticksPerSecond();
 
   @Value.Parameter
-  int timeoutTicks();
+  @Value.Default
+  default int ticksTimeout()
+  {
+    return this.ticksPerSecond() * 10;
+  }
+
+  @Value.Parameter
+  default int ticksReliableTTL()
+  {
+    return this.ticksPerSecond() * 2;
+  }
 
   @Value.Check
   default void checkPreconditions()
@@ -44,9 +58,15 @@ public interface CoTransportServerConfigurationType
       "Valid ticks per second");
 
     RangeCheck.checkIncludedInInteger(
-      this.timeoutTicks(),
+      this.ticksTimeout(),
       "Timeout in ticks",
       new RangeInclusiveI(1, this.ticksPerSecond() * 60),
       "Valid timeout values");
+
+    RangeCheck.checkIncludedInInteger(
+      this.ticksReliableTTL(),
+      "Reliable packet TTL in ticks",
+      new RangeInclusiveI(1, this.ticksPerSecond() * 60),
+      "Valid TTL values");
   }
 }

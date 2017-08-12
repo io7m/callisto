@@ -33,6 +33,12 @@ public interface CoTransportConnectionListenerType
     int sequence,
     int size);
 
+  void onEnqueuePacketReliableRequeue(
+    CoTransportConnectionUsableType connection,
+    int channel,
+    int sequence,
+    int size);
+
   void onEnqueuePacketUnreliable(
     CoTransportConnectionUsableType connection,
     int channel,
@@ -122,9 +128,15 @@ public interface CoTransportConnectionListenerType
     int sequence,
     int size);
 
-  void onSendPacketPurgeReliable(
-    CoTransportConnection connection,
+  void onSavedPacketReliableSave(
+    CoTransportConnectionUsableType connection,
     int channel,
-    int id,
+    int sequence,
+    int size);
+
+  void onSavedPacketReliableExpire(
+    CoTransportConnectionUsableType connection,
+    int channel,
+    int sequence,
     int size);
 }

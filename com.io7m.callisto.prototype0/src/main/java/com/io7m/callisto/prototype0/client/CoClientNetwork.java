@@ -185,9 +185,7 @@ public final class CoClientNetwork extends CoProcessAbstract
       CoTransportClientConfiguration.builder()
         .setHelloRetryCount(10)
         .setHelloRetryDelayInTicks(60)
-        .setPassword(new byte[0])
         .setTicksPerSecond(30)
-        .setTimeoutTicks(30 * 10)
         .build();
 
     this.handler =

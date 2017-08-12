@@ -17,6 +17,7 @@
 package com.io7m.callisto.prototype0.transport;
 
 import com.google.protobuf.ByteString;
+import com.io7m.callisto.prototype0.messages.CoBye;
 import com.io7m.callisto.prototype0.messages.CoHello;
 import com.io7m.callisto.prototype0.messages.CoHelloResponse;
 import com.io7m.callisto.prototype0.messages.CoHelloResponseOK;
@@ -34,6 +35,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
+import java.util.Objects;
 import java.util.Optional;
 
 public final class CoTransportClient implements CoTransportClientType
@@ -200,6 +202,11 @@ public final class CoTransportClient implements CoTransportClientType
         break;
       }
 
+      case BYE: {
+        this.onReceiveBye(address, p);
+        break;
+      }
+
       case VALUE_NOT_SET: {
         this.listener.onPacketReceiveUnrecognized(address, p);
         break;
@@ -215,6 +222,30 @@ public final class CoTransportClient implements CoTransportClientType
       case DATA_UNRELIABLE:
       case DATA_RELIABLE_FRAGMENT: {
         this.onReceiveConnectionPacket(address, p);
+        break;
+      }
+    }
+  }
+
+  private void onReceiveBye(
+    final SocketAddress address,
+    final CoPacket p)
+  {
+    switch (this.state.current()) {
+      case STATE_INITIAL:
+      case STATE_DISCONNECTED: {
+        this.listener.onPacketReceiveUnexpected(address, p);
+        break;
+      }
+
+      case STATE_WAITING_FOR_HELLO:
+      case STATE_CONNECTED: {
+        final CoBye b = p.getBye();
+        if (Objects.equals(address, this.remote)) {
+          this.state.transition(State.STATE_DISCONNECTED);
+          this.listener.onConnectionClosed(this.connection, b.getMessage());
+          return;
+        }
         break;
       }
     }
@@ -252,7 +283,7 @@ public final class CoTransportClient implements CoTransportClientType
         final CoTransportConnectionConfiguration connection_config =
           CoTransportConnectionConfiguration.builder()
             .setTicksPerSecond(this.config.ticksPerSecond())
-            .setTimeoutTicks(this.config.timeoutTicks())
+            .setTicksTimeout(this.config.ticksTimeout())
             .build();
 
         this.connection =
@@ -359,6 +390,23 @@ public final class CoTransportClient implements CoTransportClientType
       if (LOG.isTraceEnabled()) {
         LOG.trace(
           "onEnqueuePacketReliable: {}:{} sequence {}: {} octets",
+          connection,
+          Integer.valueOf(channel),
+          Integer.valueOf(sequence),
+          Integer.valueOf(size));
+      }
+    }
+
+    @Override
+    public void onEnqueuePacketReliableRequeue(
+      final CoTransportConnectionUsableType connection,
+      final int channel,
+      final int sequence,
+      final int size)
+    {
+      if (LOG.isTraceEnabled()) {
+        LOG.trace(
+          "onEnqueuePacketReliableRequeue: {}:{} sequence {}: {} octets",
           connection,
           Integer.valueOf(channel),
           Integer.valueOf(sequence),
@@ -682,22 +730,42 @@ public final class CoTransportClient implements CoTransportClientType
     }
 
     @Override
-    public void onSendPacketPurgeReliable(
-      final CoTransportConnection connection,
+    public void onSavedPacketReliableSave(
+      final CoTransportConnectionUsableType connection,
       final int channel,
       final int sequence,
       final int size)
     {
       if (LOG.isTraceEnabled()) {
         LOG.trace(
-          "onSendPacketPurgeReliable: {}:{} sequence {}: {} octets",
+          "onSavedPacketReliableSave: {}:{} sequence {}: {} octets",
           connection,
           Integer.valueOf(channel),
           Integer.valueOf(sequence),
           Integer.valueOf(size));
       }
 
-      this.client.listener.onConnectionSendPurgeReliable(
+      this.client.listener.onConnectionSendReliableSaved(
+        connection, channel, sequence, size);
+    }
+
+    @Override
+    public void onSavedPacketReliableExpire(
+      final CoTransportConnectionUsableType connection,
+      final int channel,
+      final int sequence,
+      final int size)
+    {
+      if (LOG.isTraceEnabled()) {
+        LOG.trace(
+          "onSavedPacketReliableExpire: {}:{} sequence {}: {} octets",
+          connection,
+          Integer.valueOf(channel),
+          Integer.valueOf(sequence),
+          Integer.valueOf(size));
+      }
+
+      this.client.listener.onConnectionSendReliableExpired(
         connection, channel, sequence, size);
     }
   }

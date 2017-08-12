@@ -82,6 +82,10 @@ public interface CoTransportServerListenerType
     String type_name,
     ByteBuffer data);
 
+  void onClientConnectionPacketIgnoredBye(
+    CoTransportConnectionUsableType connection,
+    SocketAddress sender);
+
   void onClientConnectionPacketReceiveDeliverReliable(
     CoTransportConnectionUsableType connection,
     int channel,
@@ -118,8 +122,14 @@ public interface CoTransportServerListenerType
     int sequence,
     int size);
 
-  void onClientConnectionPacketSendPurgeReliable(
-    CoTransportConnection connection,
+  void onClientConnectionPacketSendReliableSaved(
+    CoTransportConnectionUsableType connection,
+    int channel,
+    int sequence,
+    int size);
+
+  void onClientConnectionPacketSendReliableExpired(
+    CoTransportConnectionUsableType connection,
     int channel,
     int sequence,
     int size);

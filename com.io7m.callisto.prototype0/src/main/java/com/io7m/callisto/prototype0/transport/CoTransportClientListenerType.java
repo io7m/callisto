@@ -131,9 +131,16 @@ public interface CoTransportClientListenerType
     int sequence,
     int size);
 
-  void onConnectionSendPurgeReliable(
-    CoTransportConnection connection,
+  void onConnectionSendReliableSaved(
+    CoTransportConnectionUsableType connection,
     int channel,
     int sequence,
     int size);
+
+  void onConnectionSendReliableExpired(
+    CoTransportConnectionUsableType connection,
+    int channel,
+    int sequence,
+    int size);
+
 }

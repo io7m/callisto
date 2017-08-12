@@ -21,4 +21,8 @@ import java.io.Closeable;
 public interface CoTransportServerType extends Closeable
 {
   void tick();
+
+  void closeConnection(
+    int id,
+    String message);
 }

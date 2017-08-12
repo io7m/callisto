@@ -16,6 +16,7 @@
 
 package com.io7m.callisto.prototype0.client;
 
+import com.codahale.metrics.Counter;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.io7m.callisto.prototype0.events.CoEventNetworkSerializerRegistryType;
@@ -268,13 +269,25 @@ public final class CoClientNetworkHandler
   }
 
   @Override
-  public void onConnectionSendPurgeReliable(
-    final CoTransportConnection connection,
+  public void onConnectionSendReliableSaved(
+    final CoTransportConnectionUsableType connection,
     final int channel,
     final int sequence,
     final int size)
   {
+    this.metrics.sent_reliable_saved_packets.inc();
+    this.metrics.sent_reliable_saved_octets.inc(Integer.toUnsignedLong(size));
+  }
 
+  @Override
+  public void onConnectionSendReliableExpired(
+    final CoTransportConnectionUsableType connection,
+    final int channel,
+    final int sequence,
+    final int size)
+  {
+    this.metrics.sent_reliable_saved_packets.dec();
+    this.metrics.sent_reliable_saved_octets.dec(Integer.toUnsignedLong(size));
   }
 
   @Override
@@ -342,6 +355,8 @@ public final class CoClientNetworkHandler
     private final Meter sent_unreliable_packets;
     private final Meter sent_unreliable_octets;
     private final Meter received_dropped_unreliable_packets;
+    private final Counter sent_reliable_saved_packets;
+    private final Counter sent_reliable_saved_octets;
 
     Metrics(
       final MetricRegistry metrics)
@@ -352,6 +367,13 @@ public final class CoClientNetworkHandler
       this.sent_reliable_octets =
         metrics.meter(MetricRegistry.name(
           CoClientNetworkHandler.class, "sent_reliable_octets"));
+
+      this.sent_reliable_saved_packets =
+        metrics.counter(MetricRegistry.name(
+          CoClientNetworkHandler.class, "sent_reliable_saved"));
+      this.sent_reliable_saved_octets =
+        metrics.counter(MetricRegistry.name(
+          CoClientNetworkHandler.class, "sent_reliable_saved_octets"));
 
       this.sent_unreliable_packets =
         metrics.meter(MetricRegistry.name(

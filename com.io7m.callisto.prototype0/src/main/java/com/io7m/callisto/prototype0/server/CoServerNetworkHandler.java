@@ -26,12 +26,12 @@ import com.io7m.callisto.prototype0.network.CoNetworkPacketSocketType;
 import com.io7m.callisto.prototype0.network.CoNetworkProviderType;
 import com.io7m.callisto.prototype0.stringconstants.CoStringConstantPoolMessages;
 import com.io7m.callisto.prototype0.stringconstants.CoStringConstantPoolReadableType;
-import com.io7m.callisto.prototype0.transport.CoTransportConnection;
 import com.io7m.callisto.prototype0.transport.CoTransportConnectionUsableType;
 import com.io7m.callisto.prototype0.transport.CoTransportServer;
 import com.io7m.callisto.prototype0.transport.CoTransportServerConfiguration;
 import com.io7m.callisto.prototype0.transport.CoTransportServerListenerType;
 import com.io7m.jnull.NullCheck;
+import io.reactivex.Scheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,6 +41,7 @@ import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 import static com.io7m.callisto.prototype0.transport.CoTransportConnectionUsableType.Reliability;
 
@@ -55,8 +56,10 @@ public final class CoServerNetworkHandler
   private final CoStringConstantPoolReadableType strings;
   private final CoEventServiceType events;
   private final CoEventNetworkSerializerRegistryType event_serializers;
+  private final Scheduler scheduler;
 
   public CoServerNetworkHandler(
+    final Scheduler in_scheduler,
     final CoNetworkProviderType in_network,
     final CoEventNetworkSerializerRegistryType in_event_serializers,
     final CoEventServiceType in_events,
@@ -66,6 +69,8 @@ public final class CoServerNetworkHandler
   {
     NullCheck.notNull(in_network, "Network");
 
+    this.scheduler =
+      NullCheck.notNull(in_scheduler, "Scheduler");
     this.strings =
       NullCheck.notNull(in_strings, "Strings");
     this.events =
@@ -235,6 +240,17 @@ public final class CoServerNetworkHandler
   }
 
   @Override
+  public void onClientConnectionPacketIgnoredBye(
+    final CoTransportConnectionUsableType connection,
+    final SocketAddress sender)
+  {
+    LOG.warn(
+      "onClientConnectionPacketIgnoredBye: {}: ignored a Bye message sent from an unknown sender {}",
+      connection,
+      sender);
+  }
+
+  @Override
   public void onClientConnectionPacketReceiveDeliverReliable(
     final CoTransportConnectionUsableType connection,
     final int channel,
@@ -295,8 +311,18 @@ public final class CoServerNetworkHandler
   }
 
   @Override
-  public void onClientConnectionPacketSendPurgeReliable(
-    final CoTransportConnection connection,
+  public void onClientConnectionPacketSendReliableSaved(
+    final CoTransportConnectionUsableType connection,
+    final int channel,
+    final int sequence,
+    final int size)
+  {
+
+  }
+
+  @Override
+  public void onClientConnectionPacketSendReliableExpired(
+    final CoTransportConnectionUsableType connection,
     final int channel,
     final int sequence,
     final int size)

@@ -18,6 +18,7 @@ package com.io7m.callisto.prototype0.transport;
 
 import com.google.protobuf.ByteString;
 import com.io7m.callisto.prototype0.idpool.CoIDPoolUnpredictable;
+import com.io7m.callisto.prototype0.messages.CoBye;
 import com.io7m.callisto.prototype0.messages.CoHello;
 import com.io7m.callisto.prototype0.messages.CoHelloResponse;
 import com.io7m.callisto.prototype0.messages.CoHelloResponseError;
@@ -36,6 +37,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
+import java.util.Objects;
 import java.util.Optional;
 
 public final class CoTransportServer implements CoTransportServerType
@@ -75,6 +77,7 @@ public final class CoTransportServer implements CoTransportServerType
     final CoPacket p)
   {
     switch (p.getValueCase()) {
+      case BYE:
       case HELLO:
       case HELLO_RESPONSE:
       case VALUE_NOT_SET: {
@@ -96,27 +99,6 @@ public final class CoTransportServer implements CoTransportServerType
     }
 
     throw new UnreachableCodeException();
-  }
-
-  private static ByteBuffer helloOK(
-    final int connection_id)
-  {
-    final CoHelloResponseOK hr_ok =
-      CoHelloResponseOK.newBuilder()
-        .setConnectionId(connection_id)
-        .build();
-
-    final CoHelloResponse hr =
-      CoHelloResponse.newBuilder()
-        .setOk(hr_ok)
-        .build();
-
-    final CoPacket p =
-      CoPacket.newBuilder()
-        .setHelloResponse(hr)
-        .build();
-
-    return ByteBuffer.wrap(p.toByteArray());
   }
 
   private static ByteBuffer helloBadPassword()
@@ -152,6 +134,30 @@ public final class CoTransportServer implements CoTransportServerType
       matches &= a[i] == b[i];
     }
     return matches;
+  }
+
+  private ByteBuffer helloOK(
+    final int connection_id)
+  {
+    final CoHelloResponseOK hr_ok =
+      CoHelloResponseOK.newBuilder()
+        .setConnectionId(connection_id)
+        .setTicksPerSecond(this.config.ticksPerSecond())
+        .setTicksReliableTTL(this.config.ticksReliableTTL())
+        .setTicksTimeout(this.config.ticksTimeout())
+        .build();
+
+    final CoHelloResponse hr =
+      CoHelloResponse.newBuilder()
+        .setOk(hr_ok)
+        .build();
+
+    final CoPacket p =
+      CoPacket.newBuilder()
+        .setHelloResponse(hr)
+        .build();
+
+    return ByteBuffer.wrap(p.toByteArray());
   }
 
   @Override
@@ -198,6 +204,11 @@ public final class CoTransportServer implements CoTransportServerType
         break;
       }
 
+      case BYE: {
+        this.onReceivedBye(address, p.getBye());
+        break;
+      }
+
       case VALUE_NOT_SET: {
         this.listener.onReceivePacketUnrecognized(address, p);
         break;
@@ -215,6 +226,24 @@ public final class CoTransportServer implements CoTransportServerType
         this.onReceiveConnectionPacket(packetConnectionId(p), p);
         break;
       }
+    }
+  }
+
+  private void onReceivedBye(
+    final SocketAddress address,
+    final CoBye bye)
+  {
+    final int connection_id = bye.getConnectionId();
+    if (this.connections.containsKey(connection_id)) {
+      final CoTransportConnection connection =
+        this.connections.get(connection_id);
+
+      if (Objects.equals(address, connection.remote())) {
+        this.onConnectionClosed(connection, "Client closed the connection");
+        return;
+      }
+
+      this.listener.onClientConnectionPacketIgnoredBye(connection, address);
     }
   }
 
@@ -254,7 +283,7 @@ public final class CoTransportServer implements CoTransportServerType
     final CoTransportConnectionConfiguration config =
       CoTransportConnectionConfiguration.builder()
         .setTicksPerSecond(this.config.ticksPerSecond())
-        .setTimeoutTicks(this.config.timeoutTicks())
+        .setTicksTimeout(this.config.ticksTimeout())
         .build();
 
     final CoTransportConnection connection =
@@ -267,7 +296,7 @@ public final class CoTransportServer implements CoTransportServerType
         connection_id);
 
     this.connections.put(connection_id, connection);
-    this.socket.send(address, helloOK(connection_id));
+    this.socket.send(address, this.helloOK(connection_id));
     this.listener.onClientConnectionCreated(connection);
   }
 
@@ -284,6 +313,38 @@ public final class CoTransportServer implements CoTransportServerType
   {
     this.connections.remove(connection.id());
     this.listener.onClientConnectionTimedOut(connection);
+  }
+
+  @Override
+  public void closeConnection(
+    final int id,
+    final String message)
+  {
+    NullCheck.notNull(message, "Message");
+
+    if (this.connections.containsKey(id)) {
+      final CoTransportConnection connection = this.connections.get(id);
+      this.socket.send(connection.remote(), bye(id, message));
+      this.onConnectionClosed(connection, message);
+    }
+  }
+
+  private static ByteBuffer bye(
+    final int id,
+    final String message)
+  {
+    final CoBye bye =
+      CoBye.newBuilder()
+        .setConnectionId(id)
+        .setMessage(message)
+        .build();
+
+    final CoPacket p =
+      CoPacket.newBuilder()
+        .setBye(bye)
+        .build();
+
+    return ByteBuffer.wrap(p.toByteArray());
   }
 
   private static final class ConnectionListener
@@ -328,6 +389,23 @@ public final class CoTransportServer implements CoTransportServerType
       if (LOG.isTraceEnabled()) {
         LOG.trace(
           "onEnqueuePacketReliable: {}:{} sequence {}: {} octets",
+          connection,
+          Integer.valueOf(channel),
+          Integer.valueOf(sequence),
+          Integer.valueOf(size));
+      }
+    }
+
+    @Override
+    public void onEnqueuePacketReliableRequeue(
+      final CoTransportConnectionUsableType connection,
+      final int channel,
+      final int sequence,
+      final int size)
+    {
+      if (LOG.isTraceEnabled()) {
+        LOG.trace(
+          "onEnqueuePacketReliableRequeue: {}:{} sequence {}: {} octets",
           connection,
           Integer.valueOf(channel),
           Integer.valueOf(sequence),
@@ -651,22 +729,42 @@ public final class CoTransportServer implements CoTransportServerType
     }
 
     @Override
-    public void onSendPacketPurgeReliable(
-      final CoTransportConnection connection,
+    public void onSavedPacketReliableSave(
+      final CoTransportConnectionUsableType connection,
       final int channel,
       final int sequence,
       final int size)
     {
       if (LOG.isTraceEnabled()) {
         LOG.trace(
-          "onSendPacketPurgeReliable: {}:{} sequence {}: {} octets",
+          "onSavedPacketReliableSave: {}:{} sequence {}: {} octets",
           connection,
           Integer.valueOf(channel),
           Integer.valueOf(sequence),
           Integer.valueOf(size));
       }
 
-      this.server.listener.onClientConnectionPacketSendPurgeReliable(
+      this.server.listener.onClientConnectionPacketSendReliableSaved(
+        connection, channel, sequence, size);
+    }
+
+    @Override
+    public void onSavedPacketReliableExpire(
+      final CoTransportConnectionUsableType connection,
+      final int channel,
+      final int sequence,
+      final int size)
+    {
+      if (LOG.isTraceEnabled()) {
+        LOG.trace(
+          "onSavedPacketReliablePurge: {}:{} sequence {}: {} octets",
+          connection,
+          Integer.valueOf(channel),
+          Integer.valueOf(sequence),
+          Integer.valueOf(size));
+      }
+
+      this.server.listener.onClientConnectionPacketSendReliableExpired(
         connection, channel, sequence, size);
     }
   }

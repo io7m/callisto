@@ -98,7 +98,7 @@ public final class CoTransportPacketBuilder
       .setDataReceipt(
         CoDataReceipt.newBuilder()
           .setId(packetIDLargest())
-          .setSequenceReliableReceived(0xffffffff))
+          .build())
       .build()
       .getSerializedSize();
   }
@@ -501,7 +501,7 @@ public final class CoTransportPacketBuilder
     while (iter.hasNext()) {
       final int r = iter.nextInt();
       if (this.receiptCanFit()) {
-        this.packet_receipt.addSequenceReliableNotReceived(r);
+        this.packet_receipt.addSequencesReliableNotReceived(r);
       } else {
         output.onCreatedPacketReceipt(this.receiptFinish());
         this.receiptStart();

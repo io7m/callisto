@@ -111,13 +111,12 @@ public final class CoServerNetwork extends CoProcessAbstract
 
     final CoTransportServerConfiguration config =
       CoTransportServerConfiguration.builder()
-        .setPassword(new byte[0])
         .setTicksPerSecond(30)
-        .setTimeoutTicks(30 * 10)
         .build();
 
     this.handler =
       new CoServerNetworkHandler(
+        this.scheduler(),
         this.network,
         this.events_serializers,
         this.events(),

@@ -26,19 +26,35 @@ import org.immutables.value.Value;
 public interface CoTransportClientConfigurationType
 {
   @Value.Parameter
-  byte[] password();
+  @Value.Default
+  default byte[] password()
+  {
+    return new byte[0];
+  }
 
   @Value.Parameter
   int ticksPerSecond();
 
   @Value.Parameter
-  int helloRetryDelayInTicks();
+  @Value.Default
+  default int helloRetryDelayInTicks()
+  {
+    return this.ticksPerSecond() * 3;
+  }
 
   @Value.Parameter
-  int helloRetryCount();
+  @Value.Default
+  default int helloRetryCount()
+  {
+    return 30;
+  }
 
   @Value.Parameter
-  int timeoutTicks();
+  @Value.Default
+  default int ticksTimeout()
+  {
+    return this.ticksPerSecond() * 10;
+  }
 
   @Value.Check
   default void checkPreconditions()
@@ -62,7 +78,7 @@ public interface CoTransportClientConfigurationType
       "Valid Hello retry counts");
 
     RangeCheck.checkIncludedInInteger(
-      this.timeoutTicks(),
+      this.ticksTimeout(),
       "Timeout in ticks",
       new RangeInclusiveI(1, this.ticksPerSecond() * 60),
       "Valid timeout values");

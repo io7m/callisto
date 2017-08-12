@@ -25,12 +25,16 @@ import "StringConstantPool.proto";
 
 message CoHello
 {
-  bytes password = 1;
+  bytes  password       = 1;
+  uint32 bytesPerSecond = 2;
 }
 
 message CoHelloResponseOK
 {
-  fixed32 connection_id = 1;
+  fixed32 connection_id    = 1;
+  uint32  ticksPerSecond   = 2;
+  uint32  ticksReliableTTL = 3;
+  uint32  ticksTimeout     = 4;
 }
 
 message CoHelloResponseError
@@ -84,9 +88,14 @@ message CoDataReliableFragment
 
 message CoDataReceipt
 {
-  CoPacketID      id                             = 1;
-  uint32          sequence_reliable_received     = 2;
-  repeated uint32 sequence_reliable_not_received = 3;
+  CoPacketID      id                              = 1;
+  repeated uint32 sequences_reliable_not_received = 2;
+}
+
+message CoBye
+{
+  fixed32 connection_id = 1;
+  string  message       = 2;
 }
 
 message CoPacket
@@ -98,5 +107,6 @@ message CoPacket
     CoDataUnreliable       data_unreliable        = 4;
     CoDataReliableFragment data_reliable_fragment = 5;
     CoDataReceipt          data_receipt           = 6;
+    CoBye                  bye                    = 7;
   }
 }

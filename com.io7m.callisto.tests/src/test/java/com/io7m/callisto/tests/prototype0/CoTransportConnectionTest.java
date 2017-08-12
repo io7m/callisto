@@ -29,6 +29,7 @@ import com.io7m.callisto.prototype0.stringconstants.CoStringConstantPoolType;
 import com.io7m.callisto.prototype0.stringconstants.CoStringConstantReference;
 import com.io7m.callisto.prototype0.transport.CoTransportConnection;
 import com.io7m.callisto.prototype0.transport.CoTransportConnectionConfiguration;
+import com.io7m.callisto.prototype0.transport.CoTransportConnectionListenerType;
 import com.io7m.callisto.prototype0.transport.CoTransportConnectionType;
 import com.io7m.callisto.prototype0.transport.CoTransportConnectionUsableType;
 import com.io7m.jnull.NullCheck;
@@ -47,7 +48,6 @@ import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 
-import com.io7m.callisto.prototype0.transport.CoTransportConnectionListenerType;
 import static com.io7m.callisto.prototype0.transport.CoTransportConnectionUsableType.Reliability;
 
 public final class CoTransportConnectionTest
@@ -101,6 +101,17 @@ public final class CoTransportConnectionTest
 
     new StrictExpectations()
     {{
+      listener.onReceivePacketDeliverUnreliable(
+        connection, 0, 4, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverUnreliable(
+        connection, 0, 3, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverUnreliable(
+        connection, 0, 2, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverUnreliable(
+        connection, 0, 1, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverUnreliable(
+        connection, 0, 0, this.with(new AnyInteger()).intValue());
+
       listener.onMessageReceived(
         connection, 0, this.with(new CoMessageIDChecker(0)));
       listener.onMessageReceived(
@@ -174,6 +185,15 @@ public final class CoTransportConnectionTest
 
     new StrictExpectations()
     {{
+      listener.onReceivePacketDeliverUnreliable(
+        connection, 0, 0, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverUnreliable(
+        connection, 0, 2, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverUnreliable(
+        connection, 0, 4, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverUnreliable(
+        connection, 0, 6, this.with(new AnyInteger()).intValue());
+
       listener.onMessageReceived(
         connection, 0, this.with(new CoMessageIDChecker(0)));
       listener.onMessageReceived(
@@ -255,6 +275,27 @@ public final class CoTransportConnectionTest
 
     new StrictExpectations()
     {{
+      listener.onReceivePacketDeliverUnreliable(
+        connection, 0, 0xfffffb, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverUnreliable(
+        connection, 0, 0xfffffc, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverUnreliable(
+        connection, 0, 0xfffffd, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverUnreliable(
+        connection, 0, 0xfffffe, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverUnreliable(
+        connection, 0, 0xffffff, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverUnreliable(
+        connection, 0, 0, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverUnreliable(
+        connection, 0, 1, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverUnreliable(
+        connection, 0, 2, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverUnreliable(
+        connection, 0, 3, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverUnreliable(
+        connection, 0, 4, this.with(new AnyInteger()).intValue());
+
       listener.onMessageReceived(
         connection, 0, this.with(new CoMessageIDChecker(0xfffffb)));
       listener.onMessageReceived(
@@ -342,6 +383,37 @@ public final class CoTransportConnectionTest
 
     new StrictExpectations()
     {{
+      listener.onReceivePacketDeliverUnreliable(
+        connection, 0, 0, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverUnreliable(
+        connection, 0, 0, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverUnreliable(
+        connection, 0, 0, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverUnreliable(
+        connection, 0, 1, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverUnreliable(
+        connection, 0, 1, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverUnreliable(
+        connection, 0, 1, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverUnreliable(
+        connection, 0, 2, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverUnreliable(
+        connection, 0, 2, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverUnreliable(
+        connection, 0, 2, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverUnreliable(
+        connection, 0, 3, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverUnreliable(
+        connection, 0, 3, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverUnreliable(
+        connection, 0, 3, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverUnreliable(
+        connection, 0, 4, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverUnreliable(
+        connection, 0, 4, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverUnreliable(
+        connection, 0, 4, this.with(new AnyInteger()).intValue());
+
       listener.onMessageReceived(
         connection, 0, this.with(new CoMessageIDChecker(0)));
       listener.onMessageReceived(
@@ -479,6 +551,22 @@ public final class CoTransportConnectionTest
         Integer.valueOf(sequence),
         Integer.valueOf(size));
       this.listener.onEnqueuePacketReliable(
+        connection, channel, sequence, size);
+    }
+
+    @Override
+    public void onEnqueuePacketReliableRequeue(
+      final CoTransportConnectionUsableType connection,
+      final int channel,
+      final int sequence,
+      final int size)
+    {
+      LOG.debug(
+        "onEnqueuePacketReliableRequeue: {} {} {}",
+        Integer.valueOf(channel),
+        Integer.valueOf(sequence),
+        Integer.valueOf(size));
+      this.listener.onEnqueuePacketReliableRequeue(
         connection, channel, sequence, size);
     }
 
@@ -716,6 +804,38 @@ public final class CoTransportConnectionTest
         Integer.valueOf(sequence),
         Integer.valueOf(size));
       this.listener.onReceivePacketReceipt(
+        connection, channel, sequence, size);
+    }
+
+    @Override
+    public void onSavedPacketReliableSave(
+      final CoTransportConnectionUsableType connection,
+      final int channel,
+      final int sequence,
+      final int size)
+    {
+      LOG.debug(
+        "onSavedPacketReliableSave: {} {} {}",
+        Integer.valueOf(channel),
+        Integer.valueOf(sequence),
+        Integer.valueOf(size));
+      this.listener.onSavedPacketReliableSave(
+        connection, channel, sequence, size);
+    }
+
+    @Override
+    public void onSavedPacketReliableExpire(
+      final CoTransportConnectionUsableType connection,
+      final int channel,
+      final int sequence,
+      final int size)
+    {
+      LOG.debug(
+        "onSavedPacketReliableExpire: {} {} {}",
+        Integer.valueOf(channel),
+        Integer.valueOf(sequence),
+        Integer.valueOf(size));
+      this.listener.onSavedPacketReliableExpire(
         connection, channel, sequence, size);
     }
   }
