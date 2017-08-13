@@ -484,34 +484,34 @@ public final class CoTransportPacketBuilder
   }
 
   /**
-   * Create any receipt packets that are needed.
+   * Create any ack packets that are needed.
    *
    * @param output A listener that will receive any completed packets
    */
 
-  public void receipts(
+  public void acks(
     final CoTransportPacketBuilderListenerType output)
   {
     NullCheck.notNull(output, "Output");
 
     final IntSet missing = this.sequences.reliableReceiverWindow().missed();
-    this.receiptStart();
+    this.ackStart();
 
     final IntIterator iter = missing.iterator();
     while (iter.hasNext()) {
       final int r = iter.nextInt();
-      if (this.receiptCanFit()) {
+      if (this.ackCanFit()) {
         this.packet_ack.addSequencesReliableNotReceived(r);
       } else {
-        output.onCreatedPacketAck(this.receiptFinish());
-        this.receiptStart();
+        output.onCreatedPacketAck(this.ackFinish());
+        this.ackStart();
       }
     }
 
-    output.onCreatedPacketAck(this.receiptFinish());
+    output.onCreatedPacketAck(this.ackFinish());
   }
 
-  private CoPacket receiptFinish()
+  private CoPacket ackFinish()
   {
     final CoDataAck pd = this.packet_ack.build();
     final CoPacket p = CoPacket.newBuilder().setDataAck(pd).build();
@@ -522,12 +522,12 @@ public final class CoTransportPacketBuilder
     return p;
   }
 
-  private boolean receiptCanFit()
+  private boolean ackCanFit()
   {
     return this.packet_reliable_size + 6 < this.packet_size_limit;
   }
 
-  private void receiptStart()
+  private void ackStart()
   {
     this.packet_ack.clear();
     this.packet_ack.setId(

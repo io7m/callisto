@@ -388,7 +388,7 @@ public final class CoTransportPacketBuilderTest
     sequences.reliableReceiverWindow().receive(3);
 
     final QueueListener listener = new QueueListener();
-    b.receipts(listener);
+    b.acks(listener);
 
     listener.queue.forEach(p -> LOG.trace("packet: {}", p));
   }

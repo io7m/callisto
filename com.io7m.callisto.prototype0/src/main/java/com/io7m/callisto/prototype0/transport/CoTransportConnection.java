@@ -393,21 +393,21 @@ public final class CoTransportConnection implements CoTransportConnectionType
        */
 
       this.handleReceivesDropUnreliables();
-      this.handleReceivesEnqueueReceipt();
+      this.handleReceivesEnqueueAck();
     }
 
     /**
-     * Send a receipt for any missing packets.
+     * Send an ack for any missing packets.
      */
 
-    private void handleReceivesEnqueueReceipt()
+    private void handleReceivesEnqueueAck()
     {
-      if (this.receiptRequired()) {
-        this.packets.receipts(this);
+      if (this.ackRequired()) {
+        this.packets.acks(this);
       }
     }
 
-    private boolean receiptRequired()
+    private boolean ackRequired()
     {
       return !this.sequences.reliableReceiverWindow().missed().isEmpty();
     }
@@ -497,7 +497,7 @@ public final class CoTransportConnection implements CoTransportConnectionType
         this.q_receive_messages.isEmpty(),
         "Receive messages must be empty");
 
-      this.handleReceivesEnqueueReceipt();
+      this.handleReceivesEnqueueAck();
       this.sequences.reliableReceiverWindow().reset();
     }
 
