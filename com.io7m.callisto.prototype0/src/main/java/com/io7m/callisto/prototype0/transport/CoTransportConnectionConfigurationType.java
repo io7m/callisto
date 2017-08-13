@@ -41,6 +41,12 @@ public interface CoTransportConnectionConfigurationType
     return this.ticksPerSecond() * 2;
   }
 
+  @Value.Parameter
+  default int ticksPingRate()
+  {
+    return this.ticksPerSecond();
+  }
+
   @Value.Check
   default void checkPreconditions()
   {
@@ -61,5 +67,11 @@ public interface CoTransportConnectionConfigurationType
       "Reliable packet TTL in ticks",
       new RangeInclusiveI(1, this.ticksPerSecond() * 60),
       "Valid TTL values");
+
+    RangeCheck.checkIncludedInInteger(
+      this.ticksPerSecond(),
+      "Ticks ping rate",
+      new RangeInclusiveI(this.ticksPerSecond(), this.ticksPerSecond() * 60),
+      "Valid ping rate");
   }
 }

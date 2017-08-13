@@ -18,11 +18,11 @@ package com.io7m.callisto.prototype0.events;
 
 public interface CoEventNetworkSerializerEventType extends CoEventType
 {
+  Type type();
+
   enum Type
   {
     SERIALIZER_REGISTERED,
     SERIALIZER_UNREGISTERED
   }
-
-  Type type();
 }

@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
+import java.time.Clock;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -50,16 +51,20 @@ public final class CoTransportClient implements CoTransportClientType
   private final SocketAddress remote;
   private final ConnectionListener connection_listener;
   private final CoTransportClientConfiguration config;
+  private final Clock clock;
   private int hello_attempts;
   private long time;
   private CoTransportConnection connection;
 
   public CoTransportClient(
+    final Clock in_clock,
     final CoStringConstantPoolReadableType in_strings,
     final CoTransportClientListenerType in_listener,
     final CoNetworkPacketSocketType in_socket,
     final CoTransportClientConfiguration in_config)
   {
+    this.clock =
+      NullCheck.notNull(in_clock, "Clock");
     this.strings =
       NullCheck.notNull(in_strings, "Strings");
     this.listener =
@@ -217,7 +222,9 @@ public final class CoTransportClient implements CoTransportClientType
         break;
       }
 
-      case DATA_RECEIPT:
+      case PING:
+      case PONG:
+      case DATA_ACK:
       case DATA_RELIABLE:
       case DATA_UNRELIABLE:
       case DATA_RELIABLE_FRAGMENT: {
@@ -288,6 +295,7 @@ public final class CoTransportClient implements CoTransportClientType
 
         this.connection =
           new CoTransportConnection(
+            this.clock,
             this.connection_listener,
             this.strings,
             this.socket,
@@ -449,7 +457,7 @@ public final class CoTransportClient implements CoTransportClientType
     }
 
     @Override
-    public void onEnqueuePacketReceipt(
+    public void onEnqueuePacketAck(
       final CoTransportConnectionUsableType connection,
       final int channel,
       final int sequence,
@@ -526,7 +534,7 @@ public final class CoTransportClient implements CoTransportClientType
     }
 
     @Override
-    public void onSendPacketReceipt(
+    public void onSendPacketAck(
       final CoTransportConnectionUsableType connection,
       final int channel,
       final int sequence,
@@ -710,7 +718,7 @@ public final class CoTransportClient implements CoTransportClientType
     }
 
     @Override
-    public void onReceivePacketReceipt(
+    public void onReceivePacketAck(
       final CoTransportConnectionUsableType connection,
       final int channel,
       final int sequence,
@@ -718,14 +726,14 @@ public final class CoTransportClient implements CoTransportClientType
     {
       if (LOG.isTraceEnabled()) {
         LOG.trace(
-          "onReceivePacketReceipt: {}:{} sequence {}: {} octets",
+          "onReceivePacketAck: {}:{} sequence {}: {} octets",
           connection,
           Integer.valueOf(channel),
           Integer.valueOf(sequence),
           Integer.valueOf(size));
       }
 
-      this.client.listener.onConnectionReceiveReceipt(
+      this.client.listener.onConnectionReceiveAck(
         connection, channel, sequence, size);
     }
 
@@ -767,6 +775,50 @@ public final class CoTransportClient implements CoTransportClientType
 
       this.client.listener.onConnectionSendReliableExpired(
         connection, channel, sequence, size);
+    }
+
+    @Override
+    public void onReceivePacketPing(
+      final CoTransportConnectionUsableType connection)
+    {
+      if (LOG.isTraceEnabled()) {
+        LOG.trace("onReceivePacketPing: {}", connection);
+      }
+
+      this.client.listener.onConnectionReceivePing(connection);
+    }
+
+    @Override
+    public void onSendPacketPong(
+      final CoTransportConnectionUsableType connection)
+    {
+      if (LOG.isTraceEnabled()) {
+        LOG.trace("onSendPacketPong: {}", connection);
+      }
+
+      this.client.listener.onConnectionSendPong(connection);
+    }
+
+    @Override
+    public void onReceivePacketPong(
+      final CoTransportConnectionUsableType connection)
+    {
+      if (LOG.isTraceEnabled()) {
+        LOG.trace("onReceivePacketPong: {}", connection);
+      }
+
+      this.client.listener.onConnectionReceivePong(connection);
+    }
+
+    @Override
+    public void onSendPacketPing(
+      final CoTransportConnectionUsableType connection)
+    {
+      if (LOG.isTraceEnabled()) {
+        LOG.trace("onSendPacketPing: {}", connection);
+      }
+
+      this.client.listener.onConnectionSendPing(connection);
     }
   }
 }

@@ -125,7 +125,7 @@ public interface CoTransportClientListenerType
     int sequence,
     int size);
 
-  void onConnectionReceiveReceipt(
+  void onConnectionReceiveAck(
     CoTransportConnectionUsableType connection,
     int channel,
     int sequence,
@@ -143,4 +143,15 @@ public interface CoTransportClientListenerType
     int sequence,
     int size);
 
+  void onConnectionReceivePing(
+    CoTransportConnectionUsableType connection);
+
+  void onConnectionSendPong(
+    CoTransportConnectionUsableType connection);
+
+  void onConnectionReceivePong(
+    CoTransportConnectionUsableType connection);
+
+  void onConnectionSendPing(
+    CoTransportConnectionUsableType connection);
 }

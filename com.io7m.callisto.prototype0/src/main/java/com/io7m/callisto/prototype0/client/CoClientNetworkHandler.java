@@ -17,6 +17,7 @@
 package com.io7m.callisto.prototype0.client;
 
 import com.codahale.metrics.Counter;
+import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.io7m.callisto.prototype0.events.CoEventNetworkSerializerRegistryType;
@@ -31,7 +32,6 @@ import com.io7m.callisto.prototype0.stringconstants.CoStringConstantPoolReadable
 import com.io7m.callisto.prototype0.transport.CoTransportClient;
 import com.io7m.callisto.prototype0.transport.CoTransportClientConfiguration;
 import com.io7m.callisto.prototype0.transport.CoTransportClientListenerType;
-import com.io7m.callisto.prototype0.transport.CoTransportConnection;
 import com.io7m.callisto.prototype0.transport.CoTransportConnectionUsableType;
 import com.io7m.jnull.NullCheck;
 import org.slf4j.Logger;
@@ -41,6 +41,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
+import java.time.Clock;
 import java.util.Properties;
 
 public final class CoClientNetworkHandler
@@ -57,6 +58,7 @@ public final class CoClientNetworkHandler
 
   public CoClientNetworkHandler(
     final MetricRegistry in_metrics,
+    final Clock in_clock,
     final CoEventServiceType in_events,
     final CoEventNetworkSerializerRegistryType in_event_serializers,
     final CoNetworkProviderType in_network,
@@ -73,7 +75,7 @@ public final class CoClientNetworkHandler
     this.peer =
       NullCheck.notNull(in_network, "Network").createSocket(props);
     this.client =
-      new CoTransportClient(in_strings, this, this.peer, config);
+      new CoTransportClient(in_clock, in_strings, this, this.peer, config);
   }
 
   @Override
@@ -151,8 +153,8 @@ public final class CoClientNetworkHandler
     final int sequence,
     final int size)
   {
-    this.metrics.sent_receipt_packets.mark();
-    this.metrics.sent_receipt_octets.mark(Integer.toUnsignedLong(size));
+    this.metrics.sent_ack_packets.mark();
+    this.metrics.sent_ack_octets.mark(Integer.toUnsignedLong(size));
   }
 
   @Override
@@ -258,14 +260,14 @@ public final class CoClientNetworkHandler
   }
 
   @Override
-  public void onConnectionReceiveReceipt(
+  public void onConnectionReceiveAck(
     final CoTransportConnectionUsableType connection,
     final int channel,
     final int sequence,
     final int size)
   {
-    this.metrics.received_receipt_packets.mark();
-    this.metrics.received_receipt_octets.mark(Integer.toUnsignedLong(size));
+    this.metrics.received_ack_packets.mark();
+    this.metrics.received_ack_octets.mark(Integer.toUnsignedLong(size));
   }
 
   @Override
@@ -288,6 +290,36 @@ public final class CoClientNetworkHandler
   {
     this.metrics.sent_reliable_saved_packets.dec();
     this.metrics.sent_reliable_saved_octets.dec(Integer.toUnsignedLong(size));
+  }
+
+  @Override
+  public void onConnectionReceivePing(
+    final CoTransportConnectionUsableType connection)
+  {
+    this.metrics.received_ping_packets.mark();
+  }
+
+  @Override
+  public void onConnectionSendPong(
+    final CoTransportConnectionUsableType connection)
+  {
+    this.metrics.sent_pong_packets.mark();
+  }
+
+  @Override
+  public void onConnectionReceivePong(
+    final CoTransportConnectionUsableType connection)
+  {
+    final double rtt = (double) connection.roundTripTime();
+    this.metrics.round_trip_time_gauge.setValue(rtt);
+    this.metrics.received_pong_packets.mark();
+  }
+
+  @Override
+  public void onConnectionSendPing(
+    final CoTransportConnectionUsableType connection)
+  {
+    this.metrics.sent_ping_packets.mark();
   }
 
   @Override
@@ -344,12 +376,12 @@ public final class CoClientNetworkHandler
   {
     private final Meter sent_reliable_packets;
     private final Meter sent_reliable_octets;
-    private final Meter sent_receipt_packets;
-    private final Meter sent_receipt_octets;
+    private final Meter sent_ack_packets;
+    private final Meter sent_ack_octets;
     private final Meter received_reliable_packets;
     private final Meter received_reliable_octets;
-    private final Meter received_receipt_packets;
-    private final Meter received_receipt_octets;
+    private final Meter received_ack_packets;
+    private final Meter received_ack_octets;
     private final Meter received_unreliable_packets;
     private final Meter received_unreliable_octets;
     private final Meter sent_unreliable_packets;
@@ -357,10 +389,30 @@ public final class CoClientNetworkHandler
     private final Meter received_dropped_unreliable_packets;
     private final Counter sent_reliable_saved_packets;
     private final Counter sent_reliable_saved_octets;
+    private final Gauge<Double> round_trip_time;
+    private final DoubleGauge round_trip_time_gauge;
+    private final Meter sent_ping_packets;
+    private final Meter sent_pong_packets;
+    private final Meter received_ping_packets;
+    private final Meter received_pong_packets;
 
     Metrics(
       final MetricRegistry metrics)
     {
+      this.sent_ping_packets =
+        metrics.meter(MetricRegistry.name(
+          CoClientNetworkHandler.class, "sent_ping"));
+      this.sent_pong_packets =
+        metrics.meter(MetricRegistry.name(
+          CoClientNetworkHandler.class, "sent_pong"));
+
+      this.received_ping_packets =
+        metrics.meter(MetricRegistry.name(
+          CoClientNetworkHandler.class, "received_ping"));
+      this.received_pong_packets =
+        metrics.meter(MetricRegistry.name(
+          CoClientNetworkHandler.class, "received_pong"));
+
       this.sent_reliable_packets =
         metrics.meter(MetricRegistry.name(
           CoClientNetworkHandler.class, "sent_reliable"));
@@ -382,12 +434,12 @@ public final class CoClientNetworkHandler
         metrics.meter(MetricRegistry.name(
           CoClientNetworkHandler.class, "sent_unreliable_octets"));
 
-      this.sent_receipt_packets =
+      this.sent_ack_packets =
         metrics.meter(MetricRegistry.name(
-          CoClientNetworkHandler.class, "sent_receipt"));
-      this.sent_receipt_octets =
+          CoClientNetworkHandler.class, "sent_ack"));
+      this.sent_ack_octets =
         metrics.meter(MetricRegistry.name(
-          CoClientNetworkHandler.class, "sent_receipt_octets"));
+          CoClientNetworkHandler.class, "sent_ack_octets"));
 
       this.received_reliable_packets =
         metrics.meter(MetricRegistry.name(
@@ -403,16 +455,51 @@ public final class CoClientNetworkHandler
         metrics.meter(MetricRegistry.name(
           CoClientNetworkHandler.class, "received_unreliable_octets"));
 
-      this.received_receipt_packets =
+      this.received_ack_packets =
         metrics.meter(MetricRegistry.name(
-          CoClientNetworkHandler.class, "received_receipt"));
-      this.received_receipt_octets =
+          CoClientNetworkHandler.class, "received_ack"));
+      this.received_ack_octets =
         metrics.meter(MetricRegistry.name(
-          CoClientNetworkHandler.class, "received_receipt_octets"));
+          CoClientNetworkHandler.class, "received_ack_octets"));
 
       this.received_dropped_unreliable_packets =
         metrics.meter(MetricRegistry.name(
           CoClientNetworkHandler.class, "received_dropped_unreliable"));
+
+      this.round_trip_time_gauge = new DoubleGauge();
+      this.round_trip_time = this.makeGauge(metrics);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Gauge<Double> makeGauge(
+      final MetricRegistry metrics)
+    {
+      return metrics.gauge(
+        MetricRegistry.name(
+          CoClientNetworkHandler.class, "round_trip_time"),
+        () -> this.round_trip_time_gauge);
+    }
+
+    private static final class DoubleGauge implements Gauge<Double>
+    {
+      private double value;
+
+      DoubleGauge()
+      {
+        this.value = 0.0;
+      }
+
+      public void setValue(
+        final double d)
+      {
+        this.value = d;
+      }
+
+      @Override
+      public Double getValue()
+      {
+        return Double.valueOf(this.value);
+      }
     }
   }
 }

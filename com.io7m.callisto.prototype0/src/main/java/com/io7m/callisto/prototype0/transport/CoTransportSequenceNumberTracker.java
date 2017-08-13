@@ -26,7 +26,7 @@ public final class CoTransportSequenceNumberTracker
   private int reliable_send_next;
   private int message_send_next;
   private int unreliable_send_next;
-  private int receipt_send_next;
+  private int ack_send_next;
 
   public CoTransportSequenceNumberTracker()
   {
@@ -79,13 +79,13 @@ public final class CoTransportSequenceNumberTracker
     return this.reliable_send_next;
   }
 
-  public void receiptSend()
+  public void ackSend()
   {
-    this.receipt_send_next = this.serial.add(this.receipt_send_next, 1);
+    this.ack_send_next = this.serial.add(this.ack_send_next, 1);
   }
 
-  public int receiptToSendNext()
+  public int ackToSendNext()
   {
-    return this.receipt_send_next;
+    return this.ack_send_next;
   }
 }

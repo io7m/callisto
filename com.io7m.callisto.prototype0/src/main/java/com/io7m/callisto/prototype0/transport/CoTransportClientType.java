@@ -16,11 +16,7 @@
 
 package com.io7m.callisto.prototype0.transport;
 
-import com.io7m.callisto.prototype0.messages.CoPacket;
-
 import java.io.Closeable;
-import java.net.SocketAddress;
-import java.nio.ByteBuffer;
 
 public interface CoTransportClientType extends Closeable
 {

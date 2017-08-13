@@ -56,20 +56,6 @@ public final class CoNetworkProviderLocal implements CoNetworkProviderType
   private volatile long latency_min;
   private volatile long latency_max;
 
-  public void setPacketLoss(
-    final double in_loss)
-  {
-    this.loss = Math.min(1.0, Math.max(0.0, in_loss));
-  }
-
-  public void setPacketLatency(
-    final long in_latency_min,
-    final long in_latency_max)
-  {
-    this.latency_min = Math.max(0L, in_latency_min);
-    this.latency_max = Math.min(this.latency_min, in_latency_max);
-  }
-
   public CoNetworkProviderLocal()
   {
     this.nodes = new Object2ReferenceOpenHashMap<>();
@@ -85,6 +71,20 @@ public final class CoNetworkProviderLocal implements CoNetworkProviderType
       th.setDaemon(true);
       return th;
     });
+  }
+
+  public void setPacketLoss(
+    final double in_loss)
+  {
+    this.loss = Math.min(1.0, Math.max(0.0, in_loss));
+  }
+
+  public void setPacketLatency(
+    final long in_latency_min,
+    final long in_latency_max)
+  {
+    this.latency_min = Math.max(0L, in_latency_min);
+    this.latency_max = Math.min(this.latency_min, in_latency_max);
   }
 
   @Override

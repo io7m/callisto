@@ -17,7 +17,7 @@
 package com.io7m.callisto.prototype0.transport;
 
 import com.google.protobuf.ByteString;
-import com.io7m.callisto.prototype0.messages.CoDataReceipt;
+import com.io7m.callisto.prototype0.messages.CoDataAck;
 import com.io7m.callisto.prototype0.messages.CoDataReliable;
 import com.io7m.callisto.prototype0.messages.CoDataReliableFragment;
 import com.io7m.callisto.prototype0.messages.CoDataUnreliable;
@@ -48,8 +48,8 @@ public final class CoTransportPacketBuilder
   private final int channel;
   private final int id;
   private final int packet_size_limit;
-  private final CoDataReceipt.Builder packet_receipt;
-  private final int packet_receipt_size_base;
+  private final CoDataAck.Builder packet_ack;
+  private final int packet_ack_size_base;
   private final CoDataReliable.Builder packet_reliable;
   private final int packet_reliable_size_base;
   private final CoDataUnreliable.Builder packet_unreliable;
@@ -60,7 +60,7 @@ public final class CoTransportPacketBuilder
   private final CoTransportSequenceNumberTracker sequences;
   private int packet_reliable_size;
   private int packet_unreliable_size;
-  private int packet_receipt_size;
+  private int packet_ack_size;
 
   public CoTransportPacketBuilder(
     final CoTransportSequenceNumberTracker in_sequences,
@@ -74,9 +74,9 @@ public final class CoTransportPacketBuilder
     this.channel = in_channel;
     this.id = in_id;
 
-    this.packet_receipt = CoDataReceipt.newBuilder();
-    this.packet_receipt_size_base = receiptBaseSize();
-    this.packet_receipt_size = this.packet_receipt_size_base;
+    this.packet_ack = CoDataAck.newBuilder();
+    this.packet_ack_size_base = ackBaseSize();
+    this.packet_ack_size = this.packet_ack_size_base;
 
     this.packet_reliable = CoDataReliable.newBuilder();
     this.packet_reliable_size_base = reliableBaseSize();
@@ -92,11 +92,11 @@ public final class CoTransportPacketBuilder
       this.packet_size_limit - this.packet_reliable_fragment_size_base;
   }
 
-  private static int receiptBaseSize()
+  private static int ackBaseSize()
   {
     return CoPacket.newBuilder()
-      .setDataReceipt(
-        CoDataReceipt.newBuilder()
+      .setDataAck(
+        CoDataAck.newBuilder()
           .setId(packetIDLargest())
           .build())
       .build()
@@ -501,26 +501,24 @@ public final class CoTransportPacketBuilder
     while (iter.hasNext()) {
       final int r = iter.nextInt();
       if (this.receiptCanFit()) {
-        this.packet_receipt.addSequencesReliableNotReceived(r);
+        this.packet_ack.addSequencesReliableNotReceived(r);
       } else {
-        output.onCreatedPacketReceipt(this.receiptFinish());
+        output.onCreatedPacketAck(this.receiptFinish());
         this.receiptStart();
       }
     }
 
-    output.onCreatedPacketReceipt(this.receiptFinish());
+    output.onCreatedPacketAck(this.receiptFinish());
   }
 
   private CoPacket receiptFinish()
   {
-    final CoDataReceipt pd =
-      this.packet_receipt.build();
-    final CoPacket p =
-      CoPacket.newBuilder().setDataReceipt(pd).build();
+    final CoDataAck pd = this.packet_ack.build();
+    final CoPacket p = CoPacket.newBuilder().setDataAck(pd).build();
 
-    this.sequences.receiptSend();
-    this.packet_receipt.clear();
-    this.packet_receipt_size = this.packet_receipt_size_base;
+    this.sequences.ackSend();
+    this.packet_ack.clear();
+    this.packet_ack_size = this.packet_ack_size_base;
     return p;
   }
 
@@ -531,12 +529,12 @@ public final class CoTransportPacketBuilder
 
   private void receiptStart()
   {
-    this.packet_receipt.clear();
-    this.packet_receipt.setId(
+    this.packet_ack.clear();
+    this.packet_ack.setId(
       CoPacketID.newBuilder()
         .setConnectionId(this.id)
         .setChannel(this.channel)
-        .setSequence(this.sequences.receiptToSendNext())
+        .setSequence(this.sequences.ackToSendNext())
         .build());
   }
 

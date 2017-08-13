@@ -31,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.time.Clock;
 import java.util.Properties;
 import java.util.concurrent.Future;
 
@@ -46,9 +47,11 @@ public final class CoClientNetwork extends CoProcessAbstract
   private final Disposable sub_net_events;
   private final CoEventNetworkSerializerRegistryType event_serializers;
   private final MetricRegistry metrics;
+  private final Clock clock;
   private CoClientNetworkHandler handler;
 
   public CoClientNetwork(
+    final Clock in_clock,
     final MetricRegistry in_metrics,
     final CoEventServiceType in_events,
     final CoEventNetworkSerializerRegistryType in_event_serializers,
@@ -63,6 +66,8 @@ public final class CoClientNetwork extends CoProcessAbstract
         return th;
       });
 
+    this.clock =
+      NullCheck.notNull(in_clock, "Clock");
     this.metrics =
       NullCheck.notNull(in_metrics, "Metrics");
     this.event_serializers =
@@ -191,6 +196,7 @@ public final class CoClientNetwork extends CoProcessAbstract
     this.handler =
       new CoClientNetworkHandler(
         this.metrics,
+        this.clock,
         this.events(),
         this.event_serializers,
         this.network,

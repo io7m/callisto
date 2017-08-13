@@ -28,6 +28,7 @@ import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Clock;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -45,6 +46,7 @@ public final class CoServer implements CoServerType
   private final CoNetworkProviderType network;
 
   public CoServer(
+    final Clock in_clock,
     final MetricRegistry in_metrics,
     final CoNetworkProviderType in_network,
     final CoStringConstantPoolServiceType in_strings,
@@ -63,6 +65,7 @@ public final class CoServer implements CoServerType
       new CoServerLogic(this.events));
     this.processes.add(
       new CoServerNetwork(
+        in_clock,
         in_metrics,
         this.events,
         in_events_serializers,

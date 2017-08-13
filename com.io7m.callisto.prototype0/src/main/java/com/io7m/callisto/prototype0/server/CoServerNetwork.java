@@ -29,6 +29,7 @@ import io.reactivex.disposables.Disposable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Clock;
 import java.util.Properties;
 
 public final class CoServerNetwork extends CoProcessAbstract
@@ -42,9 +43,11 @@ public final class CoServerNetwork extends CoProcessAbstract
   private final CoStringConstantPoolServiceType strings;
   private final MetricRegistry metrics;
   private final CoEventNetworkSerializerRegistryType events_serializers;
+  private final Clock clock;
   private CoServerNetworkHandler handler;
 
   public CoServerNetwork(
+    final Clock in_clock,
     final MetricRegistry in_metrics,
     final CoEventServiceType in_events,
     final CoEventNetworkSerializerRegistryType in_event_serializers,
@@ -59,6 +62,8 @@ public final class CoServerNetwork extends CoProcessAbstract
         return th;
       });
 
+    this.clock =
+      NullCheck.notNull(in_clock, "Clock");
     this.events_serializers =
       NullCheck.notNull(in_event_serializers, "Event serializers");
     this.metrics =
@@ -116,6 +121,7 @@ public final class CoServerNetwork extends CoProcessAbstract
 
     this.handler =
       new CoServerNetworkHandler(
+        this.clock,
         this.scheduler(),
         this.network,
         this.events_serializers,

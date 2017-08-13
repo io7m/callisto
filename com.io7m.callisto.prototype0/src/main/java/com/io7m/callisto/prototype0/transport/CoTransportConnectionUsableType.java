@@ -31,6 +31,8 @@ public interface CoTransportConnectionUsableType
     String type,
     ByteBuffer data);
 
+  long roundTripTime();
+
   enum Reliability
   {
     MESSAGE_RELIABLE,

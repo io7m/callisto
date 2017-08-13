@@ -105,8 +105,8 @@ public interface CoEntityType
   boolean isDestroyed();
 
   /**
-   * Destroy the entity. If the entity has already been destroyed, the call
-   * is simply ignored.
+   * Destroy the entity. If the entity has already been destroyed, the call is
+   * simply ignored.
    */
 
   void destroy();

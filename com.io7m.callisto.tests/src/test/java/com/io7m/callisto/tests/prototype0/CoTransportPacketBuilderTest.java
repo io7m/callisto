@@ -84,7 +84,7 @@ public final class CoTransportPacketBuilderTest
     }
 
     @Override
-    public void onCreatedPacketReceipt(
+    public void onCreatedPacketAck(
       final CoPacket p)
     {
       this.queue.add(p);

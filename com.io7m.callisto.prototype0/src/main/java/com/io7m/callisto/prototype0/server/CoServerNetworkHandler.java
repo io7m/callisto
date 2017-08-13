@@ -39,9 +39,9 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
+import java.time.Clock;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 
 import static com.io7m.callisto.prototype0.transport.CoTransportConnectionUsableType.Reliability;
 
@@ -57,8 +57,10 @@ public final class CoServerNetworkHandler
   private final CoEventServiceType events;
   private final CoEventNetworkSerializerRegistryType event_serializers;
   private final Scheduler scheduler;
+  private final Clock clock;
 
   public CoServerNetworkHandler(
+    final Clock in_clock,
     final Scheduler in_scheduler,
     final CoNetworkProviderType in_network,
     final CoEventNetworkSerializerRegistryType in_event_serializers,
@@ -69,6 +71,8 @@ public final class CoServerNetworkHandler
   {
     NullCheck.notNull(in_network, "Network");
 
+    this.clock =
+      NullCheck.notNull(in_clock, "Clock");
     this.scheduler =
       NullCheck.notNull(in_scheduler, "Scheduler");
     this.strings =
@@ -80,7 +84,7 @@ public final class CoServerNetworkHandler
     this.peer =
       in_network.createSocket(props);
     this.server =
-      new CoTransportServer(in_strings, this, this.peer, config);
+      new CoTransportServer(in_clock, in_strings, this, this.peer, config);
   }
 
   public void tick()
@@ -197,7 +201,7 @@ public final class CoServerNetworkHandler
   }
 
   @Override
-  public void onClientConnectionPacketSendReceipt(
+  public void onClientConnectionPacketSendAck(
     final CoTransportConnectionUsableType connection,
     final int channel,
     final int sequence,
@@ -291,6 +295,20 @@ public final class CoServerNetworkHandler
   }
 
   @Override
+  public void onClientConnectionPacketReceivePing(
+    final CoTransportConnectionUsableType connection)
+  {
+
+  }
+
+  @Override
+  public void onClientConnectionPacketReceivePong(
+    final CoTransportConnectionUsableType connection)
+  {
+
+  }
+
+  @Override
   public void onClientConnectionPacketReceiveReliableFragment(
     final CoTransportConnectionUsableType connection,
     final int channel,
@@ -301,7 +319,7 @@ public final class CoServerNetworkHandler
   }
 
   @Override
-  public void onClientConnectionPacketReceiveReceipt(
+  public void onClientConnectionPacketReceiveAck(
     final CoTransportConnectionUsableType connection,
     final int channel,
     final int sequence,
@@ -326,6 +344,20 @@ public final class CoServerNetworkHandler
     final int channel,
     final int sequence,
     final int size)
+  {
+
+  }
+
+  @Override
+  public void onClientConnectionPacketSendPong(
+    final CoTransportConnectionUsableType connection)
+  {
+
+  }
+
+  @Override
+  public void onClientConnectionPacketSendPing(
+    final CoTransportConnectionUsableType connection)
   {
 
   }

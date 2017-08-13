@@ -23,7 +23,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.NavigableSet;
 import java.util.ServiceLoader;
 import java.util.SortedMap;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -60,7 +59,8 @@ public final class CoEventNetworkSerializerRegistryServiceLoader
       final String name = serializer.eventTypeName();
       if (this.serializers.containsKey(name)) {
         LOG.warn("multiple serializers registered for type: {}", name);
-        LOG.warn("the last serializer registered will be used - this may give unexpected results!");
+        LOG.warn(
+          "the last serializer registered will be used - this may give unexpected results!");
       }
 
       this.serializers.put(name, serializer);

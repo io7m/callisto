@@ -25,6 +25,7 @@ import com.io7m.callisto.prototype0.client.CoClientTickEvent;
 import com.io7m.callisto.prototype0.events.CoEventNetworkSerializerRegistryServiceLoader;
 import com.io7m.callisto.prototype0.events.CoEventService;
 import com.io7m.callisto.prototype0.network.CoNetworkProviderLocal;
+import com.io7m.callisto.prototype0.network.CoNetworkProviderUDP;
 import com.io7m.callisto.prototype0.server.CoServer;
 import com.io7m.callisto.prototype0.server.CoServerTickEvent;
 import com.io7m.callisto.prototype0.stringconstants.CoStringConstantPoolService;
@@ -34,6 +35,7 @@ import io.reactivex.schedulers.Schedulers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Clock;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -95,7 +97,9 @@ public final class ExampleMain1
     final JmxReporter jmx_reporter = JmxReporter.forRegistry(metrics).build();
     jmx_reporter.start();
 
-    final CoNetworkProviderLocal network = new CoNetworkProviderLocal();
+    final Clock clock = Clock.systemUTC();
+
+    final CoNetworkProviderUDP network = new CoNetworkProviderUDP();
 
     final CoEventNetworkSerializerRegistryServiceLoader client_serializers =
       new CoEventNetworkSerializerRegistryServiceLoader(client_events);
@@ -106,6 +110,7 @@ public final class ExampleMain1
 
     final CoClient client =
       new CoClient(
+        clock,
         metrics,
         network,
         client_strings,
@@ -122,7 +127,12 @@ public final class ExampleMain1
 
     final CoServer server =
       new CoServer(
-        metrics, network, server_strings, server_events, server_serializers);
+        clock,
+        metrics,
+        network,
+        server_strings,
+        server_events,
+        server_serializers);
     server.startSynchronously(3L, TimeUnit.SECONDS);
 
     final Properties props = new Properties();
@@ -130,13 +140,13 @@ public final class ExampleMain1
     props.setProperty("remote_port", "9999");
     client.connect(props).get(10L, TimeUnit.SECONDS);
 
-//    Thread.sleep(TimeUnit.MILLISECONDS.convert(3L, TimeUnit.SECONDS));
-//    LOG.debug("enabling full packet loss");
-//    network.setPacketLoss(1.0);
+    //    Thread.sleep(TimeUnit.MILLISECONDS.convert(3L, TimeUnit.SECONDS));
+    //    LOG.debug("enabling full packet loss");
+    //    network.setPacketLoss(1.0);
 
-//    LOG.debug("waiting 5S");
-//    Thread.sleep(TimeUnit.MILLISECONDS.convert(5L, TimeUnit.SECONDS));
-//    LOG.debug("waited");
+    //    LOG.debug("waiting 5S");
+    //    Thread.sleep(TimeUnit.MILLISECONDS.convert(5L, TimeUnit.SECONDS));
+    //    LOG.debug("waited");
 
     final Thread th = new Thread(() -> {
       try {

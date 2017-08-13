@@ -16,11 +16,14 @@
 
 package com.io7m.callisto.prototype0.transport;
 
-import com.io7m.callisto.prototype0.messages.CoDataReceipt;
+import com.google.protobuf.ByteString;
+import com.io7m.callisto.prototype0.messages.CoDataAck;
 import com.io7m.callisto.prototype0.messages.CoDataReliable;
 import com.io7m.callisto.prototype0.messages.CoDataUnreliable;
 import com.io7m.callisto.prototype0.messages.CoMessage;
 import com.io7m.callisto.prototype0.messages.CoPacket;
+import com.io7m.callisto.prototype0.messages.CoPing;
+import com.io7m.callisto.prototype0.messages.CoPong;
 import com.io7m.callisto.prototype0.network.CoNetworkPacketSendableType;
 import com.io7m.callisto.prototype0.stringconstants.CoStringConstantPoolReadableType;
 import com.io7m.callisto.prototype0.stringconstants.CoStringConstantReference;
@@ -40,6 +43,7 @@ import org.slf4j.LoggerFactory;
 
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
+import java.time.Clock;
 import java.util.ArrayDeque;
 import java.util.Iterator;
 import java.util.Optional;
@@ -56,9 +60,16 @@ public final class CoTransportConnection implements CoTransportConnectionType
   private final CoStringConstantPoolReadableType strings;
   private final CoTransportConnectionListenerType listener;
   private final CoTransportConnectionConfiguration config;
+  private final Clock clock;
+  private final ByteString pong;
+  private final ByteString ping;
+  private long ticks;
   private int ticks_since_receive;
+  private long time_ping_sent_ms;
+  private volatile long round_trip_time;
 
   CoTransportConnection(
+    final Clock in_clock,
     final CoTransportConnectionListenerType in_listener,
     final CoStringConstantPoolReadableType in_strings,
     final CoNetworkPacketSendableType in_socket,
@@ -66,6 +77,7 @@ public final class CoTransportConnection implements CoTransportConnectionType
     final SocketAddress in_remote,
     final int in_id)
   {
+    this.clock = NullCheck.notNull(in_clock, "Clock");
     this.listener = NullCheck.notNull(in_listener, "Listener");
     this.strings = NullCheck.notNull(in_strings, "Strings");
     this.socket = NullCheck.notNull(in_socket, "Socket");
@@ -73,9 +85,31 @@ public final class CoTransportConnection implements CoTransportConnectionType
     this.remote = NullCheck.notNull(in_remote, "Remote");
     this.id = in_id;
     this.channels = new Int2ReferenceOpenHashMap<>();
+    this.time_ping_sent_ms = 0L;
+    this.round_trip_time = 0L;
+    this.pong = makePong(this.id);
+    this.ping = makePing(this.id);
+    this.ticks = 0L;
+  }
+
+  private static ByteString makePong(
+    final int id)
+  {
+    final CoPong po = CoPong.newBuilder().setConnectionId(id).build();
+    final CoPacket p = CoPacket.newBuilder().setPong(po).build();
+    return p.toByteString();
+  }
+
+  private static ByteString makePing(
+    final int id)
+  {
+    final CoPing pi = CoPing.newBuilder().setConnectionId(id).build();
+    final CoPacket p = CoPacket.newBuilder().setPing(pi).build();
+    return p.toByteString();
   }
 
   public static CoTransportConnectionType create(
+    final Clock in_clock,
     final CoTransportConnectionListenerType in_listener,
     final CoStringConstantPoolReadableType in_strings,
     final CoNetworkPacketSendableType in_socket,
@@ -84,21 +118,30 @@ public final class CoTransportConnection implements CoTransportConnectionType
     final int in_id)
   {
     return new CoTransportConnection(
-      in_listener, in_strings, in_socket, in_configuration, in_remote, in_id);
+      in_clock,
+      in_listener,
+      in_strings,
+      in_socket,
+      in_configuration,
+      in_remote,
+      in_id);
   }
 
   private static int packetChannelID(
     final CoPacket p)
   {
     switch (p.getValueCase()) {
+      case PING:
+      case PONG:
       case BYE:
       case HELLO:
       case HELLO_RESPONSE:
-      case VALUE_NOT_SET:
+      case VALUE_NOT_SET: {
         throw new UnreachableCodeException();
+      }
 
-      case DATA_RECEIPT: {
-        return p.getDataReceipt().getId().getChannel();
+      case DATA_ACK: {
+        return p.getDataAck().getId().getChannel();
       }
       case DATA_RELIABLE: {
         return p.getDataReliable().getId().getChannel();
@@ -165,6 +208,12 @@ public final class CoTransportConnection implements CoTransportConnectionType
     transport_channel.enqueue(reliability, type_ref, message);
   }
 
+  @Override
+  public long roundTripTime()
+  {
+    return this.round_trip_time;
+  }
+
   private CoTransportConnectionChannel createOrFindChannel(
     final int channel)
   {
@@ -188,6 +237,23 @@ public final class CoTransportConnection implements CoTransportConnectionType
     this.ticks_since_receive = 0;
 
     switch (p.getValueCase()) {
+      case PING: {
+        this.sendPacket(this.remote, this.pong.asReadOnlyByteBuffer());
+        this.listener.onReceivePacketPing(this);
+        this.listener.onSendPacketPong(this);
+        break;
+      }
+
+      case PONG: {
+        final long time_now =
+          this.clock.millis();
+        this.round_trip_time =
+          Math.max(0L, time_now - this.time_ping_sent_ms);
+
+        this.listener.onReceivePacketPong(this);
+        break;
+      }
+
       case BYE:
       case HELLO:
       case HELLO_RESPONSE:
@@ -195,7 +261,7 @@ public final class CoTransportConnection implements CoTransportConnectionType
         throw new UnimplementedCodeException();
       }
 
-      case DATA_RECEIPT:
+      case DATA_ACK:
       case DATA_RELIABLE:
       case DATA_UNRELIABLE:
       case DATA_RELIABLE_FRAGMENT: {
@@ -209,9 +275,18 @@ public final class CoTransportConnection implements CoTransportConnectionType
     }
   }
 
+  private void sendPacket(
+    final SocketAddress receiver,
+    final ByteBuffer data)
+  {
+    this.socket.send(receiver, data);
+  }
+
   @Override
   public void tick()
   {
+    ++this.ticks;
+
     final int timeout =
       this.config.ticksTimeout();
     this.ticks_since_receive =
@@ -220,6 +295,12 @@ public final class CoTransportConnection implements CoTransportConnectionType
     if (this.ticks_since_receive >= timeout) {
       this.listener.onTimedOut(this);
       return;
+    }
+
+    if (this.ticks % (long) this.config.ticksPingRate() == 0L) {
+      this.time_ping_sent_ms = this.clock.millis();
+      this.sendPacket(this.remote, this.ping.asReadOnlyByteBuffer());
+      this.listener.onSendPacketPing(this);
     }
 
     for (final int key : this.channels.keySet()) {
@@ -316,8 +397,7 @@ public final class CoTransportConnection implements CoTransportConnectionType
     }
 
     /**
-     * Send a receipt for any missing packets, and the sequence number of the
-     * highest received reliable packet prior to any missing packets.
+     * Send a receipt for any missing packets.
      */
 
     private void handleReceivesEnqueueReceipt()
@@ -329,7 +409,7 @@ public final class CoTransportConnection implements CoTransportConnectionType
 
     private boolean receiptRequired()
     {
-      return true;
+      return !this.sequences.reliableReceiverWindow().missed().isEmpty();
     }
 
     private void handleReceivesDeliverAll()
@@ -339,6 +419,8 @@ public final class CoTransportConnection implements CoTransportConnectionType
         while (iter.hasNext()) {
           final CoPacket p = iter.next();
           switch (p.getValueCase()) {
+            case PING:
+            case PONG:
             case BYE:
             case HELLO:
             case HELLO_RESPONSE:
@@ -366,7 +448,7 @@ public final class CoTransportConnection implements CoTransportConnectionType
               break;
             }
 
-            case DATA_RECEIPT: {
+            case DATA_ACK: {
               break;
             }
 
@@ -429,13 +511,15 @@ public final class CoTransportConnection implements CoTransportConnectionType
       while (iter.hasNext()) {
         final CoPacket p = iter.next();
         switch (p.getValueCase()) {
+          case PING:
+          case PONG:
           case BYE:
           case HELLO:
           case HELLO_RESPONSE:
           case VALUE_NOT_SET:
           case DATA_RELIABLE:
           case DATA_RELIABLE_FRAGMENT:
-          case DATA_RECEIPT: {
+          case DATA_ACK: {
             break;
           }
 
@@ -469,6 +553,8 @@ public final class CoTransportConnection implements CoTransportConnectionType
       while (iter.hasNext()) {
         final CoPacket p = iter.next();
         switch (p.getValueCase()) {
+          case PING:
+          case PONG:
           case BYE:
           case HELLO:
           case HELLO_RESPONSE:
@@ -503,8 +589,8 @@ public final class CoTransportConnection implements CoTransportConnectionType
             break;
           }
 
-          case DATA_RECEIPT: {
-            final CoDataReceipt r = p.getDataReceipt();
+          case DATA_ACK: {
+            final CoDataAck r = p.getDataAck();
 
             final int count = r.getSequencesReliableNotReceivedCount();
             for (int index = 0; index < count; ++index) {
@@ -558,11 +644,14 @@ public final class CoTransportConnection implements CoTransportConnectionType
 
       while (!this.q_sending.isEmpty()) {
         final CoPacket p = this.q_sending.remove();
-        this.connection.socket.send(
-          this.connection.remote, ByteBuffer.wrap(p.toByteArray()));
+        this.connection.sendPacket(
+          this.connection.remote,
+          p.toByteString().asReadOnlyByteBuffer());
 
         final int size = p.getSerializedSize();
         switch (p.getValueCase()) {
+          case PING:
+          case PONG:
           case BYE:
           case HELLO:
           case HELLO_RESPONSE:
@@ -570,11 +659,11 @@ public final class CoTransportConnection implements CoTransportConnectionType
             throw new UnreachableCodeException();
           }
 
-          case DATA_RECEIPT: {
+          case DATA_ACK: {
             final int sequence =
-              p.getDataReceipt().getId().getSequence();
+              p.getDataAck().getId().getSequence();
 
-            this.connection.listener.onSendPacketReceipt(
+            this.connection.listener.onSendPacketAck(
               this.connection, this.channel, sequence, size);
             break;
           }
@@ -661,11 +750,11 @@ public final class CoTransportConnection implements CoTransportConnectionType
     }
 
     @Override
-    public void onCreatedPacketReceipt(
+    public void onCreatedPacketAck(
       final CoPacket p)
     {
       this.q_sending.add(p);
-      this.connection.listener.onEnqueuePacketReceipt(
+      this.connection.listener.onEnqueuePacketAck(
         this.connection,
         this.channel,
         p.getDataReliableFragment().getId().getSequence(),
@@ -676,6 +765,8 @@ public final class CoTransportConnection implements CoTransportConnectionType
       final CoPacket p)
     {
       switch (p.getValueCase()) {
+        case PING:
+        case PONG:
         case BYE:
         case HELLO:
         case HELLO_RESPONSE:
@@ -710,11 +801,11 @@ public final class CoTransportConnection implements CoTransportConnectionType
           break;
         }
 
-        case DATA_RECEIPT: {
-          this.connection.listener.onReceivePacketReceipt(
+        case DATA_ACK: {
+          this.connection.listener.onReceivePacketAck(
             this.connection,
             this.channel,
-            p.getDataReceipt().getId().getSequence(),
+            p.getDataAck().getId().getSequence(),
             p.getSerializedSize());
           break;
         }

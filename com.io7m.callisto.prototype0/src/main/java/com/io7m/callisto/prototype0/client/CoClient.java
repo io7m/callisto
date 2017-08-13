@@ -28,6 +28,7 @@ import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Clock;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
@@ -47,6 +48,7 @@ public final class CoClient implements CoClientType
   private final CoClientNetwork network_process;
 
   public CoClient(
+    final Clock in_clock,
     final MetricRegistry in_metrics,
     final CoNetworkProviderType in_network,
     final CoStringConstantPoolServiceType in_strings,
@@ -60,6 +62,7 @@ public final class CoClient implements CoClientType
 
     this.network_process =
       new CoClientNetwork(
+        in_clock,
         in_metrics,
         this.events,
         in_serializers,

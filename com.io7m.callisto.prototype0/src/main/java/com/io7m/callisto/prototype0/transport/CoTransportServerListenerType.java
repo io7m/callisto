@@ -64,7 +64,7 @@ public interface CoTransportServerListenerType
     int sequence,
     int size);
 
-  void onClientConnectionPacketSendReceipt(
+  void onClientConnectionPacketSendAck(
     CoTransportConnectionUsableType connection,
     int channel,
     int sequence,
@@ -110,13 +110,19 @@ public interface CoTransportServerListenerType
     int sequence,
     int size);
 
+  void onClientConnectionPacketReceivePing(
+    CoTransportConnectionUsableType connection);
+
+  void onClientConnectionPacketReceivePong(
+    CoTransportConnectionUsableType connection);
+
   void onClientConnectionPacketReceiveReliableFragment(
     CoTransportConnectionUsableType connection,
     int channel,
     int sequence,
     int size);
 
-  void onClientConnectionPacketReceiveReceipt(
+  void onClientConnectionPacketReceiveAck(
     CoTransportConnectionUsableType connection,
     int channel,
     int sequence,
@@ -133,4 +139,10 @@ public interface CoTransportServerListenerType
     int channel,
     int sequence,
     int size);
+
+  void onClientConnectionPacketSendPong(
+    CoTransportConnectionUsableType connection);
+
+  void onClientConnectionPacketSendPing(
+    CoTransportConnectionUsableType connection);
 }

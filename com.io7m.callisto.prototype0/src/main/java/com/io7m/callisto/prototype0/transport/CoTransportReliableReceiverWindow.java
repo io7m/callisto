@@ -26,13 +26,13 @@ import it.unimi.dsi.fastutil.ints.IntSortedSets;
 public final class CoTransportReliableReceiverWindow
 {
   private final int receive;
-  private int receive_before_missing;
   private final IntRBTreeSet received;
   private final IntSortedSet received_view;
   private final IntRBTreeSet missed;
   private final IntSortedSet missed_view;
   private final int maximum_distance;
   private final SerialNumberIntType serial;
+  private int receive_before_missing;
 
   public CoTransportReliableReceiverWindow(
     final SerialNumberIntType in_serial,
@@ -76,7 +76,7 @@ public final class CoTransportReliableReceiverWindow
       final int before_last = before.lastInt();
       if (this.serial.distanceUnsigned(before_last, r) > 1) {
         for (int k = this.serial.add(before_last, 1);
-             this.serial.compare(k, r)< 0;
+             this.serial.compare(k, r) < 0;
              k = this.serial.add(k, 1)) {
           this.missed.add(k);
         }

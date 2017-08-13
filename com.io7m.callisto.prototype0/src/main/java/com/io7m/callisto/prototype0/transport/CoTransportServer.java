@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
+import java.time.Clock;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -51,13 +52,17 @@ public final class CoTransportServer implements CoTransportServerType
   private final CoStringConstantPoolReadableType strings;
   private final Int2ReferenceOpenHashMap<CoTransportConnection> connections;
   private final CoTransportServerConfiguration config;
+  private final Clock clock;
 
   public CoTransportServer(
+    final Clock in_clock,
     final CoStringConstantPoolReadableType in_strings,
     final CoTransportServerListenerType in_listener,
     final CoNetworkPacketSocketType in_socket,
     final CoTransportServerConfiguration in_config)
   {
+    this.clock =
+      NullCheck.notNull(in_clock, "Clock");
     this.strings =
       NullCheck.notNull(in_strings, "Strings");
     this.listener =
@@ -84,8 +89,14 @@ public final class CoTransportServer implements CoTransportServerType
         break;
       }
 
-      case DATA_RECEIPT: {
-        return p.getDataReceipt().getId().getConnectionId();
+      case PING: {
+        return p.getPing().getConnectionId();
+      }
+      case PONG: {
+        return p.getPong().getConnectionId();
+      }
+      case DATA_ACK: {
+        return p.getDataAck().getId().getConnectionId();
       }
       case DATA_RELIABLE: {
         return p.getDataReliable().getId().getConnectionId();
@@ -136,6 +147,24 @@ public final class CoTransportServer implements CoTransportServerType
     return matches;
   }
 
+  private static ByteBuffer bye(
+    final int id,
+    final String message)
+  {
+    final CoBye bye =
+      CoBye.newBuilder()
+        .setConnectionId(id)
+        .setMessage(message)
+        .build();
+
+    final CoPacket p =
+      CoPacket.newBuilder()
+        .setBye(bye)
+        .build();
+
+    return ByteBuffer.wrap(p.toByteArray());
+  }
+
   private ByteBuffer helloOK(
     final int connection_id)
   {
@@ -143,7 +172,7 @@ public final class CoTransportServer implements CoTransportServerType
       CoHelloResponseOK.newBuilder()
         .setConnectionId(connection_id)
         .setTicksPerSecond(this.config.ticksPerSecond())
-        .setTicksReliableTTL(this.config.ticksReliableTTL())
+        .setTicksReliableTtl(this.config.ticksReliableTTL())
         .setTicksTimeout(this.config.ticksTimeout())
         .build();
 
@@ -219,7 +248,9 @@ public final class CoTransportServer implements CoTransportServerType
         break;
       }
 
-      case DATA_RECEIPT:
+      case PING:
+      case PONG:
+      case DATA_ACK:
       case DATA_RELIABLE:
       case DATA_UNRELIABLE:
       case DATA_RELIABLE_FRAGMENT: {
@@ -288,6 +319,7 @@ public final class CoTransportServer implements CoTransportServerType
 
     final CoTransportConnection connection =
       new CoTransportConnection(
+        this.clock,
         connection_listener,
         this.strings,
         this.socket,
@@ -327,24 +359,6 @@ public final class CoTransportServer implements CoTransportServerType
       this.socket.send(connection.remote(), bye(id, message));
       this.onConnectionClosed(connection, message);
     }
-  }
-
-  private static ByteBuffer bye(
-    final int id,
-    final String message)
-  {
-    final CoBye bye =
-      CoBye.newBuilder()
-        .setConnectionId(id)
-        .setMessage(message)
-        .build();
-
-    final CoPacket p =
-      CoPacket.newBuilder()
-        .setBye(bye)
-        .build();
-
-    return ByteBuffer.wrap(p.toByteArray());
   }
 
   private static final class ConnectionListener
@@ -448,7 +462,7 @@ public final class CoTransportServer implements CoTransportServerType
     }
 
     @Override
-    public void onEnqueuePacketReceipt(
+    public void onEnqueuePacketAck(
       final CoTransportConnectionUsableType connection,
       final int channel,
       final int sequence,
@@ -525,7 +539,7 @@ public final class CoTransportServer implements CoTransportServerType
     }
 
     @Override
-    public void onSendPacketReceipt(
+    public void onSendPacketAck(
       final CoTransportConnectionUsableType connection,
       final int channel,
       final int sequence,
@@ -540,7 +554,7 @@ public final class CoTransportServer implements CoTransportServerType
           Integer.valueOf(size));
       }
 
-      this.server.listener.onClientConnectionPacketSendReceipt(
+      this.server.listener.onClientConnectionPacketSendAck(
         connection, channel, sequence, size);
     }
 
@@ -709,7 +723,7 @@ public final class CoTransportServer implements CoTransportServerType
     }
 
     @Override
-    public void onReceivePacketReceipt(
+    public void onReceivePacketAck(
       final CoTransportConnectionUsableType connection,
       final int channel,
       final int sequence,
@@ -724,7 +738,7 @@ public final class CoTransportServer implements CoTransportServerType
           Integer.valueOf(size));
       }
 
-      this.server.listener.onClientConnectionPacketReceiveReceipt(
+      this.server.listener.onClientConnectionPacketReceiveAck(
         connection, channel, sequence, size);
     }
 
@@ -766,6 +780,50 @@ public final class CoTransportServer implements CoTransportServerType
 
       this.server.listener.onClientConnectionPacketSendReliableExpired(
         connection, channel, sequence, size);
+    }
+
+    @Override
+    public void onReceivePacketPing(
+      final CoTransportConnectionUsableType connection)
+    {
+      if (LOG.isTraceEnabled()) {
+        LOG.trace("onReceivePacketPing: {}", connection);
+      }
+
+      this.server.listener.onClientConnectionPacketReceivePing(connection);
+    }
+
+    @Override
+    public void onSendPacketPong(
+      final CoTransportConnectionUsableType connection)
+    {
+      if (LOG.isTraceEnabled()) {
+        LOG.trace("onSendPacketPong: {}", connection);
+      }
+
+      this.server.listener.onClientConnectionPacketSendPong(connection);
+    }
+
+    @Override
+    public void onReceivePacketPong(
+      final CoTransportConnectionUsableType connection)
+    {
+      if (LOG.isTraceEnabled()) {
+        LOG.trace("onReceivePacketPong: {}", connection);
+      }
+
+      this.server.listener.onClientConnectionPacketReceivePong(connection);
+    }
+
+    @Override
+    public void onSendPacketPing(
+      final CoTransportConnectionUsableType connection)
+    {
+      if (LOG.isTraceEnabled()) {
+        LOG.trace("onSendPacketPing: {}", connection);
+      }
+
+      this.server.listener.onClientConnectionPacketSendPing(connection);
     }
   }
 }

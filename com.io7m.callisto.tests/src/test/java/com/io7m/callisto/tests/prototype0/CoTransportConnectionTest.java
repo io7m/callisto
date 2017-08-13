@@ -43,6 +43,7 @@ import org.slf4j.LoggerFactory;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
+import java.time.Clock;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -63,6 +64,7 @@ public final class CoTransportConnectionTest
 
     final CoTransportConnectionType connection =
       CoTransportConnection.create(
+        Clock.systemUTC(),
         setup.logging_listener,
         setup.strings,
         setup.peer,
@@ -122,18 +124,6 @@ public final class CoTransportConnectionTest
         connection, 0, this.with(new CoMessageIDChecker(3)));
       listener.onMessageReceived(
         connection, 0, this.with(new CoMessageIDChecker(4)));
-
-      listener.onEnqueuePacketReceipt(
-        connection,
-        0,
-        0,
-        this.with(new AnyInteger()).intValue());
-
-      listener.onSendPacketReceipt(
-        connection,
-        0,
-        0,
-        this.with(new AnyInteger()).intValue());
     }};
 
     connection.tick();
@@ -147,6 +137,7 @@ public final class CoTransportConnectionTest
 
     final CoTransportConnectionType connection =
       CoTransportConnection.create(
+        Clock.systemUTC(),
         setup.logging_listener,
         setup.strings,
         setup.peer,
@@ -202,18 +193,6 @@ public final class CoTransportConnectionTest
         connection, 0, this.with(new CoMessageIDChecker(4)));
       listener.onMessageReceived(
         connection, 0, this.with(new CoMessageIDChecker(6)));
-
-      listener.onEnqueuePacketReceipt(
-        connection,
-        0,
-        0,
-        this.with(new AnyInteger()).intValue());
-
-      listener.onSendPacketReceipt(
-        connection,
-        0,
-        0,
-        this.with(new AnyInteger()).intValue());
     }};
 
     connection.tick();
@@ -227,6 +206,7 @@ public final class CoTransportConnectionTest
 
     final CoTransportConnectionType connection =
       CoTransportConnection.create(
+        Clock.systemUTC(),
         setup.logging_listener,
         setup.strings,
         setup.peer,
@@ -316,18 +296,6 @@ public final class CoTransportConnectionTest
         connection, 0, this.with(new CoMessageIDChecker(3)));
       listener.onMessageReceived(
         connection, 0, this.with(new CoMessageIDChecker(4)));
-
-      listener.onEnqueuePacketReceipt(
-        connection,
-        0,
-        0,
-        this.with(new AnyInteger()).intValue());
-
-      listener.onSendPacketReceipt(
-        connection,
-        0,
-        0,
-        this.with(new AnyInteger()).intValue());
     }};
 
     connection.tick();
@@ -341,6 +309,7 @@ public final class CoTransportConnectionTest
 
     final CoTransportConnectionType connection =
       CoTransportConnection.create(
+        Clock.systemUTC(),
         setup.logging_listener,
         setup.strings,
         setup.peer,
@@ -424,18 +393,6 @@ public final class CoTransportConnectionTest
         connection, 0, this.with(new CoMessageIDChecker(3)));
       listener.onMessageReceived(
         connection, 0, this.with(new CoMessageIDChecker(4)));
-
-      listener.onEnqueuePacketReceipt(
-        connection,
-        0,
-        0,
-        this.with(new AnyInteger()).intValue());
-
-      listener.onSendPacketReceipt(
-        connection,
-        0,
-        0,
-        this.with(new AnyInteger()).intValue());
     }};
 
     connection.tick();
@@ -449,6 +406,7 @@ public final class CoTransportConnectionTest
 
     final CoTransportConnectionType connection =
       CoTransportConnection.create(
+        Clock.systemUTC(),
         setup.logging_listener,
         setup.strings,
         setup.peer,
@@ -467,12 +425,6 @@ public final class CoTransportConnectionTest
         0,
         this.with(new PacketSizeChecker()).intValue());
 
-      listener.onEnqueuePacketReceipt(
-        connection,
-        0,
-        0,
-        this.with(new AnyInteger()).intValue());
-
       listener.onEnqueuePacketUnreliable(
         connection,
         0,
@@ -484,12 +436,6 @@ public final class CoTransportConnectionTest
         0,
         0,
         this.with(new PacketSizeChecker()).intValue());
-
-      listener.onSendPacketReceipt(
-        connection,
-        0,
-        0,
-        this.with(new AnyInteger()).intValue());
 
       listener.onSendPacketUnreliable(
         connection,
@@ -603,7 +549,7 @@ public final class CoTransportConnectionTest
     }
 
     @Override
-    public void onEnqueuePacketReceipt(
+    public void onEnqueuePacketAck(
       final CoTransportConnectionUsableType connection,
       final int channel,
       final int sequence,
@@ -614,7 +560,7 @@ public final class CoTransportConnectionTest
         Integer.valueOf(channel),
         Integer.valueOf(sequence),
         Integer.valueOf(size));
-      this.listener.onEnqueuePacketReceipt(
+      this.listener.onEnqueuePacketAck(
         connection, channel, sequence, size);
     }
 
@@ -667,7 +613,7 @@ public final class CoTransportConnectionTest
     }
 
     @Override
-    public void onSendPacketReceipt(
+    public void onSendPacketAck(
       final CoTransportConnectionUsableType connection,
       final int channel,
       final int sequence,
@@ -678,7 +624,7 @@ public final class CoTransportConnectionTest
         Integer.valueOf(channel),
         Integer.valueOf(sequence),
         Integer.valueOf(size));
-      this.listener.onSendPacketReceipt(
+      this.listener.onSendPacketAck(
         connection, channel, sequence, size);
     }
 
@@ -792,7 +738,7 @@ public final class CoTransportConnectionTest
     }
 
     @Override
-    public void onReceivePacketReceipt(
+    public void onReceivePacketAck(
       final CoTransportConnectionUsableType connection,
       final int channel,
       final int sequence,
@@ -803,7 +749,7 @@ public final class CoTransportConnectionTest
         Integer.valueOf(channel),
         Integer.valueOf(sequence),
         Integer.valueOf(size));
-      this.listener.onReceivePacketReceipt(
+      this.listener.onReceivePacketAck(
         connection, channel, sequence, size);
     }
 
@@ -837,6 +783,38 @@ public final class CoTransportConnectionTest
         Integer.valueOf(size));
       this.listener.onSavedPacketReliableExpire(
         connection, channel, sequence, size);
+    }
+
+    @Override
+    public void onReceivePacketPing(
+      final CoTransportConnectionUsableType connection)
+    {
+      LOG.debug("onReceivePacketPing: {}", connection);
+      this.listener.onReceivePacketPing(connection);
+    }
+
+    @Override
+    public void onSendPacketPong(
+      final CoTransportConnectionUsableType connection)
+    {
+      LOG.debug("onSendPacketPong: {}", connection);
+      this.listener.onSendPacketPong(connection);
+    }
+
+    @Override
+    public void onReceivePacketPong(
+      final CoTransportConnectionUsableType connection)
+    {
+      LOG.debug("onReceivePacketPong: {}", connection);
+      this.listener.onReceivePacketPong(connection);
+    }
+
+    @Override
+    public void onSendPacketPing(
+      final CoTransportConnectionUsableType connection)
+    {
+      LOG.debug("onSendPacketPing: {}", connection);
+      this.listener.onSendPacketPing(connection);
     }
   }
 

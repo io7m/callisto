@@ -51,7 +51,7 @@ public interface CoTransportConnectionListenerType
     int sequence,
     int size);
 
-  void onEnqueuePacketReceipt(
+  void onEnqueuePacketAck(
     CoTransportConnectionUsableType connection,
     int channel,
     int sequence,
@@ -75,7 +75,7 @@ public interface CoTransportConnectionListenerType
     int sequence,
     int size);
 
-  void onSendPacketReceipt(
+  void onSendPacketAck(
     CoTransportConnectionUsableType connection,
     int channel,
     int sequence,
@@ -122,7 +122,7 @@ public interface CoTransportConnectionListenerType
     int sequence,
     int size);
 
-  void onReceivePacketReceipt(
+  void onReceivePacketAck(
     CoTransportConnectionUsableType connection,
     int channel,
     int sequence,
@@ -139,4 +139,16 @@ public interface CoTransportConnectionListenerType
     int channel,
     int sequence,
     int size);
+
+  void onReceivePacketPing(
+    CoTransportConnectionUsableType connection);
+
+  void onSendPacketPong(
+    CoTransportConnectionUsableType connection);
+
+  void onReceivePacketPong(
+    CoTransportConnectionUsableType connection);
+
+  void onSendPacketPing(
+    CoTransportConnectionUsableType connection);
 }

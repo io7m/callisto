@@ -26,5 +26,5 @@ public interface CoTransportPacketBuilderListenerType
 
   void onCreatedPacketReliableFragment(CoPacket p);
 
-  void onCreatedPacketReceipt(CoPacket p);
+  void onCreatedPacketAck(CoPacket p);
 }
