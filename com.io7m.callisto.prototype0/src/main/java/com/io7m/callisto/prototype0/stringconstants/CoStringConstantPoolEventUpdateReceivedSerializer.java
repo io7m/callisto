@@ -19,7 +19,7 @@ package com.io7m.callisto.prototype0.stringconstants;
 import com.io7m.callisto.prototype0.events.CoEventNetworkSerializerType;
 import com.io7m.callisto.prototype0.events.CoEventNetworkType;
 import com.io7m.callisto.prototype0.events.CoEventSerializationException;
-import com.io7m.callisto.prototype0.messages.CoStringConstantPoolUpdate;
+import com.io7m.callisto.prototype0.stringconstants.messages.CoStringConstantPoolUpdate;
 import com.io7m.jnull.NullCheck;
 
 import java.nio.ByteBuffer;

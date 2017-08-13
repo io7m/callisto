@@ -16,14 +16,14 @@
 
 package com.io7m.callisto.tests.prototype0;
 
-import com.io7m.callisto.prototype0.messages.CoDataReliable;
-import com.io7m.callisto.prototype0.messages.CoDataReliableFragment;
-import com.io7m.callisto.prototype0.messages.CoDataUnreliable;
-import com.io7m.callisto.prototype0.messages.CoPacket;
 import com.io7m.callisto.prototype0.stringconstants.CoStringConstantReference;
 import com.io7m.callisto.prototype0.transport.CoTransportPacketBuilder;
 import com.io7m.callisto.prototype0.transport.CoTransportPacketBuilderListenerType;
 import com.io7m.callisto.prototype0.transport.CoTransportSequenceNumberTracker;
+import com.io7m.callisto.prototype0.transport.messages.CoDataReliable;
+import com.io7m.callisto.prototype0.transport.messages.CoDataReliableFragment;
+import com.io7m.callisto.prototype0.transport.messages.CoDataUnreliable;
+import com.io7m.callisto.prototype0.transport.messages.CoPacket;
 import com.io7m.callisto.tests.rules.PercentagePassRule;
 import com.io7m.callisto.tests.rules.PercentagePassing;
 import com.io7m.jserial.core.SerialNumber24;
@@ -51,45 +51,6 @@ public final class CoTransportPacketBuilderTest
 
   @Rule public PercentagePassRule percent =
     new PercentagePassRule(1000);
-
-  private static final class QueueListener
-    implements CoTransportPacketBuilderListenerType
-  {
-    private final Queue<CoPacket> queue = new ArrayDeque<>();
-
-    QueueListener()
-    {
-
-    }
-
-    @Override
-    public void onCreatedPacketReliable(
-      final CoPacket p)
-    {
-      this.queue.add(p);
-    }
-
-    @Override
-    public void onCreatedPacketUnreliable(
-      final CoPacket p)
-    {
-      this.queue.add(p);
-    }
-
-    @Override
-    public void onCreatedPacketReliableFragment(
-      final CoPacket p)
-    {
-      this.queue.add(p);
-    }
-
-    @Override
-    public void onCreatedPacketAck(
-      final CoPacket p)
-    {
-      this.queue.add(p);
-    }
-  }
 
   /**
    * Build a pile of packets. Check that they're correctly sequenced and have
@@ -391,6 +352,45 @@ public final class CoTransportPacketBuilderTest
     b.acks(listener);
 
     listener.queue.forEach(p -> LOG.trace("packet: {}", p));
+  }
+
+  private static final class QueueListener
+    implements CoTransportPacketBuilderListenerType
+  {
+    private final Queue<CoPacket> queue = new ArrayDeque<>();
+
+    QueueListener()
+    {
+
+    }
+
+    @Override
+    public void onCreatedPacketReliable(
+      final CoPacket p)
+    {
+      this.queue.add(p);
+    }
+
+    @Override
+    public void onCreatedPacketUnreliable(
+      final CoPacket p)
+    {
+      this.queue.add(p);
+    }
+
+    @Override
+    public void onCreatedPacketReliableFragment(
+      final CoPacket p)
+    {
+      this.queue.add(p);
+    }
+
+    @Override
+    public void onCreatedPacketAck(
+      final CoPacket p)
+    {
+      this.queue.add(p);
+    }
   }
 
   private static final class PacketSizeIsWithinLimits

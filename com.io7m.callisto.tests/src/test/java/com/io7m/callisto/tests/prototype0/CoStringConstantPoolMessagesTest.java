@@ -16,10 +16,9 @@
 
 package com.io7m.callisto.tests.prototype0;
 
-import com.io7m.callisto.prototype0.messages.CoStringConstantPoolUpdate;
-import com.io7m.callisto.prototype0.messages.CoStringConstantPoolUpdateCompressed;
-import com.io7m.callisto.prototype0.stringconstants.CoStringConstantPoolEventUpdateReceived;
 import com.io7m.callisto.prototype0.stringconstants.CoStringConstantPoolMessages;
+import com.io7m.callisto.prototype0.stringconstants.messages.CoStringConstantPoolUpdate;
+import com.io7m.callisto.prototype0.stringconstants.messages.CoStringConstantPoolUpdateCompressed;
 import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -49,16 +48,18 @@ public final class CoStringConstantPoolMessagesTest
     final CoStringConstantPoolUpdate update =
       CoStringConstantPoolMessages.createEventUpdate(values);
 
-    LOG.debug("uncompressed: {}",
-              Integer.valueOf(update.getSerializedSize()));
+    LOG.debug(
+      "uncompressed: {}",
+      Integer.valueOf(update.getSerializedSize()));
 
     final CoStringConstantPoolUpdateCompressed update_compressed =
       CoStringConstantPoolMessages.createEventUpdateCompressed(update);
 
-    LOG.debug("compressed: algorithm {} data size {} (size {})",
-              update_compressed.getAlgorithm(),
-              Integer.valueOf(update_compressed.getData().size()),
-              Integer.valueOf(update_compressed.getSerializedSize()));
+    LOG.debug(
+      "compressed: algorithm {} data size {} (size {})",
+      update_compressed.getAlgorithm(),
+      Integer.valueOf(update_compressed.getData().size()),
+      Integer.valueOf(update_compressed.getSerializedSize()));
 
     final ByteBuffer bytes =
       update_compressed.toByteString().asReadOnlyByteBuffer();
@@ -66,9 +67,10 @@ public final class CoStringConstantPoolMessagesTest
     final CoStringConstantPoolUpdateCompressed update_compressed_parsed =
       CoStringConstantPoolMessages.parseEventUpdateCompressed(bytes);
 
-    LOG.debug("compressed parsed: algorithm {} data size {}",
-              update_compressed_parsed.getAlgorithm(),
-              Integer.valueOf(update_compressed_parsed.getData().size()));
+    LOG.debug(
+      "compressed parsed: algorithm {} data size {}",
+      update_compressed_parsed.getAlgorithm(),
+      Integer.valueOf(update_compressed_parsed.getData().size()));
 
     final CoStringConstantPoolUpdate decompressed =
       CoStringConstantPoolMessages.parseEventUpdateCompressedDecompress(

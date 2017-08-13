@@ -19,7 +19,7 @@ syntax = "proto3";
 option optimize_for        = LITE_RUNTIME;
 option java_multiple_files = true;
 
-package com.io7m.callisto.prototype0.messages;
+package com.io7m.callisto.prototype0.stringconstants.messages;
 
 message CoStringConstantPoolUpdate
 {

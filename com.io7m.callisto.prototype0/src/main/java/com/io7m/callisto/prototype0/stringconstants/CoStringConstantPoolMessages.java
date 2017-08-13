@@ -21,9 +21,9 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.io7m.callisto.prototype0.bytebuffers.ByteBufferInputStream;
 import com.io7m.callisto.prototype0.events.CoEventSerializationIOException;
 import com.io7m.callisto.prototype0.events.CoEventSerializationMalformedException;
-import com.io7m.callisto.prototype0.messages.CoStringConstantCompression;
-import com.io7m.callisto.prototype0.messages.CoStringConstantPoolUpdate;
-import com.io7m.callisto.prototype0.messages.CoStringConstantPoolUpdateCompressed;
+import com.io7m.callisto.prototype0.stringconstants.messages.CoStringConstantCompression;
+import com.io7m.callisto.prototype0.stringconstants.messages.CoStringConstantPoolUpdate;
+import com.io7m.callisto.prototype0.stringconstants.messages.CoStringConstantPoolUpdateCompressed;
 import com.io7m.jnull.NullCheck;
 import com.io7m.junreachable.UnreachableCodeException;
 

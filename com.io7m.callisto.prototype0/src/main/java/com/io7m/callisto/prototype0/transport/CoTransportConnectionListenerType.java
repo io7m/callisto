@@ -16,7 +16,7 @@
 
 package com.io7m.callisto.prototype0.transport;
 
-import com.io7m.callisto.prototype0.messages.CoMessage;
+import com.io7m.callisto.prototype0.transport.messages.CoMessage;
 
 public interface CoTransportConnectionListenerType
 {

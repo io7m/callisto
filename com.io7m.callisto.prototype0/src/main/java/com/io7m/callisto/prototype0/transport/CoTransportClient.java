@@ -17,15 +17,15 @@
 package com.io7m.callisto.prototype0.transport;
 
 import com.google.protobuf.ByteString;
-import com.io7m.callisto.prototype0.messages.CoBye;
-import com.io7m.callisto.prototype0.messages.CoHello;
-import com.io7m.callisto.prototype0.messages.CoHelloResponse;
-import com.io7m.callisto.prototype0.messages.CoHelloResponseOK;
-import com.io7m.callisto.prototype0.messages.CoMessage;
-import com.io7m.callisto.prototype0.messages.CoPacket;
 import com.io7m.callisto.prototype0.network.CoNetworkPacketSocketType;
 import com.io7m.callisto.prototype0.stringconstants.CoStringConstantPoolReadableType;
 import com.io7m.callisto.prototype0.stringconstants.CoStringConstantReference;
+import com.io7m.callisto.prototype0.transport.messages.CoBye;
+import com.io7m.callisto.prototype0.transport.messages.CoHello;
+import com.io7m.callisto.prototype0.transport.messages.CoHelloResponse;
+import com.io7m.callisto.prototype0.transport.messages.CoHelloResponseOK;
+import com.io7m.callisto.prototype0.transport.messages.CoMessage;
+import com.io7m.callisto.prototype0.transport.messages.CoPacket;
 import com.io7m.jfsm.core.FSMEnumMutable;
 import com.io7m.jnull.NullCheck;
 import com.io7m.junreachable.UnimplementedCodeException;

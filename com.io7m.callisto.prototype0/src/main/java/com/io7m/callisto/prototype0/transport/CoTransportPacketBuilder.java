@@ -17,15 +17,15 @@
 package com.io7m.callisto.prototype0.transport;
 
 import com.google.protobuf.ByteString;
-import com.io7m.callisto.prototype0.messages.CoDataAck;
-import com.io7m.callisto.prototype0.messages.CoDataReliable;
-import com.io7m.callisto.prototype0.messages.CoDataReliableFragment;
-import com.io7m.callisto.prototype0.messages.CoDataUnreliable;
-import com.io7m.callisto.prototype0.messages.CoMessage;
-import com.io7m.callisto.prototype0.messages.CoPacket;
-import com.io7m.callisto.prototype0.messages.CoPacketID;
-import com.io7m.callisto.prototype0.messages.CoStringConstant;
 import com.io7m.callisto.prototype0.stringconstants.CoStringConstantReference;
+import com.io7m.callisto.prototype0.stringconstants.messages.CoStringConstant;
+import com.io7m.callisto.prototype0.transport.messages.CoDataAck;
+import com.io7m.callisto.prototype0.transport.messages.CoDataReliable;
+import com.io7m.callisto.prototype0.transport.messages.CoDataReliableFragment;
+import com.io7m.callisto.prototype0.transport.messages.CoDataUnreliable;
+import com.io7m.callisto.prototype0.transport.messages.CoMessage;
+import com.io7m.callisto.prototype0.transport.messages.CoPacket;
+import com.io7m.callisto.prototype0.transport.messages.CoPacketID;
 import com.io7m.jaffirm.core.Invariants;
 import com.io7m.jaffirm.core.Postconditions;
 import com.io7m.jaffirm.core.Preconditions;

@@ -17,21 +17,21 @@
 package com.io7m.callisto.tests.prototype0;
 
 import com.google.protobuf.ByteString;
-import com.io7m.callisto.prototype0.messages.CoDataUnreliable;
-import com.io7m.callisto.prototype0.messages.CoMessage;
-import com.io7m.callisto.prototype0.messages.CoPacket;
-import com.io7m.callisto.prototype0.messages.CoPacketID;
-import com.io7m.callisto.prototype0.messages.CoStringConstant;
 import com.io7m.callisto.prototype0.network.CoNetworkPacketSocketType;
 import com.io7m.callisto.prototype0.network.CoNetworkProviderLocal;
 import com.io7m.callisto.prototype0.stringconstants.CoStringConstantPool;
 import com.io7m.callisto.prototype0.stringconstants.CoStringConstantPoolType;
 import com.io7m.callisto.prototype0.stringconstants.CoStringConstantReference;
+import com.io7m.callisto.prototype0.stringconstants.messages.CoStringConstant;
 import com.io7m.callisto.prototype0.transport.CoTransportConnection;
 import com.io7m.callisto.prototype0.transport.CoTransportConnectionConfiguration;
 import com.io7m.callisto.prototype0.transport.CoTransportConnectionListenerType;
 import com.io7m.callisto.prototype0.transport.CoTransportConnectionType;
 import com.io7m.callisto.prototype0.transport.CoTransportConnectionUsableType;
+import com.io7m.callisto.prototype0.transport.messages.CoDataUnreliable;
+import com.io7m.callisto.prototype0.transport.messages.CoMessage;
+import com.io7m.callisto.prototype0.transport.messages.CoPacket;
+import com.io7m.callisto.prototype0.transport.messages.CoPacketID;
 import com.io7m.jnull.NullCheck;
 import com.io7m.jranges.RangeCheckException;
 import mockit.Delegate;

@@ -19,7 +19,7 @@ syntax = "proto3";
 option optimize_for        = LITE_RUNTIME;
 option java_multiple_files = true;
 
-package com.io7m.callisto.prototype0.messages;
+package com.io7m.callisto.prototype0.transport.messages;
 
 import "StringConstantPool.proto";
 
@@ -59,9 +59,9 @@ message CoPacketID
 
 message CoMessage
 {
-  uint32           message_id   = 1;
-  CoStringConstant message_type = 2;
-  bytes            message_data = 3;
+  uint32                                                                 message_id   = 1;
+  com.io7m.callisto.prototype0.stringconstants.messages.CoStringConstant message_type = 2;
+  bytes                                                                  message_data = 3;
 }
 
 message CoDataReliable
@@ -78,12 +78,12 @@ message CoDataUnreliable
 
 message CoDataReliableFragment
 {
-  CoPacketID       id             = 1;
-  uint32           fragment_index = 2;
-  uint32           fragment_count = 3;
-  uint32           message_id     = 4;
-  CoStringConstant message_type   = 5;
-  bytes            message_data   = 6;
+  CoPacketID                                                             id             = 1;
+  uint32                                                                 fragment_index = 2;
+  uint32                                                                 fragment_count = 3;
+  uint32                                                                 message_id     = 4;
+  com.io7m.callisto.prototype0.stringconstants.messages.CoStringConstant message_type   = 5;
+  bytes                                                                  message_data   = 6;
 }
 
 message CoDataAck

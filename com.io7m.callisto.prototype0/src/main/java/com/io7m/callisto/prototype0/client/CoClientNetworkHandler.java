@@ -25,7 +25,6 @@ import com.io7m.callisto.prototype0.events.CoEventNetworkSerializerType;
 import com.io7m.callisto.prototype0.events.CoEventNetworkType;
 import com.io7m.callisto.prototype0.events.CoEventSerializationException;
 import com.io7m.callisto.prototype0.events.CoEventServiceType;
-import com.io7m.callisto.prototype0.messages.CoPacket;
 import com.io7m.callisto.prototype0.network.CoNetworkPacketSocketType;
 import com.io7m.callisto.prototype0.network.CoNetworkProviderType;
 import com.io7m.callisto.prototype0.stringconstants.CoStringConstantPoolReadableType;
@@ -33,6 +32,7 @@ import com.io7m.callisto.prototype0.transport.CoTransportClient;
 import com.io7m.callisto.prototype0.transport.CoTransportClientConfiguration;
 import com.io7m.callisto.prototype0.transport.CoTransportClientListenerType;
 import com.io7m.callisto.prototype0.transport.CoTransportConnectionUsableType;
+import com.io7m.callisto.prototype0.transport.messages.CoPacket;
 import com.io7m.jnull.NullCheck;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -497,16 +497,16 @@ public final class CoClientNetworkHandler
         this.value = 0.0;
       }
 
-      public void setValue(
-        final double d)
-      {
-        this.value = d;
-      }
-
       @Override
       public Double getValue()
       {
         return Double.valueOf(this.value);
+      }
+
+      public void setValue(
+        final double d)
+      {
+        this.value = d;
       }
     }
   }
