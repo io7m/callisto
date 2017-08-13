@@ -425,6 +425,8 @@ public final class CoTransportConnectionTest
 
     new StrictExpectations()
     {{
+      listener.onChannelCreated(connection, 0);
+
       listener.onEnqueuePacketUnreliable(
         connection,
         0,
@@ -877,6 +879,18 @@ public final class CoTransportConnectionTest
         connection,
         Integer.valueOf(channel));
       this.listener.onReceivePacketBadChannel(connection, channel);
+    }
+
+    @Override
+    public void onChannelCreated(
+      final CoTransportConnectionUsableType connection,
+      final int channel)
+    {
+      LOG.debug(
+        "onChannelCreated: {}: {}",
+        connection,
+        Integer.valueOf(channel));
+      this.listener.onChannelCreated(connection, channel);
     }
   }
 
