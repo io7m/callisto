@@ -31,6 +31,8 @@ import com.io7m.jaffirm.core.Invariants;
 import com.io7m.jaffirm.core.Postconditions;
 import com.io7m.jaffirm.core.Preconditions;
 import com.io7m.jnull.NullCheck;
+import com.io7m.jranges.RangeCheck;
+import com.io7m.jranges.RangeInclusiveI;
 import com.io7m.junreachable.UnimplementedCodeException;
 import com.io7m.junreachable.UnreachableCodeException;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
@@ -52,6 +54,9 @@ public final class CoTransportConnection implements CoTransportConnectionType
 {
   private static final Logger LOG =
     LoggerFactory.getLogger(CoTransportConnection.class);
+
+  private static final RangeInclusiveI VALID_CHANNEL_IDS =
+    new RangeInclusiveI(0, 255);
 
   private final int id;
   private final CoNetworkPacketSendableType socket;
@@ -192,6 +197,12 @@ public final class CoTransportConnection implements CoTransportConnectionType
     NullCheck.notNull(type, "Type");
     NullCheck.notNull(message, "Message");
 
+    RangeCheck.checkIncludedInInteger(
+      channel,
+      "Channel ID",
+      VALID_CHANNEL_IDS,
+      "Valid channel identifiers");
+
     final Optional<CoStringConstantReference> type_ref_opt =
       this.strings.lookupReference(type);
 
@@ -224,6 +235,7 @@ public final class CoTransportConnection implements CoTransportConnectionType
       transport_channel =
         new CoTransportConnectionChannel(this, channel);
       this.channels.put(channel, transport_channel);
+      this.listener.onChannelCreated(this, channel);
     }
     return transport_channel;
   }
@@ -266,6 +278,11 @@ public final class CoTransportConnection implements CoTransportConnectionType
       case DATA_UNRELIABLE:
       case DATA_RELIABLE_FRAGMENT: {
         final int channel_id = packetChannelID(p);
+        if (!VALID_CHANNEL_IDS.includesValue(channel_id)) {
+          this.listener.onReceivePacketBadChannel(this, channel_id);
+          return;
+        }
+
         final CoTransportConnectionChannel transport_channel =
           this.createOrFindChannel(channel_id);
 

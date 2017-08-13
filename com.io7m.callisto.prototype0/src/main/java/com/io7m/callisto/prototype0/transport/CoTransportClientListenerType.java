@@ -154,4 +154,8 @@ public interface CoTransportClientListenerType
 
   void onConnectionSendPing(
     CoTransportConnectionUsableType connection);
+
+  void onChannelCreated(
+    CoTransportConnectionUsableType connection,
+    int channel);
 }

@@ -323,6 +323,14 @@ public final class CoClientNetworkHandler
   }
 
   @Override
+  public void onChannelCreated(
+    final CoTransportConnectionUsableType connection,
+    final int channel)
+  {
+
+  }
+
+  @Override
   public void onHelloTimedOut(
     final SocketAddress address,
     final String message)

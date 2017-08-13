@@ -153,7 +153,15 @@ public interface CoTransportConnectionListenerType
     CoTransportConnectionUsableType connection);
 
   void onReceivePacketAckNotAvailable(
-    CoTransportConnection connection,
+    CoTransportConnectionUsableType connection,
     int channel,
     int sequence);
+
+  void onReceivePacketBadChannel(
+    CoTransportConnectionUsableType connection,
+    int channel);
+
+  void onChannelCreated(
+    CoTransportConnectionUsableType connection,
+    int channel);
 }

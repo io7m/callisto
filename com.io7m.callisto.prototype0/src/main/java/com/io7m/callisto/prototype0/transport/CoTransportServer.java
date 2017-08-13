@@ -828,7 +828,7 @@ public final class CoTransportServer implements CoTransportServerType
 
     @Override
     public void onReceivePacketAckNotAvailable(
-      final CoTransportConnection connection,
+      final CoTransportConnectionUsableType connection,
       final int channel,
       final int sequence)
     {
@@ -842,6 +842,36 @@ public final class CoTransportServer implements CoTransportServerType
       this.server.onConnectionClosed(
         connection,
         "Cannot re-send unavailable or expired packet " + sequence);
+    }
+
+    @Override
+    public void onReceivePacketBadChannel(
+      final CoTransportConnectionUsableType connection,
+      final int channel)
+    {
+      if (LOG.isTraceEnabled()) {
+        LOG.trace(
+          "onReceivePacketBadChannel: {}: {}",
+          connection,
+          Integer.valueOf(channel));
+      }
+
+      this.server.onConnectionClosed(
+        connection,
+        "Bad channel value: " + channel);
+    }
+
+    @Override
+    public void onChannelCreated(
+      final CoTransportConnectionUsableType connection,
+      final int channel)
+    {
+      if (LOG.isTraceEnabled()) {
+        LOG.trace(
+          "onChannelCreated: {}: {}",
+          connection,
+          Integer.valueOf(channel));
+      }
     }
   }
 }

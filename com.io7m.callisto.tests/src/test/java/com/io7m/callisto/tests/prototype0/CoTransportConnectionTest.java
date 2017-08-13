@@ -33,10 +33,13 @@ import com.io7m.callisto.prototype0.transport.CoTransportConnectionListenerType;
 import com.io7m.callisto.prototype0.transport.CoTransportConnectionType;
 import com.io7m.callisto.prototype0.transport.CoTransportConnectionUsableType;
 import com.io7m.jnull.NullCheck;
+import com.io7m.jranges.RangeCheckException;
 import mockit.Delegate;
 import mockit.Mocked;
 import mockit.StrictExpectations;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,6 +58,9 @@ public final class CoTransportConnectionTest
 {
   private static final Logger LOG =
     LoggerFactory.getLogger(CoTransportConnectionTest.class);
+
+  @Rule
+  public final ExpectedException expected = ExpectedException.none();
 
   @Test
   public void testTransportReceiveUnreliableReordered(
@@ -456,6 +462,33 @@ public final class CoTransportConnectionTest
     connection.tick();
   }
 
+  @Test
+  public void testTransportSendBadChannel(
+    final @Mocked CoTransportConnectionListenerType listener)
+  {
+    final Setup setup = new Setup(listener);
+
+    final CoTransportConnectionType connection =
+      CoTransportConnection.create(
+        Clock.systemUTC(),
+        setup.logging_listener,
+        setup.strings,
+        setup.peer,
+        CoTransportConnectionConfiguration.of(30, 30 * 30),
+        setup.remote,
+        0x4543b73e);
+
+    final byte[] data = new byte[10];
+    final ByteBuffer message = ByteBuffer.wrap(data);
+
+    this.expected.expect(RangeCheckException.class);
+    connection.send(
+      Reliability.MESSAGE_RELIABLE,
+      256,
+      "com.io7m.callist0.example0.type0",
+      message);
+  }
+
   private static final class LoggingListener
     implements CoTransportConnectionListenerType
   {
@@ -815,6 +848,35 @@ public final class CoTransportConnectionTest
     {
       LOG.debug("onSendPacketPing: {}", connection);
       this.listener.onSendPacketPing(connection);
+    }
+
+    @Override
+    public void onReceivePacketAckNotAvailable(
+      final CoTransportConnectionUsableType connection,
+      final int channel,
+      final int sequence)
+    {
+      LOG.debug(
+        "onReceivePacketAckNotAvailable: {}: {} {}",
+        connection,
+        Integer.valueOf(channel),
+        Integer.valueOf(sequence));
+      this.listener.onReceivePacketAckNotAvailable(
+        connection,
+        channel,
+        sequence);
+    }
+
+    @Override
+    public void onReceivePacketBadChannel(
+      final CoTransportConnectionUsableType connection,
+      final int channel)
+    {
+      LOG.debug(
+        "onReceivePacketBadChannel: {}: {}",
+        connection,
+        Integer.valueOf(channel));
+      this.listener.onReceivePacketBadChannel(connection, channel);
     }
   }
 
