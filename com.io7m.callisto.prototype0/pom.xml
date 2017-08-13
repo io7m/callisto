@@ -151,11 +151,26 @@
         <extensions>true</extensions>
         <configuration>
           <instructions>
+            <_removeheaders>Implementation-Date</_removeheaders>
             <Export-Package>
               com.io7m.callisto.prototype0
             </Export-Package>
           </instructions>
         </configuration>
+      </plugin>
+
+      <!-- Clean bundle -->
+      <plugin>
+        <groupId>io.github.zlika</groupId>
+        <artifactId>reproducible-build-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>strip-jar</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>

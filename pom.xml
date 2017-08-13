@@ -397,6 +397,16 @@
           <artifactId>alta-maven-plugin</artifactId>
           <version>0.5</version>
         </plugin>
+
+        <!--
+        Reproducible Build plugin
+        http://zlika.github.io/reproducible-build-maven-plugin/index.html
+        -->
+        <plugin>
+          <groupId>io.github.zlika</groupId>
+          <artifactId>reproducible-build-maven-plugin</artifactId>
+          <version>0.3</version>
+        </plugin>
       </plugins>
     </pluginManagement>
   </build>
