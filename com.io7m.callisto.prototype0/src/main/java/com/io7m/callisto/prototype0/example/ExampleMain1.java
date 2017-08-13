@@ -24,7 +24,6 @@ import com.io7m.callisto.prototype0.client.CoClient;
 import com.io7m.callisto.prototype0.client.CoClientTickEvent;
 import com.io7m.callisto.prototype0.events.CoEventNetworkSerializerRegistryServiceLoader;
 import com.io7m.callisto.prototype0.events.CoEventService;
-import com.io7m.callisto.prototype0.network.CoNetworkProviderLocal;
 import com.io7m.callisto.prototype0.network.CoNetworkProviderUDP;
 import com.io7m.callisto.prototype0.server.CoServer;
 import com.io7m.callisto.prototype0.server.CoServerTickEvent;

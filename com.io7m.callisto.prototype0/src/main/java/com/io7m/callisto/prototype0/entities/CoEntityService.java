@@ -170,7 +170,7 @@ public final class CoEntityService
     private final CoEventServiceType events;
     private final BiConsumer<Entity, Optional<CoException>> on_destroy;
     private final Object traits_lock;
-    private @GuardedBy("traits_lock")
+    private final @GuardedBy("traits_lock")
     Reference2ReferenceOpenHashMap<Class<CoEntityTraitType>, CoEntityTraitType> traits;
 
     private Entity(
@@ -338,14 +338,13 @@ public final class CoEntityService
         this.traits.remove(cc);
       }
 
-      if (tr_opt.isPresent()) {
-        final CoEntityTraitType tr = tr_opt.get();
+      tr_opt.ifPresent(tr -> {
         try {
           tr.onDestroy();
         } catch (final Exception ex) {
           throw new UnimplementedCodeException();
         }
-      }
+      });
     }
 
     @Override

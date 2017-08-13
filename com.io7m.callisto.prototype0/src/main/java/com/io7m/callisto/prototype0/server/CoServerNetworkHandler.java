@@ -56,8 +56,6 @@ public final class CoServerNetworkHandler
   private final CoStringConstantPoolReadableType strings;
   private final CoEventServiceType events;
   private final CoEventNetworkSerializerRegistryType event_serializers;
-  private final Scheduler scheduler;
-  private final Clock clock;
 
   public CoServerNetworkHandler(
     final Clock in_clock,
@@ -70,11 +68,9 @@ public final class CoServerNetworkHandler
     final CoTransportServerConfiguration config)
   {
     NullCheck.notNull(in_network, "Network");
+    NullCheck.notNull(in_clock, "Clock");
+    NullCheck.notNull(in_scheduler, "Scheduler");
 
-    this.clock =
-      NullCheck.notNull(in_clock, "Clock");
-    this.scheduler =
-      NullCheck.notNull(in_scheduler, "Scheduler");
     this.strings =
       NullCheck.notNull(in_strings, "Strings");
     this.events =

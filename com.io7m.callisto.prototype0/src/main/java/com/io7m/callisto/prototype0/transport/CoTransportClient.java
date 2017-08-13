@@ -359,7 +359,7 @@ public final class CoTransportClient implements CoTransportClientType
   {
     private final CoTransportClient client;
 
-    public ConnectionListener(
+    ConnectionListener(
       final CoTransportClient in_client)
     {
       this.client = NullCheck.notNull(in_client, "Client");
