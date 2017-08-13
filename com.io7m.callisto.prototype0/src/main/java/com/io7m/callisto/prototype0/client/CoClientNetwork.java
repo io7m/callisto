@@ -40,6 +40,8 @@ public final class CoClientNetwork extends CoProcessAbstract
   private static final Logger LOG =
     LoggerFactory.getLogger(CoClientNetwork.class);
 
+  private static final int TICKS_PER_SECOND = 30;
+
   private final CoNetworkProviderType network;
   private final Disposable sub_tick;
   private final CoTickDivisor tick_divisor;
@@ -78,7 +80,7 @@ public final class CoClientNetwork extends CoProcessAbstract
       NullCheck.notNull(in_network, "Network");
 
     this.tick_divisor =
-      new CoTickDivisor(60.0, 30.0);
+      new CoTickDivisor(60.0, TICKS_PER_SECOND);
 
     this.sub_tick =
       in_events.events()
@@ -190,7 +192,7 @@ public final class CoClientNetwork extends CoProcessAbstract
       CoTransportClientConfiguration.builder()
         .setHelloRetryCount(10)
         .setHelloRetryDelayInTicks(60)
-        .setTicksPerSecond(30)
+        .setTicksPerSecond(TICKS_PER_SECOND)
         .build();
 
     this.handler =

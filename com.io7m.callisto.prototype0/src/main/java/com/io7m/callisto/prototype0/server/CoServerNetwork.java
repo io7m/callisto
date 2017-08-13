@@ -37,6 +37,8 @@ public final class CoServerNetwork extends CoProcessAbstract
   private static final Logger LOG =
     LoggerFactory.getLogger(CoServerNetwork.class);
 
+  private static final int TICKS_PER_SECOND = 30;
+
   private final CoNetworkProviderType network;
   private final CoTickDivisor tick_divisor;
   private final Disposable sub_tick;
@@ -73,7 +75,7 @@ public final class CoServerNetwork extends CoProcessAbstract
     this.strings =
       NullCheck.notNull(in_strings, "Strings");
     this.tick_divisor =
-      new CoTickDivisor(60.0, 30.0);
+      new CoTickDivisor(60.0, TICKS_PER_SECOND);
 
     this.sub_tick =
       in_events.events()
@@ -116,7 +118,7 @@ public final class CoServerNetwork extends CoProcessAbstract
 
     final CoTransportServerConfiguration config =
       CoTransportServerConfiguration.builder()
-        .setTicksPerSecond(30)
+        .setTicksPerSecond(TICKS_PER_SECOND)
         .build();
 
     this.handler =
