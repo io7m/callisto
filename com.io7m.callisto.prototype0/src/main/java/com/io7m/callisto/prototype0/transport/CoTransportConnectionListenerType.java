@@ -151,4 +151,9 @@ public interface CoTransportConnectionListenerType
 
   void onSendPacketPing(
     CoTransportConnectionUsableType connection);
+
+  void onReceivePacketAckNotAvailable(
+    CoTransportConnection connection,
+    int channel,
+    int sequence);
 }

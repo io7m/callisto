@@ -825,5 +825,23 @@ public final class CoTransportServer implements CoTransportServerType
 
       this.server.listener.onClientConnectionPacketSendPing(connection);
     }
+
+    @Override
+    public void onReceivePacketAckNotAvailable(
+      final CoTransportConnection connection,
+      final int channel,
+      final int sequence)
+    {
+      if (LOG.isTraceEnabled()) {
+        LOG.trace(
+          "onReceivePacketAckNotAvailable: {}: request to re-send unavailable packet {}",
+          connection,
+          Integer.valueOf(sequence));
+      }
+
+      this.server.onConnectionClosed(
+        connection,
+        "Cannot re-send unavailable or expired packet " + sequence);
+    }
   }
 }

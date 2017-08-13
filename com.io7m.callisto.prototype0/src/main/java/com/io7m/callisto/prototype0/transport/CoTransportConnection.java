@@ -622,11 +622,12 @@ public final class CoTransportConnection implements CoTransportConnectionType
         return;
       }
 
-      LOG.error(
+      LOG.trace(
         "requested to re-queue missing packet {}",
         Integer.valueOf(not_received));
 
-      throw new UnimplementedCodeException();
+      this.connection.listener.onReceivePacketAckNotAvailable(
+        this.connection, this.channel, not_received);
     }
 
     private void handleSends()
