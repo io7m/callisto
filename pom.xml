@@ -22,6 +22,7 @@
     <module>com.io7m.callisto.checkstyle</module>
     <module>com.io7m.callisto.container</module>
     <module>com.io7m.callisto.core</module>
+    <module>com.io7m.callisto.prototype0.example</module>
     <module>com.io7m.callisto.prototype0</module>
     <module>com.io7m.callisto.tests</module>
   </modules>
