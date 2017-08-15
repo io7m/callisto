@@ -79,11 +79,12 @@ message CoDataUnreliable
 message CoDataReliableFragment
 {
   CoPacketID                                                             id             = 1;
-  uint32                                                                 fragment_index = 2;
-  uint32                                                                 fragment_count = 3;
-  uint32                                                                 message_id     = 4;
-  com.io7m.callisto.prototype0.stringconstants.messages.CoStringConstant message_type   = 5;
-  bytes                                                                  message_data   = 6;
+  uint32                                                                 fragment_id    = 2;
+  uint32                                                                 fragment_index = 3;
+  uint32                                                                 fragment_count = 4;
+  uint32                                                                 message_id     = 5;
+  com.io7m.callisto.prototype0.stringconstants.messages.CoStringConstant message_type   = 6;
+  bytes                                                                  message_data   = 7;
 }
 
 message CoDataAck

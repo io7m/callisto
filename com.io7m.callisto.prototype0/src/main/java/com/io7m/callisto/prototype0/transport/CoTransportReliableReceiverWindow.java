@@ -25,7 +25,7 @@ import it.unimi.dsi.fastutil.ints.IntSortedSets;
 
 public final class CoTransportReliableReceiverWindow
 {
-  private final int receive;
+  private int receive;
   private final IntRBTreeSet received;
   private final IntSortedSet received_view;
   private final IntRBTreeSet missed;
@@ -71,15 +71,11 @@ public final class CoTransportReliableReceiverWindow
      * packet.
      */
 
-    final IntSortedSet before = this.received.headSet(r);
-    if (!before.isEmpty()) {
-      final int before_last = before.lastInt();
-      if (this.serial.distanceUnsigned(before_last, r) > 1) {
-        for (int k = this.serial.add(before_last, 1);
-             this.serial.compare(k, r) < 0;
-             k = this.serial.add(k, 1)) {
-          this.missed.add(k);
-        }
+    for (int k = this.serial.add(this.receive_before_missing, 1);
+         this.serial.compare(k, r) < 0;
+         k = this.serial.add(k, 1)) {
+      if (!this.received.contains(k)) {
+        this.missed.add(k);
       }
     }
 
@@ -106,9 +102,12 @@ public final class CoTransportReliableReceiverWindow
     }
     this.received.clear();
     this.missed.clear();
+    this.receive = this.receive_before_missing;
   }
 
-  public int receivedBeforeMissing()
+  public int receivedSequence() { return this.receive; }
+
+  public int receivedSequenceBeforeMissing()
   {
     return this.receive_before_missing;
   }

@@ -164,4 +164,22 @@ public interface CoTransportConnectionListenerType
   void onChannelCreated(
     CoTransportConnectionUsableType connection,
     int channel);
+
+  void onEnqueuePacketReliableDropped(
+    CoTransportConnectionUsableType connection,
+    int channel,
+    int sequence,
+    int size);
+
+  void onEnqueuePacketUnreliableDropped(
+    CoTransportConnectionUsableType connection,
+    int channel,
+    int sequence,
+    int size);
+
+  void onEnqueuePacketReliableFragmentDropped(
+    CoTransportConnectionUsableType connection,
+    int channel,
+    int sequence,
+    int size);
 }

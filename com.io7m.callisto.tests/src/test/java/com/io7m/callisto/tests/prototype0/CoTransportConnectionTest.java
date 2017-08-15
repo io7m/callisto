@@ -28,6 +28,8 @@ import com.io7m.callisto.prototype0.transport.CoTransportConnectionConfiguration
 import com.io7m.callisto.prototype0.transport.CoTransportConnectionListenerType;
 import com.io7m.callisto.prototype0.transport.CoTransportConnectionType;
 import com.io7m.callisto.prototype0.transport.CoTransportConnectionUsableType;
+import com.io7m.callisto.prototype0.transport.messages.CoDataReliable;
+import com.io7m.callisto.prototype0.transport.messages.CoDataReliableFragment;
 import com.io7m.callisto.prototype0.transport.messages.CoDataUnreliable;
 import com.io7m.callisto.prototype0.transport.messages.CoMessage;
 import com.io7m.callisto.prototype0.transport.messages.CoPacket;
@@ -37,6 +39,7 @@ import com.io7m.jranges.RangeCheckException;
 import mockit.Delegate;
 import mockit.Mocked;
 import mockit.StrictExpectations;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -62,6 +65,60 @@ public final class CoTransportConnectionTest
   @Rule
   public final ExpectedException expected = ExpectedException.none();
 
+  private static CoPacket unreliable(
+    final byte[] data,
+    final int id)
+  {
+    final CoMessage message =
+      CoMessage.newBuilder()
+        .setMessageType(CoStringConstant.newBuilder().setValue(1))
+        .setMessageId(id)
+        .setMessageData(ByteString.copyFrom(data))
+        .build();
+
+    final CoPacketID packet_id =
+      CoPacketID.newBuilder()
+        .setChannel(0)
+        .setConnectionId(0x1)
+        .setSequence(id)
+        .build();
+
+    return CoPacket.newBuilder()
+      .setDataUnreliable(
+        CoDataUnreliable.newBuilder()
+          .setId(packet_id)
+          .addMessages(message)
+          .build())
+      .build();
+  }
+
+  private static CoPacket reliable(
+    final byte[] data,
+    final int id)
+  {
+    final CoMessage message =
+      CoMessage.newBuilder()
+        .setMessageType(CoStringConstant.newBuilder().setValue(1))
+        .setMessageId(id)
+        .setMessageData(ByteString.copyFrom(data))
+        .build();
+
+    final CoPacketID packet_id =
+      CoPacketID.newBuilder()
+        .setChannel(0)
+        .setConnectionId(0x1)
+        .setSequence(id)
+        .build();
+
+    return CoPacket.newBuilder()
+      .setDataReliable(
+        CoDataReliable.newBuilder()
+          .setId(packet_id)
+          .addMessages(message)
+          .build())
+      .build();
+  }
+
   @Test
   public void testTransportReceiveUnreliableReordered(
     final @Mocked CoTransportConnectionListenerType listener)
@@ -80,32 +137,8 @@ public final class CoTransportConnectionTest
 
     final byte[] data = new byte[1];
 
-    IntStream.of(4, 3, 2, 1, 0).forEach(id -> {
-      final CoMessage message =
-        CoMessage.newBuilder()
-          .setMessageType(CoStringConstant.newBuilder().setValue(1))
-          .setMessageId(id)
-          .setMessageData(ByteString.copyFrom(data))
-          .build();
-
-      final CoPacketID packet_id =
-        CoPacketID.newBuilder()
-          .setChannel(0)
-          .setConnectionId(0x1)
-          .setSequence(id)
-          .build();
-
-      final CoPacket packet =
-        CoPacket.newBuilder()
-          .setDataUnreliable(
-            CoDataUnreliable.newBuilder()
-              .setId(packet_id)
-              .addMessages(message)
-              .build())
-          .build();
-
-      connection.receive(packet);
-    });
+    IntStream.of(4, 3, 2, 1, 0).forEach(
+      id -> connection.receive(unreliable(data, id)));
 
     new StrictExpectations()
     {{
@@ -153,32 +186,8 @@ public final class CoTransportConnectionTest
 
     final byte[] data = new byte[1];
 
-    IntStream.of(0, 2, 4, 6).forEach(id -> {
-      final CoMessage message =
-        CoMessage.newBuilder()
-          .setMessageType(CoStringConstant.newBuilder().setValue(1))
-          .setMessageId(id)
-          .setMessageData(ByteString.copyFrom(data))
-          .build();
-
-      final CoPacketID packet_id =
-        CoPacketID.newBuilder()
-          .setChannel(0)
-          .setConnectionId(0x1)
-          .setSequence(id)
-          .build();
-
-      final CoPacket packet =
-        CoPacket.newBuilder()
-          .setDataUnreliable(
-            CoDataUnreliable.newBuilder()
-              .setId(packet_id)
-              .addMessages(message)
-              .build())
-          .build();
-
-      connection.receive(packet);
-    });
+    IntStream.of(0, 2, 4, 6).forEach(
+      id -> connection.receive(unreliable(data, id)));
 
     new StrictExpectations()
     {{
@@ -222,6 +231,16 @@ public final class CoTransportConnectionTest
 
     final byte[] data = new byte[1];
 
+    /*
+     * Schedule some packets to wind the current sequence number up near the
+     * limits of the sequence number range.
+     */
+
+    connection.receive(unreliable(data, 0x7fffff));
+    connection.tick();
+    connection.receive(unreliable(data, 0xfffffa));
+    connection.tick();
+
     IntStream.of(
       0xfffffb,
       0xfffffc,
@@ -232,32 +251,7 @@ public final class CoTransportConnectionTest
       1,
       2,
       3,
-      4).forEach(id -> {
-      final CoMessage message =
-        CoMessage.newBuilder()
-          .setMessageType(CoStringConstant.newBuilder().setValue(1))
-          .setMessageId(id)
-          .setMessageData(ByteString.copyFrom(data))
-          .build();
-
-      final CoPacketID packet_id =
-        CoPacketID.newBuilder()
-          .setChannel(0)
-          .setConnectionId(0x1)
-          .setSequence(id)
-          .build();
-
-      final CoPacket packet =
-        CoPacket.newBuilder()
-          .setDataUnreliable(
-            CoDataUnreliable.newBuilder()
-              .setId(packet_id)
-              .addMessages(message)
-              .build())
-          .build();
-
-      connection.receive(packet);
-    });
+      4).forEach(id -> connection.receive(unreliable(data, id)));
 
     new StrictExpectations()
     {{
@@ -465,6 +459,58 @@ public final class CoTransportConnectionTest
   }
 
   @Test
+  public void testTransportSendReliable(
+    final @Mocked CoTransportConnectionListenerType listener)
+  {
+    final Setup setup = new Setup(listener);
+
+    final CoTransportConnectionType connection =
+      CoTransportConnection.create(
+        Clock.systemUTC(),
+        setup.logging_listener,
+        setup.strings,
+        setup.peer,
+        CoTransportConnectionConfiguration.of(30, 30 * 30),
+        setup.remote,
+        0x4543b73e);
+
+    final byte[] data = new byte[10];
+    final ByteBuffer message = ByteBuffer.wrap(data);
+
+    new StrictExpectations()
+    {{
+      listener.onChannelCreated(connection, 0);
+
+      listener.onEnqueuePacketReliable(
+        connection,
+        0,
+        0,
+        this.with(new PacketSizeChecker()).intValue());
+
+      listener.onSavedPacketReliableSave(
+        connection,
+        0,
+        0,
+        this.with(new PacketSizeChecker()).intValue());
+
+      listener.onSendPacketReliable(
+        connection,
+        0,
+        0,
+        this.with(new PacketSizeChecker()).intValue());
+    }};
+
+    connection.send(
+      Reliability.MESSAGE_RELIABLE,
+      0,
+      "com.io7m.callist0.example0.type0",
+      message);
+    message.rewind();
+
+    connection.tick();
+  }
+
+  @Test
   public void testTransportSendBadChannel(
     final @Mocked CoTransportConnectionListenerType listener)
   {
@@ -489,6 +535,486 @@ public final class CoTransportConnectionTest
       256,
       "com.io7m.callist0.example0.type0",
       message);
+  }
+
+  @Test
+  public void testTransportReceiveReliableDuplicates(
+    final @Mocked CoTransportConnectionListenerType listener)
+  {
+    final Setup setup = new Setup(listener);
+
+    final CoTransportConnectionType connection =
+      CoTransportConnection.create(
+        Clock.systemUTC(),
+        setup.logging_listener,
+        setup.strings,
+        setup.peer,
+        CoTransportConnectionConfiguration.of(30, 30 * 30),
+        setup.remote,
+        0x4543b73e);
+
+    final byte[] data = new byte[4];
+    final ByteBuffer wrap = ByteBuffer.wrap(data);
+
+    final AtomicInteger x = new AtomicInteger(0);
+    IntStream.of(0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4).forEach(id -> {
+      wrap.putInt(0, x.getAndIncrement());
+
+      final CoMessage message =
+        CoMessage.newBuilder()
+          .setMessageType(CoStringConstant.newBuilder().setValue(x.intValue()))
+          .setMessageId(id)
+          .setMessageData(ByteString.copyFrom(data))
+          .build();
+
+      final CoPacketID packet_id =
+        CoPacketID.newBuilder()
+          .setChannel(0)
+          .setConnectionId(0x1)
+          .setSequence(id)
+          .build();
+
+      final CoPacket packet =
+        CoPacket.newBuilder()
+          .setDataReliable(
+            CoDataReliable.newBuilder()
+              .setId(packet_id)
+              .addMessages(message)
+              .build())
+          .build();
+
+      connection.receive(packet);
+    });
+
+    new StrictExpectations()
+    {{
+      listener.onReceivePacketDeliverReliable(
+        connection, 0, 0, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverReliable(
+        connection, 0, 0, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverReliable(
+        connection, 0, 0, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverReliable(
+        connection, 0, 1, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverReliable(
+        connection, 0, 1, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverReliable(
+        connection, 0, 1, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverReliable(
+        connection, 0, 2, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverReliable(
+        connection, 0, 2, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverReliable(
+        connection, 0, 2, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverReliable(
+        connection, 0, 3, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverReliable(
+        connection, 0, 3, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverReliable(
+        connection, 0, 3, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverReliable(
+        connection, 0, 4, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverReliable(
+        connection, 0, 4, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverReliable(
+        connection, 0, 4, this.with(new AnyInteger()).intValue());
+
+      listener.onMessageReceived(
+        connection, 0, this.with(new CoMessageIDChecker(0)));
+      listener.onMessageReceived(
+        connection, 0, this.with(new CoMessageIDChecker(1)));
+      listener.onMessageReceived(
+        connection, 0, this.with(new CoMessageIDChecker(2)));
+      listener.onMessageReceived(
+        connection, 0, this.with(new CoMessageIDChecker(3)));
+      listener.onMessageReceived(
+        connection, 0, this.with(new CoMessageIDChecker(4)));
+    }};
+
+    connection.tick();
+  }
+
+  @Test
+  public void testTransportReceiveReliableReordered(
+    final @Mocked CoTransportConnectionListenerType listener)
+  {
+    final Setup setup = new Setup(listener);
+
+    final CoTransportConnectionType connection =
+      CoTransportConnection.create(
+        Clock.systemUTC(),
+        setup.logging_listener,
+        setup.strings,
+        setup.peer,
+        CoTransportConnectionConfiguration.of(30, 30 * 30),
+        setup.remote,
+        0x4543b73e);
+
+    final byte[] data = new byte[1];
+
+    IntStream.of(4, 3, 2, 1, 0).forEach(
+      id -> connection.receive(reliable(data, id)));
+
+    new StrictExpectations()
+    {{
+      listener.onReceivePacketDeliverReliable(
+        connection, 0, 4, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverReliable(
+        connection, 0, 3, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverReliable(
+        connection, 0, 2, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverReliable(
+        connection, 0, 1, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverReliable(
+        connection, 0, 0, this.with(new AnyInteger()).intValue());
+
+      listener.onMessageReceived(
+        connection, 0, this.with(new CoMessageIDChecker(0)));
+      listener.onMessageReceived(
+        connection, 0, this.with(new CoMessageIDChecker(1)));
+      listener.onMessageReceived(
+        connection, 0, this.with(new CoMessageIDChecker(2)));
+      listener.onMessageReceived(
+        connection, 0, this.with(new CoMessageIDChecker(3)));
+      listener.onMessageReceived(
+        connection, 0, this.with(new CoMessageIDChecker(4)));
+    }};
+
+    connection.tick();
+  }
+
+  @Test
+  public void testTransportReceiveReliableBrokenOrder(
+    final @Mocked CoTransportConnectionListenerType listener)
+  {
+    final Setup setup = new Setup(listener);
+
+    final CoTransportConnectionType connection =
+      CoTransportConnection.create(
+        Clock.systemUTC(),
+        setup.logging_listener,
+        setup.strings,
+        setup.peer,
+        CoTransportConnectionConfiguration.of(30, 30 * 30),
+        setup.remote,
+        0x4543b73e);
+
+    final byte[] data = new byte[10];
+    final ByteBuffer message = ByteBuffer.wrap(data);
+
+    new StrictExpectations()
+    {{
+      listener.onChannelCreated(connection, 0);
+
+      listener.onReceivePacketReliable(
+        connection,
+        0,
+        0,
+        this.with(new AnyInteger()).intValue());
+
+      listener.onReceivePacketReliable(
+        connection,
+        0,
+        1,
+        this.with(new AnyInteger()).intValue());
+
+      listener.onReceivePacketReliable(
+        connection,
+        0,
+        2,
+        this.with(new AnyInteger()).intValue());
+
+      listener.onReceivePacketDeliverReliable(
+        connection,
+        0,
+        0,
+        this.with(new AnyInteger()).intValue());
+
+      listener.onReceivePacketDeliverReliable(
+        connection,
+        0,
+        1,
+        this.with(new AnyInteger()).intValue());
+
+      listener.onReceivePacketDeliverReliable(
+        connection,
+        0,
+        2,
+        this.with(new AnyInteger()).intValue());
+
+      // Tick!
+
+      listener.onReceivePacketReliable(
+        connection,
+        0,
+        0,
+        this.with(new AnyInteger()).intValue());
+
+      listener.onEnqueuePacketReliableDropped(
+        connection,
+        0,
+        0,
+        this.with(new AnyInteger()).intValue());
+    }};
+
+    connection.receive(
+      CoPacket.newBuilder()
+        .setDataReliable(
+          CoDataReliable.newBuilder()
+            .setId(CoPacketID.newBuilder()
+                     .setChannel(0)
+                     .setConnectionId(0x4543b73e)
+                     .setSequence(0)
+                     .build()))
+        .build());
+
+    connection.receive(
+      CoPacket.newBuilder()
+        .setDataReliable(
+          CoDataReliable.newBuilder()
+            .setId(CoPacketID.newBuilder()
+                     .setChannel(0)
+                     .setConnectionId(0x4543b73e)
+                     .setSequence(1)
+                     .build()))
+        .build());
+
+    connection.receive(
+      CoPacket.newBuilder()
+        .setDataReliable(
+          CoDataReliable.newBuilder()
+            .setId(CoPacketID.newBuilder()
+                     .setChannel(0)
+                     .setConnectionId(0x4543b73e)
+                     .setSequence(2)
+                     .build()))
+        .build());
+
+    connection.tick();
+
+    connection.receive(
+      CoPacket.newBuilder()
+        .setDataReliable(
+          CoDataReliable.newBuilder()
+            .setId(CoPacketID.newBuilder()
+                     .setChannel(0)
+                     .setConnectionId(0x4543b73e)
+                     .setSequence(0)
+                     .build()))
+        .build());
+
+    connection.tick();
+  }
+
+  @Test
+  public void testTransportReceiveReliableDiscontinuous(
+    final @Mocked CoTransportConnectionListenerType listener)
+  {
+    final Setup setup = new Setup(listener);
+
+    final CoTransportConnectionType connection =
+      CoTransportConnection.create(
+        Clock.systemUTC(),
+        setup.logging_listener,
+        setup.strings,
+        setup.peer,
+        CoTransportConnectionConfiguration.of(30, 30 * 30),
+        setup.remote,
+        0x4543b73e);
+
+    final byte[] data = new byte[1];
+
+    new StrictExpectations()
+    {{
+      listener.onChannelCreated(connection, 0);
+
+      listener.onReceivePacketReliable(
+        connection, 0, 0, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketReliable(
+        connection, 0, 2, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketReliable(
+        connection, 0, 4, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketReliable(
+        connection, 0, 6, this.with(new AnyInteger()).intValue());
+
+      listener.onReceivePacketReliable(
+        connection, 0, 1, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketReliable(
+        connection, 0, 3, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketReliable(
+        connection, 0, 5, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketReliable(
+        connection, 0, 7, this.with(new AnyInteger()).intValue());
+
+      listener.onReceivePacketDeliverReliable(
+        connection, 0, 0, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverReliable(
+        connection, 0, 2, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverReliable(
+        connection, 0, 4, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverReliable(
+        connection, 0, 6, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverReliable(
+        connection, 0, 1, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverReliable(
+        connection, 0, 3, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverReliable(
+        connection, 0, 5, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverReliable(
+        connection, 0, 7, this.with(new AnyInteger()).intValue());
+
+      listener.onMessageReceived(
+        connection, 0, this.with(new CoMessageIDChecker(0)));
+      listener.onMessageReceived(
+        connection, 0, this.with(new CoMessageIDChecker(1)));
+      listener.onMessageReceived(
+        connection, 0, this.with(new CoMessageIDChecker(2)));
+      listener.onMessageReceived(
+        connection, 0, this.with(new CoMessageIDChecker(3)));
+      listener.onMessageReceived(
+        connection, 0, this.with(new CoMessageIDChecker(4)));
+      listener.onMessageReceived(
+        connection, 0, this.with(new CoMessageIDChecker(5)));
+      listener.onMessageReceived(
+        connection, 0, this.with(new CoMessageIDChecker(6)));
+      listener.onMessageReceived(
+        connection, 0, this.with(new CoMessageIDChecker(7)));
+    }};
+
+    IntStream.of(0, 2, 4, 6).forEach(
+      id -> connection.receive(reliable(data, id)));
+
+    connection.tick();
+
+    IntStream.of(1, 3, 5, 7).forEach(
+      id -> connection.receive(reliable(data, id)));
+
+    connection.tick();
+  }
+
+  @Test
+  public void testTransportReceiveReliableTrivial(
+    final @Mocked CoTransportConnectionListenerType listener)
+  {
+    final Setup setup = new Setup(listener);
+
+    final CoTransportConnectionType connection =
+      CoTransportConnection.create(
+        Clock.systemUTC(),
+        setup.logging_listener,
+        setup.strings,
+        setup.peer,
+        CoTransportConnectionConfiguration.of(30, 30 * 30),
+        setup.remote,
+        0x4543b73e);
+
+    final byte[] data = new byte[1];
+
+    new StrictExpectations()
+    {{
+      listener.onChannelCreated(connection, 0);
+
+      listener.onReceivePacketReliable(
+        connection, 0, 0, this.with(new AnyInteger()).intValue());
+      listener.onReceivePacketDeliverReliable(
+        connection, 0, 0, this.with(new AnyInteger()).intValue());
+      listener.onMessageReceived(
+        connection, 0, this.with(new CoMessageIDChecker(0)));
+    }};
+
+    connection.receive(reliable(data, 0));
+    connection.tick();
+  }
+
+  @Test
+  @Ignore("Not yet implemented")
+  public void testTransportReceiveReliableMissingNeverArrives(
+    final @Mocked CoTransportConnectionListenerType listener)
+  {
+    final Setup setup = new Setup(listener);
+
+    final CoTransportConnectionType connection =
+      CoTransportConnection.create(
+        Clock.systemUTC(),
+        setup.logging_listener,
+        setup.strings,
+        setup.peer,
+        CoTransportConnectionConfiguration.of(30, 30 * 30),
+        setup.remote,
+        0x4543b73e);
+
+    final byte[] data = new byte[1];
+
+    new StrictExpectations()
+    {{
+
+    }};
+
+    for (int index = 0; index < 1000; ++index) {
+      if (index != 2) {
+        connection.receive(reliable(data, index));
+      }
+      connection.tick();
+    }
+  }
+
+  @Test
+  @Ignore("Not yet implemented")
+  public void testTransportReceiveReliableFragmentTrivial(
+    final @Mocked CoTransportConnectionListenerType listener)
+  {
+    final Setup setup = new Setup(listener);
+
+    final CoTransportConnectionType connection =
+      CoTransportConnection.create(
+        Clock.systemUTC(),
+        setup.logging_listener,
+        setup.strings,
+        setup.peer,
+        CoTransportConnectionConfiguration.of(30, 30 * 30),
+        setup.remote,
+        0x4543b73e);
+
+    final byte[] data = new byte[1];
+
+    new StrictExpectations()
+    {{
+      listener.onChannelCreated(connection, 0);
+
+      listener.onReceivePacketReliableFragment(
+        connection, 0, 0, this.with(new AnyInteger()).intValue());
+      listener.onMessageReceived(
+        connection, 0, this.with(new CoMessageIDChecker(0)));
+    }};
+
+    connection.receive(reliableFragment(data, 0));
+    connection.tick();
+  }
+
+  private static CoPacket reliableFragment(
+    final byte[] data,
+    final int id)
+  {
+    final CoPacketID packet_id =
+      CoPacketID.newBuilder()
+        .setChannel(0)
+        .setConnectionId(0x1)
+        .setSequence(id)
+        .build();
+
+    final CoDataReliableFragment fragment =
+      CoDataReliableFragment.newBuilder()
+        .setId(packet_id)
+        .setFragmentCount(1)
+        .setFragmentIndex(1)
+        .setMessageType(CoStringConstant.newBuilder().setValue(1))
+        .setMessageId(id)
+        .setMessageData(ByteString.copyFrom(data))
+        .build();
+
+    return CoPacket.newBuilder()
+      .setDataReliableFragment(fragment)
+      .build();
   }
 
   private static final class LoggingListener
@@ -591,7 +1117,7 @@ public final class CoTransportConnectionTest
       final int size)
     {
       LOG.debug(
-        "onEnqueuePacketReceipt: {} {} {}",
+        "onEnqueuePacketAck: {} {} {}",
         Integer.valueOf(channel),
         Integer.valueOf(sequence),
         Integer.valueOf(size));
@@ -655,7 +1181,7 @@ public final class CoTransportConnectionTest
       final int size)
     {
       LOG.debug(
-        "onSendPacketReceipt: {} {} {}",
+        "onSendPacketAck: {} {} {}",
         Integer.valueOf(channel),
         Integer.valueOf(sequence),
         Integer.valueOf(size));
@@ -780,7 +1306,7 @@ public final class CoTransportConnectionTest
       final int size)
     {
       LOG.debug(
-        "onReceivePacketReceipt: {} {} {}",
+        "onReceivePacketAck: {} {} {}",
         Integer.valueOf(channel),
         Integer.valueOf(sequence),
         Integer.valueOf(size));
@@ -891,6 +1417,57 @@ public final class CoTransportConnectionTest
         connection,
         Integer.valueOf(channel));
       this.listener.onChannelCreated(connection, channel);
+    }
+
+    @Override
+    public void onEnqueuePacketReliableDropped(
+      final CoTransportConnectionUsableType connection,
+      final int channel,
+      final int sequence,
+      final int size)
+    {
+      LOG.debug(
+        "onEnqueuePacketReliableDropped: {}:{} sequence {}: {} octets",
+        connection,
+        Integer.valueOf(channel),
+        Integer.valueOf(sequence),
+        Integer.valueOf(size));
+      this.listener.onEnqueuePacketReliableDropped(
+        connection, channel, sequence, size);
+    }
+
+    @Override
+    public void onEnqueuePacketUnreliableDropped(
+      final CoTransportConnectionUsableType connection,
+      final int channel,
+      final int sequence,
+      final int size)
+    {
+      LOG.debug(
+        "onEnqueuePacketUnreliableDropped: {}:{} sequence {}: {} octets",
+        connection,
+        Integer.valueOf(channel),
+        Integer.valueOf(sequence),
+        Integer.valueOf(size));
+      this.listener.onEnqueuePacketUnreliableDropped(
+        connection, channel, sequence, size);
+    }
+
+    @Override
+    public void onEnqueuePacketReliableFragmentDropped(
+      final CoTransportConnectionUsableType connection,
+      final int channel,
+      final int sequence,
+      final int size)
+    {
+      LOG.debug(
+        "onEnqueuePacketReliableFragmentDropped: {}:{} sequence {}: {} octets",
+        connection,
+        Integer.valueOf(channel),
+        Integer.valueOf(sequence),
+        Integer.valueOf(size));
+      this.listener.onEnqueuePacketReliableFragmentDropped(
+        connection, channel, sequence, size);
     }
   }
 

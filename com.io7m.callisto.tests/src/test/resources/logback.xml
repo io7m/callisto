@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configuration debug="false">
+<configuration
+  xmlns="http://ch.qos.logback/xml/ns/logback"
+  debug="false">
 
   <appender
     name="STDERR"
@@ -9,6 +11,10 @@
     </encoder>
     <target>System.err</target>
   </appender>
+
+  <logger
+    name="com.io7m.callisto.prototype0.transport.CoTransportConnection"
+    level="DEBUG"/>
 
   <root level="TRACE">
     <appender-ref ref="STDERR"/>

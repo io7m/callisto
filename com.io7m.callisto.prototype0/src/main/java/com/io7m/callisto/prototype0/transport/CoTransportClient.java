@@ -871,5 +871,56 @@ public final class CoTransportClient implements CoTransportClientType
 
       this.client.listener.onChannelCreated(connection, channel);
     }
+
+    @Override
+    public void onEnqueuePacketReliableDropped(
+      final CoTransportConnectionUsableType connection,
+      final int channel,
+      final int sequence,
+      final int size)
+    {
+      if (LOG.isTraceEnabled()) {
+        LOG.trace(
+          "onEnqueuePacketReliableDropped: {}:{} sequence {}: {} octets",
+          connection,
+          Integer.valueOf(channel),
+          Integer.valueOf(sequence),
+          Integer.valueOf(size));
+      }
+    }
+
+    @Override
+    public void onEnqueuePacketUnreliableDropped(
+      final CoTransportConnectionUsableType connection,
+      final int channel,
+      final int sequence,
+      final int size)
+    {
+      if (LOG.isTraceEnabled()) {
+        LOG.trace(
+          "onEnqueuePacketUnreliableDropped: {}:{} sequence {}: {} octets",
+          connection,
+          Integer.valueOf(channel),
+          Integer.valueOf(sequence),
+          Integer.valueOf(size));
+      }
+    }
+
+    @Override
+    public void onEnqueuePacketReliableFragmentDropped(
+      final CoTransportConnectionUsableType connection,
+      final int channel,
+      final int sequence,
+      final int size)
+    {
+      if (LOG.isTraceEnabled()) {
+        LOG.trace(
+          "onEnqueuePacketReliableFragmentDropped: {}:{} sequence {}: {} octets",
+          connection,
+          Integer.valueOf(channel),
+          Integer.valueOf(sequence),
+          Integer.valueOf(size));
+      }
+    }
   }
 }

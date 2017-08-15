@@ -47,6 +47,18 @@ public interface CoTransportConnectionConfigurationType
     return this.ticksPerSecond();
   }
 
+  @Value.Parameter
+  default int ticksAckRate()
+  {
+    return 3;
+  }
+
+  @Value.Parameter
+  default int ackMaximumRetries()
+  {
+    return 10;
+  }
+
   @Value.Check
   default void checkPreconditions()
   {
@@ -69,9 +81,21 @@ public interface CoTransportConnectionConfigurationType
       "Valid TTL values");
 
     RangeCheck.checkIncludedInInteger(
-      this.ticksPerSecond(),
+      this.ticksPingRate(),
       "Ticks ping rate",
       new RangeInclusiveI(this.ticksPerSecond(), this.ticksPerSecond() * 60),
       "Valid ping rate");
+
+    RangeCheck.checkIncludedInInteger(
+      this.ticksAckRate(),
+      "Ack rate in ticks",
+      new RangeInclusiveI(1, this.ticksPerSecond() * 60),
+      "Valid ack rate");
+
+    RangeCheck.checkIncludedInInteger(
+      this.ackMaximumRetries(),
+      "Ack maximum retries",
+      new RangeInclusiveI(1, 100),
+      "Valid ack retry count");
   }
 }

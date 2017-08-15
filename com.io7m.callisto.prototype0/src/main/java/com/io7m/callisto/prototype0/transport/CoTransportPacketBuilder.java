@@ -58,6 +58,7 @@ public final class CoTransportPacketBuilder
   private final int packet_reliable_fragment_size_base;
   private final int packet_reliable_fragment_body_size_limit;
   private final CoTransportSequenceNumberTracker sequences;
+  private int packet_reliable_fragment_id;
   private int packet_reliable_size;
   private int packet_unreliable_size;
   private int packet_ack_size;
@@ -86,6 +87,7 @@ public final class CoTransportPacketBuilder
     this.packet_unreliable_size_base = unreliableBaseSize();
     this.packet_unreliable_size = this.packet_unreliable_size_base;
 
+    this.packet_reliable_fragment_id = 0;
     this.packet_reliable_fragment = CoDataReliableFragment.newBuilder();
     this.packet_reliable_fragment_size_base = reliableFragmentBaseSize();
     this.packet_reliable_fragment_body_size_limit =
@@ -435,6 +437,9 @@ public final class CoTransportPacketBuilder
 
   private CoPacket reliableFragmentFinish()
   {
+    this.packet_reliable_fragment_id =
+      this.sequences.serial().add(this.packet_reliable_fragment_id, 1);
+
     final CoDataReliableFragment pd =
       this.packet_reliable_fragment.build();
 
@@ -465,6 +470,8 @@ public final class CoTransportPacketBuilder
       final int size = Math.min(message.remaining(), frag_size_limit);
 
       this.reliableFragmentStart();
+      this.packet_reliable_fragment.setFragmentId(
+        this.packet_reliable_fragment_id);
       this.packet_reliable_fragment.setFragmentCount(frag_count);
       this.packet_reliable_fragment.setFragmentIndex(frag_index);
       this.packet_reliable_fragment.setMessageType(

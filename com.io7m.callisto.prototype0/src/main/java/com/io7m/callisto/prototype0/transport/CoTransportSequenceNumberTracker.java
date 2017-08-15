@@ -23,6 +23,7 @@ public final class CoTransportSequenceNumberTracker
 {
   private final SerialNumberIntType serial;
   private final CoTransportReliableReceiverWindow reliable_window;
+  private final CoTransportUnreliableReceiverWindow unreliable_window;
   private int reliable_send_next;
   private int message_send_next;
   private int unreliable_send_next;
@@ -33,6 +34,9 @@ public final class CoTransportSequenceNumberTracker
     this.serial = SerialNumber24.get();
     this.reliable_window =
       new CoTransportReliableReceiverWindow(this.serial, 0, 180);
+    this.unreliable_window =
+      new CoTransportUnreliableReceiverWindow(this.serial, 0);
+
     this.reliable_send_next = 0;
     this.unreliable_send_next = 0;
     this.message_send_next = 0;
@@ -87,5 +91,25 @@ public final class CoTransportSequenceNumberTracker
   public int ackToSendNext()
   {
     return this.ack_send_next;
+  }
+
+  public boolean reliableShouldBeQueued(
+    final int sequence_incoming)
+  {
+    final int sequence_current = this.reliable_window.receivedSequence();
+    return this.serial().compare(sequence_incoming, sequence_current) >= 0;
+  }
+
+  public boolean unreliableShouldBeQueued(
+    final int sequence_incoming)
+  {
+    final int sequence_current =
+      this.unreliable_window.receivedSequenceAtStartOfTick();
+    return this.serial().compare(sequence_incoming, sequence_current) >= 0;
+  }
+
+  public CoTransportUnreliableReceiverWindow unreliableReceiverWindow()
+  {
+    return this.unreliable_window;
   }
 }

@@ -21,6 +21,7 @@ import com.io7m.jserial.core.SerialNumber24;
 import com.io7m.jserial.core.SerialNumber8;
 import com.io7m.junreachable.UnimplementedCodeException;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -32,14 +33,26 @@ public final class CoTransportReliableReceiverWindowTest
   @Rule public final ExpectedException expected = ExpectedException.none();
 
   @Test
+  @Ignore("Not yet implemented")
   public void testBasicReceiveDistance()
   {
     final CoTransportReliableReceiverWindow win =
       new CoTransportReliableReceiverWindow(SerialNumber24.get(), 0, 160);
 
     final int[] args = {0, 8388607};
-    this.expected.expect(UnimplementedCodeException.class);
     IntStream.of(args).forEach(win::receive);
+  }
+
+  @Test
+  public void testBasicReceiveDistance160()
+  {
+    final CoTransportReliableReceiverWindow win =
+      new CoTransportReliableReceiverWindow(SerialNumber24.get(), 0, 160);
+
+    final int[] args = {0, 159};
+    IntStream.of(args).forEach(win::receive);
+
+    Assert.assertEquals(158L, (long) win.missed().size());
   }
 
   @Test
@@ -53,13 +66,13 @@ public final class CoTransportReliableReceiverWindowTest
 
     Assert.assertEquals(0L, (long) win.missed().size());
     Assert.assertEquals(10L, (long) win.received().size());
-    Assert.assertEquals(9L, (long) win.receivedBeforeMissing());
+    Assert.assertEquals(9L, (long) win.receivedSequenceBeforeMissing());
     IntStream.of(args).forEach(r -> Assert.assertTrue(win.received().contains(r)));
 
     win.reset();
     Assert.assertEquals(0L, (long) win.missed().size());
     Assert.assertEquals(0L, (long) win.received().size());
-    Assert.assertEquals(9L, (long) win.receivedBeforeMissing());
+    Assert.assertEquals(9L, (long) win.receivedSequenceBeforeMissing());
   }
 
   @Test
@@ -73,13 +86,13 @@ public final class CoTransportReliableReceiverWindowTest
 
     Assert.assertEquals(0L, (long) win.missed().size());
     Assert.assertEquals(6L, (long) win.received().size());
-    Assert.assertEquals(2L, (long) win.receivedBeforeMissing());
+    Assert.assertEquals(2L, (long) win.receivedSequenceBeforeMissing());
     IntStream.of(args).forEach(r -> Assert.assertTrue(win.received().contains(r)));
 
     win.reset();
     Assert.assertEquals(0L, (long) win.missed().size());
     Assert.assertEquals(0L, (long) win.received().size());
-    Assert.assertEquals(2L, (long) win.receivedBeforeMissing());
+    Assert.assertEquals(2L, (long) win.receivedSequenceBeforeMissing());
   }
 
   @Test
@@ -94,13 +107,13 @@ public final class CoTransportReliableReceiverWindowTest
     Assert.assertEquals(1L, (long) win.missed().size());
     Assert.assertTrue(win.missed().contains(2));
     Assert.assertEquals(4L, (long) win.received().size());
-    Assert.assertEquals(1L, (long) win.receivedBeforeMissing());
+    Assert.assertEquals(1L, (long) win.receivedSequenceBeforeMissing());
     IntStream.of(args).forEach(r -> Assert.assertTrue(win.received().contains(r)));
 
     win.reset();
     Assert.assertEquals(0L, (long) win.missed().size());
     Assert.assertEquals(0L, (long) win.received().size());
-    Assert.assertEquals(4L, (long) win.receivedBeforeMissing());
+    Assert.assertEquals(4L, (long) win.receivedSequenceBeforeMissing());
   }
 
   @Test
@@ -115,12 +128,49 @@ public final class CoTransportReliableReceiverWindowTest
     Assert.assertEquals(1L, (long) win.missed().size());
     Assert.assertTrue(win.missed().contains(255));
     Assert.assertEquals(4L, (long) win.received().size());
-    Assert.assertEquals(254L, (long) win.receivedBeforeMissing());
+    Assert.assertEquals(254L, (long) win.receivedSequenceBeforeMissing());
     IntStream.of(args).forEach(r -> Assert.assertTrue(win.received().contains(r)));
 
     win.reset();
     Assert.assertEquals(0L, (long) win.missed().size());
     Assert.assertEquals(0L, (long) win.received().size());
-    Assert.assertEquals(1L, (long) win.receivedBeforeMissing());
+    Assert.assertEquals(1L, (long) win.receivedSequenceBeforeMissing());
+  }
+
+  @Test
+  public void testMissing_013()
+  {
+    final CoTransportReliableReceiverWindow win =
+      new CoTransportReliableReceiverWindow(SerialNumber8.get(), 0, 10);
+
+    win.receive(0);
+    Assert.assertEquals(0L, (long) win.missed().size());
+    Assert.assertEquals(1L, (long) win.received().size());
+    Assert.assertEquals(0L, (long) win.receivedSequenceBeforeMissing());
+
+    win.reset();
+    Assert.assertEquals(0L, (long) win.missed().size());
+    Assert.assertEquals(0L, (long) win.received().size());
+    Assert.assertEquals(0L, (long) win.receivedSequenceBeforeMissing());
+
+    win.receive(1);
+    Assert.assertEquals(0L, (long) win.missed().size());
+    Assert.assertEquals(1L, (long) win.received().size());
+    Assert.assertEquals(1L, (long) win.receivedSequenceBeforeMissing());
+
+    win.reset();
+    Assert.assertEquals(0L, (long) win.missed().size());
+    Assert.assertEquals(0L, (long) win.received().size());
+    Assert.assertEquals(1L, (long) win.receivedSequenceBeforeMissing());
+
+    win.receive(3);
+    Assert.assertEquals(1L, (long) win.missed().size());
+    Assert.assertEquals(1L, (long) win.received().size());
+    Assert.assertEquals(1L, (long) win.receivedSequenceBeforeMissing());
+
+    win.reset();
+    Assert.assertEquals(0L, (long) win.missed().size());
+    Assert.assertEquals(0L, (long) win.received().size());
+    Assert.assertEquals(3L, (long) win.receivedSequenceBeforeMissing());
   }
 }
