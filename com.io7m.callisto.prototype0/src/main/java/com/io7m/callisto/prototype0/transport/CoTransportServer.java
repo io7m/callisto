@@ -95,6 +95,12 @@ public final class CoTransportServer implements CoTransportServerType
       case PONG: {
         return p.getPong().getConnectionId();
       }
+      case DATA_RELIABLE_FRAGMENT_INITIAL: {
+        return p.getDataReliableFragmentInitial().getId().getConnectionId();
+      }
+      case DATA_RELIABLE_FRAGMENT_SEGMENT: {
+        return p.getDataReliableFragmentSegment().getId().getConnectionId();
+      }
       case DATA_ACK: {
         return p.getDataAck().getId().getConnectionId();
       }
@@ -103,9 +109,6 @@ public final class CoTransportServer implements CoTransportServerType
       }
       case DATA_UNRELIABLE: {
         return p.getDataUnreliable().getId().getConnectionId();
-      }
-      case DATA_RELIABLE_FRAGMENT: {
-        return p.getDataReliableFragment().getId().getConnectionId();
       }
     }
 
@@ -253,7 +256,8 @@ public final class CoTransportServer implements CoTransportServerType
       case DATA_ACK:
       case DATA_RELIABLE:
       case DATA_UNRELIABLE:
-      case DATA_RELIABLE_FRAGMENT: {
+      case DATA_RELIABLE_FRAGMENT_SEGMENT:
+      case DATA_RELIABLE_FRAGMENT_INITIAL: {
         this.onReceiveConnectionPacket(packetConnectionId(p), p);
         break;
       }
@@ -593,7 +597,7 @@ public final class CoTransportServer implements CoTransportServerType
       }
 
       final CoStringConstantReference type_ref =
-        CoStringConstantReference.of(message.getMessageType().getValue());
+        CoStringConstantReference.of(message.getMessageType());
       final Optional<String> type_name_opt =
         this.server.strings.lookupString(type_ref);
 

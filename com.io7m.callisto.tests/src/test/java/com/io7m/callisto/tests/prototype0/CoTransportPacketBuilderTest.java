@@ -21,23 +21,23 @@ import com.io7m.callisto.prototype0.transport.CoTransportPacketBuilder;
 import com.io7m.callisto.prototype0.transport.CoTransportPacketBuilderListenerType;
 import com.io7m.callisto.prototype0.transport.CoTransportSequenceNumberTracker;
 import com.io7m.callisto.prototype0.transport.messages.CoDataReliable;
-import com.io7m.callisto.prototype0.transport.messages.CoDataReliableFragment;
 import com.io7m.callisto.prototype0.transport.messages.CoDataUnreliable;
 import com.io7m.callisto.prototype0.transport.messages.CoPacket;
 import com.io7m.callisto.tests.rules.PercentagePassRule;
 import com.io7m.callisto.tests.rules.PercentagePassing;
 import com.io7m.jserial.core.SerialNumber24;
 import com.io7m.jserial.core.SerialNumberIntType;
+import com.io7m.junreachable.UnimplementedCodeException;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeMatcher;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayDeque;
 import java.util.Iterator;
@@ -257,86 +257,23 @@ public final class CoTransportPacketBuilderTest
   }
 
   @Test
+  @Ignore("Not yet implemented")
   public void testPacketFragmentationReliable()
     throws Exception
   {
-    final CoTransportSequenceNumberTracker sequences =
-      new CoTransportSequenceNumberTracker();
-    final CoTransportPacketBuilder b =
-      new CoTransportPacketBuilder(sequences, 1200, 0, 0x696f376d);
-
-    final Random random = new Random();
-    final QueueListener listener = new QueueListener();
-
-    final byte[] message_data = new byte[5000];
-    random.nextBytes(message_data);
-    final ByteBuffer message = ByteBuffer.wrap(message_data);
-
-    Assert.assertEquals(0L, (long) listener.queue.size());
-    b.reliableAppend(listener, CoStringConstantReference.of(23), message);
-    Assert.assertEquals(5L, (long) listener.queue.size());
-    b.reliableFinishRemaining(listener);
-    Assert.assertEquals(5L, (long) listener.queue.size());
-
-    LOG.debug("queue size: {}", Integer.valueOf(listener.queue.size()));
-
-    try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-      int index = 1;
-      while (!listener.queue.isEmpty()) {
-        final CoPacket p = listener.queue.remove();
-        final CoDataReliableFragment pr = p.getDataReliableFragment();
-        Assert.assertEquals(5L, (long) pr.getFragmentCount());
-        Assert.assertEquals((long) index, (long) pr.getFragmentIndex());
-        Assert.assertEquals(0L, (long) pr.getMessageId());
-        out.write(pr.getMessageData().toByteArray());
-        ++index;
-      }
-
-      Assert.assertArrayEquals(message_data, out.toByteArray());
-    }
+    throw new UnimplementedCodeException();
   }
 
   @Test
+  @Ignore("Not yet implemented")
   public void testPacketFragmentationUnreliable()
     throws Exception
   {
-    final CoTransportSequenceNumberTracker sequences =
-      new CoTransportSequenceNumberTracker();
-    final CoTransportPacketBuilder b =
-      new CoTransportPacketBuilder(sequences, 1200, 0, 0x696f376d);
-
-    final Random random = new Random();
-    final QueueListener listener = new QueueListener();
-
-    final byte[] message_data = new byte[5000];
-    random.nextBytes(message_data);
-    final ByteBuffer message = ByteBuffer.wrap(message_data);
-
-    Assert.assertEquals(0L, (long) listener.queue.size());
-    b.unreliableAppend(listener, CoStringConstantReference.of(23), message);
-    Assert.assertEquals(5L, (long) listener.queue.size());
-    b.unreliableFinishRemaining(listener);
-    Assert.assertEquals(5L, (long) listener.queue.size());
-
-    LOG.debug("queue size: {}", Integer.valueOf(listener.queue.size()));
-
-    try (final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-      int index = 1;
-      while (!listener.queue.isEmpty()) {
-        final CoPacket p = listener.queue.remove();
-        final CoDataReliableFragment pr = p.getDataReliableFragment();
-        Assert.assertEquals(5L, (long) pr.getFragmentCount());
-        Assert.assertEquals((long) index, (long) pr.getFragmentIndex());
-        Assert.assertEquals(0L, (long) pr.getMessageId());
-        out.write(pr.getMessageData().toByteArray());
-        ++index;
-      }
-
-      Assert.assertArrayEquals(message_data, out.toByteArray());
-    }
+    throw new UnimplementedCodeException();
   }
 
   @Test
+  @Ignore("Not yet implemented")
   public void testPacketBuildReceiptMisc()
   {
     final CoTransportSequenceNumberTracker sequences =

@@ -21,8 +21,6 @@ option java_multiple_files = true;
 
 package com.io7m.callisto.prototype0.transport.messages;
 
-import "StringConstantPool.proto";
-
 message CoHello
 {
   bytes  password         = 1;
@@ -59,9 +57,9 @@ message CoPacketID
 
 message CoMessage
 {
-  uint32                                                                 message_id   = 1;
-  com.io7m.callisto.prototype0.stringconstants.messages.CoStringConstant message_type = 2;
-  bytes                                                                  message_data = 3;
+  uint32 message_id   = 1;
+  uint32 message_type = 2;
+  bytes  message_data = 3;
 }
 
 message CoDataReliable
@@ -76,21 +74,35 @@ message CoDataUnreliable
   repeated CoMessage messages = 2;
 }
 
-message CoDataReliableFragment
+message CoDataReliableFragmentInitial
 {
-  CoPacketID                                                             id             = 1;
-  uint32                                                                 fragment_id    = 2;
-  uint32                                                                 fragment_index = 3;
-  uint32                                                                 fragment_count = 4;
-  uint32                                                                 message_id     = 5;
-  com.io7m.callisto.prototype0.stringconstants.messages.CoStringConstant message_type   = 6;
-  bytes                                                                  message_data   = 7;
+  CoPacketID id             = 1;
+  fixed32    fragment_id    = 2;
+  uint32     fragment_count = 3;
+  uint32     message_id     = 4;
+  uint32     message_type   = 5;
+  uint32     message_size   = 6;
+  bytes      message_data   = 7;
+}
+
+message CoDataReliableFragmentSegment
+{
+  CoPacketID id             = 1;
+  fixed32    fragment_id    = 2;
+  uint32     fragment_index = 3;
+  bytes      data           = 4;
+}
+
+message CoSequenceRangeInclusive
+{
+  uint32 lower = 1;
+  uint32 upper = 2;
 }
 
 message CoDataAck
 {
-  CoPacketID      id                              = 1;
-  repeated uint32 sequences_reliable_not_received = 2;
+  CoPacketID                        id                              = 1;
+  repeated CoSequenceRangeInclusive sequences_reliable_not_received = 2;
 }
 
 message CoBye
@@ -112,14 +124,15 @@ message CoPong
 message CoPacket
 {
   oneof value {
-    CoHello                hello                  = 1;
-    CoHelloResponse        hello_response         = 2;
-    CoDataReliable         data_reliable          = 3;
-    CoDataUnreliable       data_unreliable        = 4;
-    CoDataReliableFragment data_reliable_fragment = 5;
-    CoDataAck              data_ack               = 6;
-    CoBye                  bye                    = 7;
-    CoPing                 ping                   = 8;
-    CoPong                 pong                   = 9;
+    CoHello                       hello                          = 1;
+    CoHelloResponse               hello_response                 = 2;
+    CoDataReliable                data_reliable                  = 3;
+    CoDataUnreliable              data_unreliable                = 4;
+    CoDataReliableFragmentInitial data_reliable_fragment_initial = 5;
+    CoDataReliableFragmentSegment data_reliable_fragment_segment = 6;
+    CoDataAck                     data_ack                       = 7;
+    CoBye                         bye                            = 8;
+    CoPing                        ping                           = 9;
+    CoPong                        pong                           = 10;
   }
 }

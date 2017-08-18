@@ -227,7 +227,8 @@ public final class CoTransportClient implements CoTransportClientType
       case DATA_ACK:
       case DATA_RELIABLE:
       case DATA_UNRELIABLE:
-      case DATA_RELIABLE_FRAGMENT: {
+      case DATA_RELIABLE_FRAGMENT_INITIAL:
+      case DATA_RELIABLE_FRAGMENT_SEGMENT: {
         this.onReceiveConnectionPacket(address, p);
         break;
       }
@@ -588,7 +589,7 @@ public final class CoTransportClient implements CoTransportClientType
       }
 
       final CoStringConstantReference type_ref =
-        CoStringConstantReference.of(message.getMessageType().getValue());
+        CoStringConstantReference.of(message.getMessageType());
       final Optional<String> type_name_opt =
         this.client.strings.lookupString(type_ref);
 

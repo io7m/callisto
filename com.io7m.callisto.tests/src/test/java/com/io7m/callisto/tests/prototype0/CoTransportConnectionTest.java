@@ -22,20 +22,19 @@ import com.io7m.callisto.prototype0.network.CoNetworkProviderLocal;
 import com.io7m.callisto.prototype0.stringconstants.CoStringConstantPool;
 import com.io7m.callisto.prototype0.stringconstants.CoStringConstantPoolType;
 import com.io7m.callisto.prototype0.stringconstants.CoStringConstantReference;
-import com.io7m.callisto.prototype0.stringconstants.messages.CoStringConstant;
 import com.io7m.callisto.prototype0.transport.CoTransportConnection;
 import com.io7m.callisto.prototype0.transport.CoTransportConnectionConfiguration;
 import com.io7m.callisto.prototype0.transport.CoTransportConnectionListenerType;
 import com.io7m.callisto.prototype0.transport.CoTransportConnectionType;
 import com.io7m.callisto.prototype0.transport.CoTransportConnectionUsableType;
 import com.io7m.callisto.prototype0.transport.messages.CoDataReliable;
-import com.io7m.callisto.prototype0.transport.messages.CoDataReliableFragment;
 import com.io7m.callisto.prototype0.transport.messages.CoDataUnreliable;
 import com.io7m.callisto.prototype0.transport.messages.CoMessage;
 import com.io7m.callisto.prototype0.transport.messages.CoPacket;
 import com.io7m.callisto.prototype0.transport.messages.CoPacketID;
 import com.io7m.jnull.NullCheck;
 import com.io7m.jranges.RangeCheckException;
+import com.io7m.junreachable.UnimplementedCodeException;
 import mockit.Delegate;
 import mockit.Mocked;
 import mockit.StrictExpectations;
@@ -71,7 +70,7 @@ public final class CoTransportConnectionTest
   {
     final CoMessage message =
       CoMessage.newBuilder()
-        .setMessageType(CoStringConstant.newBuilder().setValue(1))
+        .setMessageType(1)
         .setMessageId(id)
         .setMessageData(ByteString.copyFrom(data))
         .build();
@@ -98,7 +97,7 @@ public final class CoTransportConnectionTest
   {
     final CoMessage message =
       CoMessage.newBuilder()
-        .setMessageType(CoStringConstant.newBuilder().setValue(1))
+        .setMessageType(1)
         .setMessageId(id)
         .setMessageData(ByteString.copyFrom(data))
         .build();
@@ -326,7 +325,7 @@ public final class CoTransportConnectionTest
 
       final CoMessage message =
         CoMessage.newBuilder()
-          .setMessageType(CoStringConstant.newBuilder().setValue(x.intValue()))
+          .setMessageType(x.intValue())
           .setMessageId(id)
           .setMessageData(ByteString.copyFrom(data))
           .build();
@@ -562,7 +561,7 @@ public final class CoTransportConnectionTest
 
       final CoMessage message =
         CoMessage.newBuilder()
-          .setMessageType(CoStringConstant.newBuilder().setValue(x.intValue()))
+          .setMessageType(x.intValue())
           .setMessageId(id)
           .setMessageData(ByteString.copyFrom(data))
           .build();
@@ -995,26 +994,7 @@ public final class CoTransportConnectionTest
     final byte[] data,
     final int id)
   {
-    final CoPacketID packet_id =
-      CoPacketID.newBuilder()
-        .setChannel(0)
-        .setConnectionId(0x1)
-        .setSequence(id)
-        .build();
-
-    final CoDataReliableFragment fragment =
-      CoDataReliableFragment.newBuilder()
-        .setId(packet_id)
-        .setFragmentCount(1)
-        .setFragmentIndex(1)
-        .setMessageType(CoStringConstant.newBuilder().setValue(1))
-        .setMessageId(id)
-        .setMessageData(ByteString.copyFrom(data))
-        .build();
-
-    return CoPacket.newBuilder()
-      .setDataReliableFragment(fragment)
-      .build();
+    throw new UnimplementedCodeException();
   }
 
   private static final class LoggingListener

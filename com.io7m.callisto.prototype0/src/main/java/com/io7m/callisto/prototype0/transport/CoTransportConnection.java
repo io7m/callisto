@@ -27,6 +27,7 @@ import com.io7m.callisto.prototype0.transport.messages.CoMessage;
 import com.io7m.callisto.prototype0.transport.messages.CoPacket;
 import com.io7m.callisto.prototype0.transport.messages.CoPing;
 import com.io7m.callisto.prototype0.transport.messages.CoPong;
+import com.io7m.callisto.prototype0.transport.messages.CoSequenceRangeInclusive;
 import com.io7m.jaffirm.core.Invariants;
 import com.io7m.jaffirm.core.Postconditions;
 import com.io7m.jaffirm.core.Preconditions;
@@ -152,8 +153,11 @@ public final class CoTransportConnection implements CoTransportConnectionType
       case DATA_UNRELIABLE: {
         return p.getDataUnreliable().getId().getChannel();
       }
-      case DATA_RELIABLE_FRAGMENT: {
-        return p.getDataReliableFragment().getId().getChannel();
+      case DATA_RELIABLE_FRAGMENT_INITIAL: {
+        return p.getDataReliableFragmentInitial().getId().getChannel();
+      }
+      case DATA_RELIABLE_FRAGMENT_SEGMENT: {
+        return p.getDataReliableFragmentInitial().getId().getChannel();
       }
     }
 
@@ -274,7 +278,8 @@ public final class CoTransportConnection implements CoTransportConnectionType
       case DATA_ACK:
       case DATA_RELIABLE:
       case DATA_UNRELIABLE:
-      case DATA_RELIABLE_FRAGMENT: {
+      case DATA_RELIABLE_FRAGMENT_SEGMENT:
+      case DATA_RELIABLE_FRAGMENT_INITIAL: {
         final int channel_id = packetChannelID(p);
         if (!VALID_CHANNEL_IDS.includesValue(channel_id)) {
           this.listener.onReceivePacketBadChannel(this, channel_id);
@@ -450,7 +455,8 @@ public final class CoTransportConnection implements CoTransportConnectionType
             case BYE:
             case HELLO:
             case HELLO_RESPONSE:
-            case DATA_RELIABLE_FRAGMENT:
+            case DATA_RELIABLE_FRAGMENT_INITIAL:
+            case DATA_RELIABLE_FRAGMENT_SEGMENT:
             case VALUE_NOT_SET: {
               throw new UnreachableCodeException();
             }
@@ -548,7 +554,8 @@ public final class CoTransportConnection implements CoTransportConnectionType
           case HELLO_RESPONSE:
           case VALUE_NOT_SET:
           case DATA_RELIABLE:
-          case DATA_RELIABLE_FRAGMENT:
+          case DATA_RELIABLE_FRAGMENT_INITIAL:
+          case DATA_RELIABLE_FRAGMENT_SEGMENT:
           case DATA_ACK: {
             break;
           }
@@ -602,14 +609,27 @@ public final class CoTransportConnection implements CoTransportConnectionType
             break;
           }
 
-          case DATA_RELIABLE_FRAGMENT: {
+          case DATA_RELIABLE_FRAGMENT_INITIAL: {
             final int sequence =
-              p.getDataReliableFragment().getId().getSequence();
+              p.getDataReliableFragmentInitial().getId().getSequence();
             this.sequences.reliableReceiverWindow().receive(sequence);
 
             if (LOG.isTraceEnabled()) {
               LOG.trace(
-                "in queue: reliable fragment {}",
+                "in queue: reliable fragment (initial) {}",
+                Integer.valueOf(sequence));
+            }
+            break;
+          }
+
+          case DATA_RELIABLE_FRAGMENT_SEGMENT: {
+            final int sequence =
+              p.getDataReliableFragmentSegment().getId().getSequence();
+            this.sequences.reliableReceiverWindow().receive(sequence);
+
+            if (LOG.isTraceEnabled()) {
+              LOG.trace(
+                "in queue: reliable fragment (segment) {}",
                 Integer.valueOf(sequence));
             }
             break;
@@ -629,8 +649,9 @@ public final class CoTransportConnection implements CoTransportConnectionType
             final CoDataAck r = p.getDataAck();
             final int count = r.getSequencesReliableNotReceivedCount();
             for (int index = 0; index < count; ++index) {
-              final int sequence = r.getSequencesReliableNotReceived(index);
-              this.enqueueOldSavedPacket(sequence);
+              final CoSequenceRangeInclusive range =
+                r.getSequencesReliableNotReceived(index);
+              throw new UnimplementedCodeException();
             }
 
             iter.remove();
@@ -722,9 +743,18 @@ public final class CoTransportConnection implements CoTransportConnectionType
             break;
           }
 
-          case DATA_RELIABLE_FRAGMENT: {
+          case DATA_RELIABLE_FRAGMENT_INITIAL: {
             final int sequence =
-              p.getDataReliableFragment().getId().getSequence();
+              p.getDataReliableFragmentInitial().getId().getSequence();
+
+            this.connection.listener.onSendPacketReliableFragment(
+              this.connection, this.channel, sequence, size);
+            break;
+          }
+
+          case DATA_RELIABLE_FRAGMENT_SEGMENT: {
+            final int sequence =
+              p.getDataReliableFragmentSegment().getId().getSequence();
 
             this.connection.listener.onSendPacketReliableFragment(
               this.connection, this.channel, sequence, size);
@@ -776,12 +806,7 @@ public final class CoTransportConnection implements CoTransportConnectionType
     public void onCreatedPacketReliableFragment(
       final CoPacket p)
     {
-      this.q_sending.add(p);
-      this.connection.listener.onEnqueuePacketReliableFragment(
-        this.connection,
-        this.channel,
-        p.getDataReliableFragment().getId().getSequence(),
-        p.getSerializedSize());
+      throw new UnimplementedCodeException();
     }
 
     @Override
@@ -792,7 +817,7 @@ public final class CoTransportConnection implements CoTransportConnectionType
       this.connection.listener.onEnqueuePacketAck(
         this.connection,
         this.channel,
-        p.getDataReliableFragment().getId().getSequence(),
+        p.getDataAck().getId().getSequence(),
         p.getSerializedSize());
     }
 
@@ -851,9 +876,30 @@ public final class CoTransportConnection implements CoTransportConnectionType
           break;
         }
 
-        case DATA_RELIABLE_FRAGMENT: {
+        case DATA_RELIABLE_FRAGMENT_INITIAL: {
           final int sequence =
-            p.getDataReliableFragment().getId().getSequence();
+            p.getDataReliableFragmentInitial().getId().getSequence();
+
+          this.connection.listener.onReceivePacketReliableFragment(
+            this.connection,
+            this.channel,
+            sequence,
+            p.getSerializedSize());
+
+          if (!this.sequences.reliableShouldBeQueued(sequence)) {
+            this.connection.listener.onEnqueuePacketReliableFragmentDropped(
+              this.connection,
+              this.channel,
+              sequence,
+              p.getSerializedSize());
+            return;
+          }
+          break;
+        }
+
+        case DATA_RELIABLE_FRAGMENT_SEGMENT: {
+          final int sequence =
+            p.getDataReliableFragmentSegment().getId().getSequence();
 
           this.connection.listener.onReceivePacketReliableFragment(
             this.connection,

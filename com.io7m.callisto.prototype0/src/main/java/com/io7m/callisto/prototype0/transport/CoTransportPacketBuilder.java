@@ -21,17 +21,13 @@ import com.io7m.callisto.prototype0.stringconstants.CoStringConstantReference;
 import com.io7m.callisto.prototype0.stringconstants.messages.CoStringConstant;
 import com.io7m.callisto.prototype0.transport.messages.CoDataAck;
 import com.io7m.callisto.prototype0.transport.messages.CoDataReliable;
-import com.io7m.callisto.prototype0.transport.messages.CoDataReliableFragment;
 import com.io7m.callisto.prototype0.transport.messages.CoDataUnreliable;
 import com.io7m.callisto.prototype0.transport.messages.CoMessage;
 import com.io7m.callisto.prototype0.transport.messages.CoPacket;
 import com.io7m.callisto.prototype0.transport.messages.CoPacketID;
 import com.io7m.jaffirm.core.Invariants;
-import com.io7m.jaffirm.core.Postconditions;
-import com.io7m.jaffirm.core.Preconditions;
 import com.io7m.jnull.NullCheck;
-import it.unimi.dsi.fastutil.ints.IntIterator;
-import it.unimi.dsi.fastutil.ints.IntSet;
+import com.io7m.junreachable.UnimplementedCodeException;
 
 import java.nio.ByteBuffer;
 
@@ -54,9 +50,6 @@ public final class CoTransportPacketBuilder
   private final int packet_reliable_size_base;
   private final CoDataUnreliable.Builder packet_unreliable;
   private final int packet_unreliable_size_base;
-  private final CoDataReliableFragment.Builder packet_reliable_fragment;
-  private final int packet_reliable_fragment_size_base;
-  private final int packet_reliable_fragment_body_size_limit;
   private final CoTransportSequenceNumberTracker sequences;
   private int packet_reliable_fragment_id;
   private int packet_reliable_size;
@@ -86,12 +79,6 @@ public final class CoTransportPacketBuilder
     this.packet_unreliable = CoDataUnreliable.newBuilder();
     this.packet_unreliable_size_base = unreliableBaseSize();
     this.packet_unreliable_size = this.packet_unreliable_size_base;
-
-    this.packet_reliable_fragment_id = 0;
-    this.packet_reliable_fragment = CoDataReliableFragment.newBuilder();
-    this.packet_reliable_fragment_size_base = reliableFragmentBaseSize();
-    this.packet_reliable_fragment_body_size_limit =
-      this.packet_size_limit - this.packet_reliable_fragment_size_base;
   }
 
   private static int ackBaseSize()
@@ -119,32 +106,9 @@ public final class CoTransportPacketBuilder
             CoMessage.newBuilder()
               .setMessageData(ByteString.copyFrom("01234567", US_ASCII))
               .setMessageId(0xffffffff)
-              .setMessageType(CoStringConstant.newBuilder().setValue(0xffffffff))
+              .setMessageType(0xffffffff)
               .build())
           .setId(packetIDLargest()))
-      .build()
-      .getSerializedSize();
-  }
-
-  /**
-   * @return The base size of a reliable fragmented packet with the largest
-   * possible packet identifier and fragment metadata.
-   */
-
-  private static int reliableFragmentBaseSize()
-  {
-    final CoDataReliableFragment frag =
-      CoDataReliableFragment.newBuilder()
-        .setId(packetIDLargest())
-        .setFragmentCount(0xffffffff)
-        .setFragmentIndex(0xffffffff)
-        .setMessageId(0xffffffff)
-        .setMessageData(ByteString.copyFrom("01234567", US_ASCII))
-        .setMessageType(CoStringConstant.newBuilder().setValue(0xffffffff).build())
-        .build();
-
-    return CoPacket.newBuilder()
-      .setDataReliableFragment(frag)
       .build()
       .getSerializedSize();
   }
@@ -176,7 +140,7 @@ public final class CoTransportPacketBuilder
             CoMessage.newBuilder()
               .setMessageData(ByteString.copyFrom("01234567", US_ASCII))
               .setMessageId(0xffffffff)
-              .setMessageType(CoStringConstant.newBuilder().setValue(0xffffffff))
+              .setMessageType(0xffffffff)
               .build())
           .setId(packetIDLargest()))
       .build()
@@ -198,21 +162,16 @@ public final class CoTransportPacketBuilder
   }
 
   private void unreliableMessageAppend(
-    final CoStringConstantReference message_type,
+    final int message_type,
     final ByteBuffer message_data)
   {
-    final CoStringConstant p_type =
-      CoStringConstant.newBuilder()
-        .setValue(message_type.value())
-        .build();
-
     final ByteString p_data =
       ByteString.copyFrom(message_data, message_data.remaining());
 
     final CoMessage message =
       CoMessage.newBuilder()
         .setMessageId(this.sequences.messageToSendNext())
-        .setMessageType(p_type)
+        .setMessageType(message_type)
         .setMessageData(p_data)
         .build();
 
@@ -222,21 +181,16 @@ public final class CoTransportPacketBuilder
   }
 
   private void reliableMessageAppend(
-    final CoStringConstantReference message_type,
+    final int message_type,
     final ByteBuffer message_data)
   {
-    final CoStringConstant p_type =
-      CoStringConstant.newBuilder()
-        .setValue(message_type.value())
-        .build();
-
     final ByteString p_data =
       ByteString.copyFrom(message_data, message_data.remaining());
 
     final CoMessage message =
       CoMessage.newBuilder()
         .setMessageId(this.sequences.messageToSendNext())
-        .setMessageType(p_type)
+        .setMessageType(message_type)
         .setMessageData(p_data)
         .build();
 
@@ -300,7 +254,7 @@ public final class CoTransportPacketBuilder
     NullCheck.notNull(message_data, "Message data");
 
     if (this.unreliableMessageCanFit(message_data)) {
-      this.unreliableMessageAppend(message_type, message_data);
+      this.unreliableMessageAppend(message_type.value(), message_data);
       return;
     }
 
@@ -310,11 +264,10 @@ public final class CoTransportPacketBuilder
     }
 
     if (this.messageRequiresFragmentation(message_data)) {
-      this.makeFragments(output, message_type, message_data);
-      return;
+      throw new UnimplementedCodeException();
     }
 
-    this.unreliableMessageAppend(message_type, message_data);
+    this.unreliableMessageAppend(message_type.value(), message_data);
   }
 
   /**
@@ -378,7 +331,7 @@ public final class CoTransportPacketBuilder
     NullCheck.notNull(message_data, "Message data");
 
     if (this.reliableMessageCanFit(message_data)) {
-      this.reliableMessageAppend(message_type, message_data);
+      this.reliableMessageAppend(message_type.value(), message_data);
       return;
     }
 
@@ -388,11 +341,10 @@ public final class CoTransportPacketBuilder
     }
 
     if (this.messageRequiresFragmentation(message_data)) {
-      this.makeFragments(output, message_type, message_data);
-      return;
+      throw new UnimplementedCodeException();
     }
 
-    this.reliableMessageAppend(message_type, message_data);
+    this.reliableMessageAppend(message_type.value(), message_data);
   }
 
   /**
@@ -424,71 +376,6 @@ public final class CoTransportPacketBuilder
     return this.packet_unreliable_size > this.packet_unreliable_size_base;
   }
 
-  private void reliableFragmentStart()
-  {
-    this.packet_reliable_fragment.clear();
-    this.packet_reliable_fragment.setId(
-      CoPacketID.newBuilder()
-        .setConnectionId(this.id)
-        .setChannel(this.channel)
-        .setSequence(this.sequences.reliableToSendNext())
-        .build());
-  }
-
-  private CoPacket reliableFragmentFinish()
-  {
-    this.packet_reliable_fragment_id =
-      this.sequences.serial().add(this.packet_reliable_fragment_id, 1);
-
-    final CoDataReliableFragment pd =
-      this.packet_reliable_fragment.build();
-
-    final CoPacket p =
-      CoPacket.newBuilder().setDataReliableFragment(pd).build();
-
-    this.sequences.reliableSend();
-    this.packet_reliable_fragment.clear();
-    return p;
-  }
-
-  private void makeFragments(
-    final CoTransportPacketBuilderListenerType output,
-    final CoStringConstantReference type,
-    final ByteBuffer message)
-  {
-    Preconditions.checkPreconditionI(
-      message.remaining(),
-      message.remaining() >= this.packet_size_limit,
-      value -> "Message size must be >= " + this.packet_size_limit);
-
-    final int frag_size_limit =
-      this.packet_reliable_fragment_body_size_limit;
-    final int frag_count =
-      (message.limit() / frag_size_limit) + 1;
-
-    for (int frag_index = 1; frag_index <= frag_count; ++frag_index) {
-      final int size = Math.min(message.remaining(), frag_size_limit);
-
-      this.reliableFragmentStart();
-      this.packet_reliable_fragment.setFragmentId(
-        this.packet_reliable_fragment_id);
-      this.packet_reliable_fragment.setFragmentCount(frag_count);
-      this.packet_reliable_fragment.setFragmentIndex(frag_index);
-      this.packet_reliable_fragment.setMessageType(
-        CoStringConstant.newBuilder().setValue(type.value()).build());
-      this.packet_reliable_fragment.setMessageId(
-        this.sequences.messageToSendNext());
-      this.packet_reliable_fragment.setMessageData(
-        ByteString.copyFrom(message, size));
-
-      output.onCreatedPacketReliableFragment(this.reliableFragmentFinish());
-    }
-
-    Postconditions.checkPostconditionI(
-      message.remaining(),
-      message.remaining() == 0,
-      value -> "No message data must remain.");
-  }
 
   /**
    * Create any ack packets that are needed.
@@ -501,21 +388,7 @@ public final class CoTransportPacketBuilder
   {
     NullCheck.notNull(output, "Output");
 
-    final IntSet missing = this.sequences.reliableReceiverWindow().missed();
-    this.ackStart();
-
-    final IntIterator iter = missing.iterator();
-    while (iter.hasNext()) {
-      final int r = iter.nextInt();
-      if (this.ackCanFit()) {
-        this.packet_ack.addSequencesReliableNotReceived(r);
-      } else {
-        output.onCreatedPacketAck(this.ackFinish());
-        this.ackStart();
-      }
-    }
-
-    output.onCreatedPacketAck(this.ackFinish());
+    throw new UnimplementedCodeException();
   }
 
   private CoPacket ackFinish()
