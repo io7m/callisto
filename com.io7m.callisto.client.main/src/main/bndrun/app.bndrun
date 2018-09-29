@@ -1,0 +1,19 @@
+index: target/index.xml;name="app"
+
+-standalone: ${index}
+
+-runfw: org.apache.felix.framework
+
+-runrequires:\
+  osgi.identity;filter:='(osgi.identity=com.io7m.callisto.examples.component0)', \
+  osgi.identity;filter:='(osgi.identity=org.apache.felix.logback)'
+
+-runee: JavaSE-9
+
+-resolve.effective: active
+
+-runbundles: \
+  ch.qos.logback.classic, \
+  ch.qos.logback.core, \
+  org.apache.felix.scr, \
+  org.apache.felix.logback

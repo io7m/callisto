@@ -15,7 +15,7 @@
  */
 
 /**
- * Callisto engine (Client main)
+ * Callisto engine (Example component)
  */
 
-package com.io7m.callisto.client.main;
+package com.io7m.callisto.examples.component0;

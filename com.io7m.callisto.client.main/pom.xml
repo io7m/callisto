@@ -25,8 +25,19 @@
 
   <dependencies>
     <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>com.io7m.callisto.examples.component0</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
       <groupId>org.osgi</groupId>
       <artifactId>org.osgi.annotation.bundle</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.osgi</groupId>
+      <artifactId>org.osgi.service.component.annotations</artifactId>
       <scope>provided</scope>
     </dependency>
 
@@ -34,10 +45,17 @@
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
     </dependency>
-
     <dependency>
       <groupId>org.apache.felix</groupId>
       <artifactId>org.apache.felix.framework</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.felix</groupId>
+      <artifactId>org.apache.felix.scr</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.felix</groupId>
+      <artifactId>org.apache.felix.logback</artifactId>
     </dependency>
   </dependencies>
 
@@ -49,19 +67,109 @@
         <artifactId>bnd-baseline-maven-plugin</artifactId>
       </plugin>
 
+      <!-- Produce an index -->
       <plugin>
         <groupId>biz.aQute.bnd</groupId>
         <artifactId>bnd-indexer-maven-plugin</artifactId>
       </plugin>
 
+      <!-- Copy the bndrun files to the output directory -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-resources-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>bndrun-copy</id>
+            <phase>package</phase>
+            <goals>
+              <goal>copy-resources</goal>
+            </goals>
+            <configuration>
+              <overwrite>true</overwrite>
+              <resources>
+                <resource>
+                  <directory>${project.basedir}/src/main/bndrun</directory>
+                  <includes>
+                    <include>app.bndrun</include>
+                  </includes>
+                </resource>
+              </resources>
+              <outputDirectory>${project.build.directory}/bndrun</outputDirectory>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- Process the copied bndrun file -->
       <plugin>
         <groupId>biz.aQute.bnd</groupId>
         <artifactId>bnd-resolver-maven-plugin</artifactId>
-        <configuration>
-          <bndruns>
-            <bndrun>app.bndrun</bndrun>
-          </bndruns>
-        </configuration>
+        <executions>
+          <execution>
+            <id>bndrun-resolve</id>
+            <phase>package</phase>
+            <goals>
+              <goal>resolve</goal>
+            </goals>
+            <configuration>
+              <failOnChanges>false</failOnChanges>
+              <bndruns>
+                <bndrun>${project.build.directory}/bndrun/app.bndrun</bndrun>
+              </bndruns>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- Export a runnable jar -->
+      <plugin>
+        <groupId>biz.aQute.bnd</groupId>
+        <artifactId>bnd-export-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>bndrun-export</id>
+            <goals>
+              <goal>export</goal>
+            </goals>
+            <configuration>
+              <bndruns>
+                <bndrun>${project.build.directory}/bndrun/app.bndrun</bndrun>
+              </bndruns>
+              <failOnChanges>false</failOnChanges>
+              <attach>false</attach>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- Make the generated runnable jar reproducible -->
+      <plugin>
+        <groupId>io.github.zlika</groupId>
+        <artifactId>reproducible-build-maven-plugin</artifactId>
+      </plugin>
+
+      <!-- Attach the generated runnable jar -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>bndrun-attach</id>
+            <phase>package</phase>
+            <goals>
+              <goal>attach-artifact</goal>
+            </goals>
+            <configuration>
+              <artifacts>
+                <artifact>
+                  <file>${project.build.directory}/app.jar</file>
+                  <type>jar</type>
+                  <classifier>runnable</classifier>
+                </artifact>
+              </artifacts>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>

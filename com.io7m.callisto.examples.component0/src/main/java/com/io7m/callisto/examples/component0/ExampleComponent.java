@@ -14,8 +14,33 @@
  * IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/**
- * Callisto engine (Client main)
- */
+package com.io7m.callisto.examples.component0;
 
-package com.io7m.callisto.client.main;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+@Component(immediate = true)
+public final class ExampleComponent
+{
+  private static final Logger LOG = LoggerFactory.getLogger(ExampleComponent.class);
+
+  public ExampleComponent()
+  {
+
+  }
+
+  @Activate
+  public void onActivate()
+  {
+    LOG.debug("onActivate");
+  }
+
+  @Deactivate
+  public void onDeactivate()
+  {
+    LOG.debug("onDeactivate");
+  }
+}

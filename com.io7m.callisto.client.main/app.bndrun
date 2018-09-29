@@ -1,9 +1,0 @@
-index: target/index.xml;name="app"
-
--standalone: ${index}
-
--runfw: org.apache.felix.framework;version='[6.0.0, 7)'
--runrequires: osgi.identity;filter:='(osgi.identity=com.io7m.callisto.client.main)'
--runee: JavaSE-9.0
-
--resolve.effective: active
