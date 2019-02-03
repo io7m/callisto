@@ -6,7 +6,7 @@
   <parent>
     <groupId>com.io7m.primogenitor</groupId>
     <artifactId>com.io7m.primogenitor</artifactId>
-    <version>3.0.0-beta0014</version>
+    <version>3.0.0-beta0019</version>
   </parent>
 
   <groupId>com.io7m.callisto</groupId>
@@ -21,10 +21,19 @@
   <modules>
     <module>com.io7m.callisto.client.main</module>
     <module>com.io7m.callisto.examples.component0</module>
+    <module>com.io7m.callisto.container</module>
   </modules>
 
   <properties>
     <io7m.api.previousVersion>0.0.1</io7m.api.previousVersion>
+    <com.io7m.callisto.logback-classic.version>1.3.0-alpha4
+    </com.io7m.callisto.logback-classic.version>
+    <com.io7m.callisto.slf4j-api.version>1.8.0-beta2
+    </com.io7m.callisto.slf4j-api.version>
+    <com.io7m.callisto.org.apache.felix.scr.version>2.1.8
+    </com.io7m.callisto.org.apache.felix.scr.version>
+    <com.io7m.callisto.org.apache.felix.framework.version>6.0.1
+    </com.io7m.callisto.org.apache.felix.framework.version>
   </properties>
 
   <inceptionYear>2017</inceptionYear>
@@ -93,31 +102,36 @@
         <artifactId>org.osgi.service.component.annotations</artifactId>
         <version>1.4.0</version>
       </dependency>
+      <dependency>
+        <groupId>org.osgi</groupId>
+        <artifactId>org.osgi.core</artifactId>
+        <version>6.0.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.osgi</groupId>
+        <artifactId>org.osgi.service.log</artifactId>
+        <version>1.4.0</version>
+      </dependency>
 
       <dependency>
         <groupId>ch.qos.logback</groupId>
         <artifactId>logback-classic</artifactId>
-        <version>1.3.0-alpha4</version>
+        <version>${com.io7m.callisto.logback-classic.version}</version>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-api</artifactId>
-        <version>1.8.0-beta2</version>
+        <version>${com.io7m.callisto.slf4j-api.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.felix</groupId>
         <artifactId>org.apache.felix.scr</artifactId>
-        <version>2.1.8</version>
+        <version>${com.io7m.callisto.org.apache.felix.scr.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.felix</groupId>
         <artifactId>org.apache.felix.framework</artifactId>
-        <version>6.0.1</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.felix</groupId>
-        <artifactId>org.apache.felix.logback</artifactId>
-        <version>1.0.0</version>
+        <version>${com.io7m.callisto.org.apache.felix.framework.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
